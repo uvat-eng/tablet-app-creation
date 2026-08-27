@@ -16,13 +16,16 @@ CORS = {
 
 TABLES = {
     'bookings': ['guest_id', 'guest_name', 'guest_phone', 'object_id', 'date_from', 'date_to',
-                 'people', 'status', 'source', 'total', 'paid', 'note'],
-    'objects': ['kind', 'name', 'capacity', 'price', 'note', 'status'],
-    'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note'],
-    'services': ['name', 'category', 'price', 'unit', 'note', 'active'],
-    'trophies': ['species', 'taken_on', 'hunter', 'location', 'weight', 'note', 'photo_url'],
-    'locations': ['name', 'distance_km', 'area_ha', 'species', 'note'],
-    'reviews': ['author', 'city', 'rating', 'text', 'published'],
+                 'people', 'status', 'source', 'total', 'paid', 'note', 'archived'],
+    'objects': ['kind', 'name', 'capacity', 'price', 'note', 'status', 'photo_url', 'archived'],
+    'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note', 'archived'],
+    'services': ['name', 'category', 'price', 'unit', 'note', 'active', 'archived'],
+    'trophies': ['species', 'taken_on', 'hunter', 'location', 'weight', 'note', 'photo_url',
+                 'archived'],
+    'locations': ['name', 'distance_km', 'area_ha', 'species', 'note', 'archived'],
+    'reviews': ['author', 'city', 'rating', 'text', 'published', 'archived'],
+    'booking_services': ['booking_id', 'service_id', 'name', 'price', 'qty'],
+    'payments': ['booking_id', 'amount', 'method', 'paid_on', 'note'],
 }
 
 ORDER = {
@@ -33,7 +36,11 @@ ORDER = {
     'trophies': 'taken_on DESC NULLS LAST',
     'locations': 'distance_km',
     'reviews': 'id DESC',
+    'booking_services': 'id',
+    'payments': 'paid_on DESC, id DESC',
 }
+
+ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews'}
 
 
 def esc(value):
@@ -85,6 +92,29 @@ def check_conflict(cur, body):
     return {k: jsonable(v) for k, v in dict(found).items()}
 
 
+def recalc(cur, table, booking_id):
+    if table not in ('booking_services', 'payments') or not booking_id:
+        return
+    bid = str(int(booking_id))
+    cur.execute("SELECT COALESCE(SUM(price * qty), 0) AS s FROM booking_services "
+                "WHERE booking_id = " + bid)
+    services_sum = int(cur.fetchone()['s'])
+    cur.execute("SELECT COALESCE(SUM(amount), 0) AS s FROM payments WHERE booking_id = " + bid)
+    paid_sum = int(cur.fetchone()['s'])
+
+    cur.execute("SELECT b.date_from, b.date_to, COALESCE(o.price, 0) AS price "
+                "FROM bookings b LEFT JOIN objects o ON o.id = b.object_id "
+                "WHERE b.id = " + bid)
+    row = cur.fetchone()
+    stay = 0
+    if row and row['date_from'] and row['date_to']:
+        nights = max(1, (row['date_to'] - row['date_from']).days)
+        stay = nights * int(row['price'] or 0)
+
+    cur.execute("UPDATE bookings SET total = " + str(stay + services_sum) +
+                ", paid = " + str(paid_sum) + " WHERE id = " + bid)
+
+
 def handler(event: dict, context) -> dict:
     """Учёт охотхозяйства: брони, объекты, гости, услуги, трофеи, локации, отзывы."""
     method = event.get('httpMethod', 'GET')
@@ -102,14 +132,26 @@ def handler(event: dict, context) -> dict:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     if method == 'GET':
+        show_archived = params.get('archived') == '1'
+        where = []
+        if table in ARCHIVABLE and not show_archived:
+            where.append('archived = FALSE')
+        if params.get('booking_id') and table in ('booking_services', 'payments'):
+            where.append('booking_id = ' + str(int(params['booking_id'])))
+
         if table == 'bookings':
+            cond = ' WHERE b.archived = FALSE' if not show_archived else ''
             cur.execute(
                 "SELECT b.*, o.name AS object_name, o.kind AS object_kind "
-                "FROM bookings b LEFT JOIN objects o ON o.id = b.object_id "
-                "ORDER BY b.date_from DESC LIMIT 500"
+                "FROM bookings b LEFT JOIN objects o ON o.id = b.object_id" + cond +
+                " ORDER BY b.date_from DESC LIMIT 500"
             )
         else:
-            cur.execute('SELECT * FROM ' + table + ' ORDER BY ' + ORDER[table] + ' LIMIT 500')
+            sql = 'SELECT * FROM ' + table
+            if where:
+                sql += ' WHERE ' + ' AND '.join(where)
+            sql += ' ORDER BY ' + ORDER[table] + ' LIMIT 500'
+            cur.execute(sql)
         data = rows_to_list(cur)
         cur.close()
         conn.close()
@@ -132,6 +174,7 @@ def handler(event: dict, context) -> dict:
                ', '.join(esc(body[c]) for c in cols) + ') RETURNING *')
         cur.execute(sql)
         item = rows_to_list(cur)[0]
+        recalc(cur, table, item.get('booking_id'))
         cur.close()
         conn.close()
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': item})}
@@ -147,9 +190,32 @@ def handler(event: dict, context) -> dict:
         cur.execute('UPDATE ' + table + ' SET ' + ', '.join(sets) +
                     ' WHERE id = ' + str(item_id) + ' RETURNING *')
         item = rows_to_list(cur)[0]
+        recalc(cur, table, item.get('booking_id'))
         cur.close()
         conn.close()
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': item})}
+
+    if method == 'DELETE':
+        item_id = int(params.get('id', 0) or body.get('id', 0))
+        if not item_id:
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'id required'})}
+
+        if table in ARCHIVABLE:
+            cur.execute('UPDATE ' + table + ' SET archived = TRUE WHERE id = ' + str(item_id))
+            cur.close()
+            conn.close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'archived': item_id})}
+
+        cur.execute('SELECT booking_id FROM ' + table + ' WHERE id = ' + str(item_id))
+        row = cur.fetchone()
+        booking_id = row['booking_id'] if row else None
+        cur.execute('DELETE FROM ' + table + ' WHERE id = ' + str(item_id))
+        recalc(cur, table, booking_id)
+        cur.close()
+        conn.close()
+        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'deleted': item_id})}
 
     cur.close()
     conn.close()

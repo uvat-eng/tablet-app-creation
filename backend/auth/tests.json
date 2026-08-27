@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {
+      "name": "Неверный пароль",
+      "method": "POST",
+      "path": "/?action=login",
+      "body": {"login": "admin", "password": "wrong"},
+      "expectedStatus": 401
+    },
+    {
+      "name": "Сессия без токена",
+      "method": "GET",
+      "path": "/?action=me",
+      "expectedStatus": 401
+    },
+    {
+      "name": "Сотрудники без прав",
+      "method": "GET",
+      "path": "/?action=staff",
+      "expectedStatus": 403
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
+import { useAuth } from '@/context/AuthContext';
 
 const NAV = [
   { to: '/', label: 'Главная', icon: 'LayoutDashboard' },
@@ -16,6 +17,12 @@ const NAV = [
   { to: '/club', label: 'Клуб охотников', icon: 'Users' },
 ];
 
+const OWNER_NAV = [
+  { to: '/finance', label: 'Финансы', icon: 'Wallet' },
+  { to: '/staff', label: 'Сотрудники', icon: 'UserCog' },
+  { to: '/archive', label: 'Архив', icon: 'Archive' },
+];
+
 interface LayoutProps {
   title: string;
   index: string;
@@ -24,7 +31,11 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const Layout = ({ title, index, lede, action, children }: LayoutProps) => (
+const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
+  const { user, signOut } = useAuth();
+  const items = user?.role === 'owner' ? [...NAV, ...OWNER_NAV] : NAV;
+
+  return (
   <div className="h-shell min-h-screen flex">
     <aside className="w-[236px] shrink-0 border-r border-[#e2e2df] p-6 hidden lg:block sticky top-0 h-screen overflow-y-auto">
       <div className="flex items-center gap-3 mb-9">
@@ -50,7 +61,7 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => (
       </div>
 
       <nav className="flex flex-col gap-px">
-        {NAV.map((n) => (
+        {items.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
@@ -66,11 +77,20 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => (
           </NavLink>
         ))}
       </nav>
+
+      {user && (
+        <div className="mt-8 pt-5 h-rule">
+          <div className="h-label">{user.name}</div>
+          <button className="h-label underline mt-2" onClick={signOut}>
+            Выйти
+          </button>
+        </div>
+      )}
     </aside>
 
     <main className="flex-1 min-w-0">
       <div className="lg:hidden border-b border-[#e2e2df] px-4 py-3 flex gap-4 overflow-x-auto">
-        {NAV.map((n) => (
+        {items.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
@@ -100,6 +120,7 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => (
       </div>
     </main>
   </div>
-);
+  );
+};
 
 export default Layout;

@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "Пустой файл",
+      "method": "POST",
+      "path": "/",
+      "body": {"file": ""},
+      "expectedStatus": 400
+    },
+    {
+      "name": "Метод не разрешён",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 405
+    }
+  ]
+}

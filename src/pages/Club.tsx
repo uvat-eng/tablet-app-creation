@@ -8,6 +8,8 @@ const Club = () => (
     title="Клуб охотников"
     lede="Гости хозяйства и члены клуба: контакты, статус, срок членства."
     addLabel="Добавить гостя"
+    searchKeys={['name', 'phone', 'city', 'note']}
+    rowLink={(r) => `/club/${r.id}`}
     columns={[
       { key: 'name', label: 'Имя' },
       { key: 'phone', label: 'Телефон', width: '170px' },

@@ -6,14 +6,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Row } from '@/lib/api';
+import { Row, uploadPhoto } from '@/lib/api';
+import { toast } from 'sonner';
 
 export interface Field {
   key: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'checkbox';
+  type?: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'checkbox' | 'photo';
   options?: { value: string; label: string }[];
   placeholder?: string;
+  folder?: string;
 }
 
 interface RecordDialogProps {
@@ -27,6 +29,7 @@ interface RecordDialogProps {
 
 const RecordDialog = ({ open, onOpenChange, title, fields, initial, onSubmit }: RecordDialogProps) => {
   const [values, setValues] = useState<Row>({});
+  const [uploading, setUploading] = useState('');
 
   useEffect(() => {
     if (open) setValues(initial ? { ...initial } : {});
@@ -36,6 +39,20 @@ const RecordDialog = ({ open, onOpenChange, title, fields, initial, onSubmit }: 
     setValues((prev) => ({ ...prev, [k]: v }));
 
   const input = 'w-full border border-[#e2e2df] px-3 py-2 text-[0.75em] bg-white';
+
+  const pickPhoto = async (key: string, file: File | undefined, folder?: string) => {
+    if (!file) return;
+    setUploading(key);
+    try {
+      const url = await uploadPhoto(file, folder || 'photos');
+      set(key, url);
+      toast.success('Фото загружено');
+    } catch {
+      toast.error('Не удалось загрузить фото');
+    } finally {
+      setUploading('');
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -76,6 +93,23 @@ const RecordDialog = ({ open, onOpenChange, title, fields, initial, onSubmit }: 
                   checked={Boolean(values[f.key])}
                   onChange={(e) => set(f.key, e.target.checked)}
                 />
+              ) : f.type === 'photo' ? (
+                <span className="block">
+                  {values[f.key] && (
+                    <img
+                      src={String(values[f.key])}
+                      alt=""
+                      className="w-full h-[150px] object-cover border border-[#e2e2df] mb-2"
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="text-[0.7em]"
+                    onChange={(e) => pickPhoto(f.key, e.target.files?.[0], f.folder)}
+                  />
+                  {uploading === f.key && <span className="h-label block mt-1">Загружаем…</span>}
+                </span>
               ) : (
                 <input
                   className={input}

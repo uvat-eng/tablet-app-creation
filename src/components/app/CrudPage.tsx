@@ -1,8 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import DataTable, { Column } from '@/components/app/DataTable';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
-import { Row, listRows, createRow, updateRow } from '@/lib/api';
+import SearchBar from '@/components/app/SearchBar';
+import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface CrudPageProps {
@@ -16,6 +18,8 @@ interface CrudPageProps {
   defaults?: Row;
   addLabel?: string;
   extra?: (rows: Row[]) => React.ReactNode;
+  searchKeys?: string[];
+  rowLink?: (row: Row) => string;
 }
 
 const CrudPage = ({
@@ -29,11 +33,15 @@ const CrudPage = ({
   defaults,
   addLabel = 'Добавить',
   extra,
+  searchKeys,
+  rowLink,
 }: CrudPageProps) => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
+  const [query, setQuery] = useState('');
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,6 +53,13 @@ const CrudPage = ({
   useEffect(() => {
     load();
   }, [load]);
+
+  const visible = useMemo(() => {
+    if (!query.trim()) return rows;
+    const q = query.trim().toLowerCase();
+    const keys = searchKeys || columns.map((c) => c.key);
+    return rows.filter((r) => keys.some((k) => String(r[k] ?? '').toLowerCase().includes(q)));
+  }, [rows, query, searchKeys, columns]);
 
   const save = async (values: Row) => {
     const payload = { ...defaults, ...values };
@@ -59,6 +74,32 @@ const CrudPage = ({
     setEditing(null);
     load();
   };
+
+  const archive = async (row: Row) => {
+    await removeRow(table, Number(row.id));
+    toast.success('Запись убрана в архив');
+    load();
+  };
+
+  const cols: Column[] = [
+    ...columns,
+    {
+      key: '__actions',
+      label: '',
+      width: '110px',
+      render: (r) => (
+        <button
+          className="h-label underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            archive(r);
+          }}
+        >
+          В архив
+        </button>
+      ),
+    },
+  ];
 
   return (
     <Layout
@@ -79,11 +120,16 @@ const CrudPage = ({
     >
       {extra?.(rows)}
       <div className={extra ? 'mt-8' : ''}>
+        <SearchBar value={query} onChange={setQuery} count={visible.length} />
         <DataTable
-          columns={columns}
-          rows={rows}
+          columns={cols}
+          rows={visible}
           empty={loading ? 'Загружаем…' : 'Пока нет записей'}
           onRowClick={(r) => {
+            if (rowLink) {
+              navigate(rowLink(r));
+              return;
+            }
             setEditing(r);
             setOpen(true);
           }}

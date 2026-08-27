@@ -7,7 +7,19 @@ const Trophies = () => (
     title="Трофейный зал"
     lede="Учёт добытых трофеев: вид, дата, охотник, угодье."
     addLabel="Записать трофей"
+    searchKeys={['species', 'hunter', 'location', 'note']}
     columns={[
+      {
+        key: 'photo_url',
+        label: 'Фото',
+        width: '80px',
+        render: (r) =>
+          r.photo_url ? (
+            <img src={String(r.photo_url)} alt="" className="w-14 h-10 object-cover" />
+          ) : (
+            '—'
+          ),
+      },
       { key: 'species', label: 'Вид', width: '140px' },
       { key: 'taken_on', label: 'Дата', width: '120px' },
       { key: 'hunter', label: 'Охотник' },
@@ -22,7 +34,7 @@ const Trophies = () => (
       { key: 'location', label: 'Угодье' },
       { key: 'weight', label: 'Вес или размер' },
       { key: 'note', label: 'Заметка', type: 'textarea' },
-      { key: 'photo_url', label: 'Ссылка на фото' },
+      { key: 'photo_url', label: 'Фотография трофея', type: 'photo', folder: 'trophies' },
     ]}
   />
 );

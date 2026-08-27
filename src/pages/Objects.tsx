@@ -4,6 +4,17 @@ import { Row } from '@/lib/api';
 const money = (r: Row) => `${Number(r.price || 0).toLocaleString('ru-RU')} ₽`;
 
 const columns = [
+  {
+    key: 'photo_url',
+    label: 'Фото',
+    width: '80px',
+    render: (r: Row) =>
+      r.photo_url ? (
+        <img src={String(r.photo_url)} alt="" className="w-14 h-10 object-cover" />
+      ) : (
+        '—'
+      ),
+  },
   { key: 'name', label: 'Название' },
   { key: 'capacity', label: 'Вместимость', width: '130px' },
   { key: 'price', label: 'Цена', width: '120px', render: money },
@@ -27,6 +38,7 @@ const makeFields = (kind: string) => [
     ],
   },
   { key: 'kind', label: 'Тип', type: 'text' as const, placeholder: kind },
+  { key: 'photo_url', label: 'Фотография', type: 'photo' as const, folder: 'objects' },
 ];
 
 const filterTransport = (r: Row) => r.kind === 'transport';

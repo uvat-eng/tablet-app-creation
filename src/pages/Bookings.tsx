@@ -3,8 +3,10 @@ import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import BookingCalendar from '@/components/app/BookingCalendar';
-import { Row, listRows, createRow, updateRow, ConflictError } from '@/lib/api';
+import SearchBar from '@/components/app/SearchBar';
+import { Row, listRows, createRow, updateRow, removeRow, ConflictError } from '@/lib/api';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const STATUS: Record<string, string> = {
   new: 'Новая',
@@ -23,6 +25,21 @@ const Bookings = () => {
   const [editing, setEditing] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
   const [objectFilter, setObjectFilter] = useState(0);
+  const [query, setQuery] = useState('');
+  const navigate = useNavigate();
+
+  const visible = useMemo(() => {
+    const base = objectFilter
+      ? rows.filter((r) => Number(r.object_id) === objectFilter)
+      : rows;
+    if (!query.trim()) return base;
+    const q = query.trim().toLowerCase();
+    return base.filter((r) =>
+      ['guest_name', 'guest_phone', 'object_name', 'note'].some((k) =>
+        String(r[k] ?? '').toLowerCase().includes(q),
+      ),
+    );
+  }, [rows, objectFilter, query]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -163,6 +180,7 @@ const Bookings = () => {
       />
 
       <div className="mt-8">
+        <SearchBar value={query} onChange={setQuery} count={visible.length} />
         <DataTable
           columns={[
             { key: 'date_from', label: 'Заезд', width: '110px' },
@@ -182,13 +200,40 @@ const Bookings = () => {
             },
             { key: 'total', label: 'Сумма', render: (r) => money(r.total) },
             { key: 'paid', label: 'Оплачено', render: (r) => money(r.paid) },
+            {
+              key: '__act',
+              label: '',
+              width: '150px',
+              render: (r) => (
+                <span className="flex gap-3">
+                  <button
+                    className="h-label underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditing(r);
+                      setOpen(true);
+                    }}
+                  >
+                    Править
+                  </button>
+                  <button
+                    className="h-label underline"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await removeRow('bookings', Number(r.id));
+                      toast.success('Бронь убрана в архив');
+                      load();
+                    }}
+                  >
+                    В архив
+                  </button>
+                </span>
+              ),
+            },
           ]}
-          rows={rows}
+          rows={visible}
           empty={loading ? 'Загружаем…' : 'Броней пока нет'}
-          onRowClick={(r) => {
-            setEditing(r);
-            setOpen(true);
-          }}
+          onRowClick={(r) => navigate(`/bookings/${r.id}`)}
         />
       </div>
 
