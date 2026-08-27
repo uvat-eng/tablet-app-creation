@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { SettingsProvider } from "@/context/SettingsContext";
 import Protected from "@/components/app/Protected";
 import Index from "./pages/Index";
 import Bookings from "./pages/Bookings";
@@ -17,6 +18,7 @@ import Club from "./pages/Club";
 import GuestCard from "./pages/GuestCard";
 import Finance from "./pages/Finance";
 import Staff from "./pages/Staff";
+import Settings from "./pages/Settings";
 import Archive from "./pages/Archive";
 import NotFound from "./pages/NotFound";
 
@@ -34,6 +36,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
+        <SettingsProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={guard(<Index />, 'dashboard')} />
@@ -51,11 +54,13 @@ const App = () => (
             <Route path="/club/:id" element={guard(<GuestCard />, 'club')} />
             <Route path="/finance" element={guard(<Finance />, 'finance')} />
             <Route path="/staff" element={guard(<Staff />, undefined, true)} />
+            <Route path="/settings" element={guard(<Settings />, undefined, true)} />
             <Route path="/archive" element={guard(<Archive />, 'archive')} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </SettingsProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

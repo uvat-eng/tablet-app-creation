@@ -6,6 +6,7 @@ import Icon from '@/components/ui/icon';
 import { Row, listRows } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { can } from '@/lib/permissions';
+import { useSettings } from '@/context/SettingsContext';
 
 const money = (v: number) => `${v.toLocaleString('ru-RU')} ₽`;
 
@@ -27,6 +28,7 @@ const Index = () => {
   const [reviews, setReviews] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { settings } = useSettings();
 
   useEffect(() => {
     Promise.all([
@@ -205,7 +207,7 @@ const Index = () => {
   return (
     <Layout
       index="Раздел / Главная"
-      title="Охотхозяйство"
+      title={settings.farm_name || 'Охотничье хозяйство'}
       lede="Рабочий стол: заезды, загрузка объектов и деньги за сезон."
       action={
         <Link className="h-cta" to="/bookings">

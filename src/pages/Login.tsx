@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ROLES } from '@/lib/permissions';
+import Brand from '@/components/app/Brand';
 
 const Login = () => {
   const { signIn } = useAuth();
@@ -28,26 +29,8 @@ const Login = () => {
   return (
     <div className="h-shell min-h-screen flex items-center justify-center px-6">
       <form onSubmit={submit} className="w-full max-w-[380px]">
-        <div className="flex items-center gap-3 mb-8">
-          <svg viewBox="0 0 108 26" className="w-[90px] h-[22px]" aria-label="Охотбаза">
-            <g fill="currentColor">
-              <rect x="0" y="0" width="9" height="26" />
-              <rect x="12" y="6" width="9" height="14" />
-              <rect x="24" y="0" width="9" height="26" />
-              <rect x="36" y="10" width="9" height="6" />
-              <rect x="48" y="0" width="9" height="26" />
-              <rect x="60" y="6" width="9" height="20" />
-              <rect x="72" y="0" width="9" height="14" />
-              <rect x="84" y="4" width="9" height="18" />
-              <rect x="96" y="0" width="9" height="26" />
-            </g>
-          </svg>
-          <span
-            className="text-[0.7em] uppercase tracking-[0.14em] font-bold"
-            style={{ fontFamily: 'var(--hero-font-head)' }}
-          >
-            Охотбаза
-          </span>
+        <div className="mb-8">
+          <Brand size="md" />
         </div>
 
         <h1 className="h-head text-[34px]">Вход в базу</h1>

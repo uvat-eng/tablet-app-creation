@@ -25,6 +25,7 @@ export const SECTIONS: Section[] = [
 
 export const OWNER_ONLY: Section[] = [
   { key: 'staff', to: '/staff', label: 'Сотрудники', icon: 'UserCog' },
+  { key: 'settings', to: '/settings', label: 'Настройки', icon: 'Settings' },
 ];
 
 export const ROLES: Record<string, string> = {

@@ -123,6 +123,35 @@ def handler(event: dict, context) -> dict:
 
     params = event.get('queryStringParameters') or {}
     table = params.get('table', 'bookings')
+
+    if table == 'settings':
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        conn.autocommit = True
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        if method == 'GET':
+            cur.execute("SELECT * FROM settings WHERE id = 1")
+            row = cur.fetchone()
+            item = {k: jsonable(v) for k, v in dict(row).items()} if row else {}
+            cur.close()
+            conn.close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': item})}
+
+        body = json.loads(event.get('body') or '{}')
+        sets = []
+        for f in ('farm_name', 'logo_url', 'configured'):
+            if f in body:
+                sets.append(f + ' = ' + esc(body[f]))
+        if not sets:
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'no fields'})}
+        cur.execute("UPDATE settings SET " + ', '.join(sets) +
+                    ", updated_at = NOW() WHERE id = 1 RETURNING *")
+        item = rows_to_list(cur)[0]
+        cur.close()
+        conn.close()
+        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': item})}
+
     if table not in TABLES:
         return {'statusCode': 400, 'headers': CORS,
                 'body': json.dumps({'error': 'unknown table'})}

@@ -71,6 +71,36 @@ export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string
   return data.url;
 };
 
+export interface FarmSettings {
+  farm_name: string;
+  logo_url: string | null;
+  configured: boolean;
+}
+
+export const getSettings = async (): Promise<FarmSettings> => {
+  const res = await fetch(`${CRM_URL}?table=settings`, { headers: authHeaders() });
+  const data = await res.json();
+  return {
+    farm_name: data.item?.farm_name || '',
+    logo_url: data.item?.logo_url || null,
+    configured: Boolean(data.item?.configured),
+  };
+};
+
+export const saveSettings = async (body: Row): Promise<FarmSettings> => {
+  const res = await fetch(`${CRM_URL}?table=settings`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  return {
+    farm_name: data.item?.farm_name || '',
+    logo_url: data.item?.logo_url || null,
+    configured: Boolean(data.item?.configured),
+  };
+};
+
 export interface StaffUser {
   id: number;
   name: string;
