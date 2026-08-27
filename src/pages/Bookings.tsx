@@ -186,9 +186,9 @@ const Bookings = () => {
                 { label: 'Аванс', value: money(block.data.prepay) },
                 { label: 'Тотал', value: money(block.data.total) },
               ].map((s) => (
-                <div key={s.label} className="bg-white p-4">
+                <div key={s.label} className="bg-white p-4 min-h-[92px]">
                   <div className="h-label">{s.label}</div>
-                  <div className="h-head text-[22px] mt-2">{s.value}</div>
+                  <div className="h-head text-[17px] mt-2 whitespace-nowrap">{s.value}</div>
                 </div>
               ))}
             </div>
