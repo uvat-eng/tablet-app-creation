@@ -16,6 +16,11 @@ const STATUS: Record<string, string> = {
   cancelled: 'Отменена',
 };
 
+const PAYMENT: Record<string, string> = {
+  cash: 'Наличные',
+  cashless: 'Безнал',
+};
+
 const money = (v: unknown) => `${Number(v || 0).toLocaleString('ru-RU')} ₽`;
 
 const Bookings = () => {
@@ -24,22 +29,18 @@ const Bookings = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
-  const [objectFilter, setObjectFilter] = useState(0);
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
 
   const visible = useMemo(() => {
-    const base = objectFilter
-      ? rows.filter((r) => Number(r.object_id) === objectFilter)
-      : rows;
-    if (!query.trim()) return base;
+    if (!query.trim()) return rows;
     const q = query.trim().toLowerCase();
-    return base.filter((r) =>
-      ['guest_name', 'guest_phone', 'object_name', 'note'].some((k) =>
+    return rows.filter((r) =>
+      ['guest_name', 'guest_phone', 'country', 'hunt_type', 'note'].some((k) =>
         String(r[k] ?? '').toLowerCase().includes(q),
       ),
     );
-  }, [rows, objectFilter, query]);
+  }, [rows, query]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,25 +56,33 @@ const Bookings = () => {
 
   const fields: Field[] = useMemo(
     () => [
-      { key: 'guest_name', label: 'Гость', placeholder: 'Имя и фамилия' },
+      { key: 'guest_name', label: 'Гость (ФИО)', placeholder: 'Фамилия Имя Отчество' },
       { key: 'guest_phone', label: 'Телефон', placeholder: '+7 …' },
-      {
-        key: 'object_id',
-        label: 'Объект',
-        type: 'select',
-        options: objects.map((o) => ({ value: String(o.id), label: String(o.name) })),
-      },
+      { key: 'country', label: 'Страна', placeholder: 'Россия' },
       { key: 'date_from', label: 'Заезд', type: 'date' },
       { key: 'date_to', label: 'Выезд', type: 'date' },
       { key: 'people', label: 'Человек', type: 'number' },
+      { key: 'hunt_type', label: 'Вид охоты', placeholder: 'Лось, кабан, утка…' },
+      {
+        key: 'object_id',
+        label: 'Размещение',
+        type: 'select',
+        options: objects.map((o) => ({ value: String(o.id), label: String(o.name) })),
+      },
       {
         key: 'status',
         label: 'Статус',
         type: 'select',
         options: Object.entries(STATUS).map(([value, label]) => ({ value, label })),
       },
-      { key: 'total', label: 'Сумма, ₽', type: 'number' },
-      { key: 'paid', label: 'Оплачено, ₽', type: 'number' },
+      { key: 'total', label: 'Сумма тотал, ₽', type: 'number' },
+      { key: 'prepay', label: 'Аванс, ₽', type: 'number' },
+      {
+        key: 'payment_type',
+        label: 'Форма оплаты',
+        type: 'select',
+        options: Object.entries(PAYMENT).map(([value, label]) => ({ value, label })),
+      },
       { key: 'note', label: 'Заметка', type: 'textarea' },
     ],
     [objects],
@@ -109,17 +118,20 @@ const Bookings = () => {
   };
 
   const stats = useMemo(() => {
-    const active = rows.filter((r) => r.status === 'confirmed' || r.status === 'new').length;
-    const total = rows.reduce((s, r) => s + Number(r.total || 0), 0);
-    const paid = rows.reduce((s, r) => s + Number(r.paid || 0), 0);
-    return { active, total, paid, debt: total - paid };
+    const live = rows.filter((r) => r.status !== 'cancelled');
+    const active = live.filter((r) => r.status === 'confirmed' || r.status === 'new').length;
+    const prepay = live.reduce(
+      (s, r) => s + Number(r.prepay || 0) + Number(r.paid || 0),
+      0,
+    );
+    const total = live.reduce((s, r) => s + Number(r.total || 0), 0);
+    return { active, prepay, total };
   }, [rows]);
 
   return (
     <Layout
       index="Раздел / Бронирования"
       title="Бронирования"
-      lede="Все заезды хозяйства: даты, объект, гость, деньги."
       action={
         <button
           className="h-cta"
@@ -132,12 +144,18 @@ const Bookings = () => {
         </button>
       }
     >
-      <div className="grid gap-px mb-8" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', background: '#e2e2df', border: '1px solid #e2e2df' }}>
+      <div
+        className="grid gap-px mb-8"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          background: '#e2e2df',
+          border: '1px solid #e2e2df',
+        }}
+      >
         {[
-          { label: 'Активных броней', value: String(stats.active) },
-          { label: 'Сумма всех', value: money(stats.total) },
-          { label: 'Получено', value: money(stats.paid) },
-          { label: 'Ожидается', value: money(stats.debt) },
+          { label: 'Активных бронирований', value: String(stats.active) },
+          { label: 'Аванс', value: money(stats.prepay) },
+          { label: 'Тотал', value: money(stats.total) },
         ].map((s) => (
           <div key={s.label} className="bg-white p-5">
             <div className="h-label">{s.label}</div>
@@ -146,34 +164,16 @@ const Bookings = () => {
         ))}
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="h-label mr-1">Объект</span>
-        <button
-          className={objectFilter ? 'h-cta-ghost' : 'h-cta'}
-          onClick={() => setObjectFilter(0)}
-        >
-          Все
-        </button>
-        {objects.map((o) => (
-          <button
-            key={String(o.id)}
-            className={objectFilter === Number(o.id) ? 'h-cta' : 'h-cta-ghost'}
-            onClick={() => setObjectFilter(Number(o.id))}
-          >
-            {String(o.name)}
-          </button>
-        ))}
-      </div>
-
       <BookingCalendar
-        bookings={objectFilter ? rows.filter((r) => Number(r.object_id) === objectFilter) : rows}
+        bookings={rows}
         onPick={(from, to) => {
           setEditing({
             date_from: from,
             date_to: to,
             status: 'new',
             people: 1,
-            object_id: objectFilter || null,
+            country: 'Россия',
+            payment_type: 'cash',
           } as Row);
           setOpen(true);
         }}
@@ -185,21 +185,26 @@ const Bookings = () => {
           columns={[
             { key: 'date_from', label: 'Заезд', width: '110px' },
             { key: 'date_to', label: 'Выезд', width: '110px' },
-            { key: 'guest_name', label: 'Гость' },
-            { key: 'object_name', label: 'Объект' },
+            { key: 'guest_name', label: 'Гость ФИО' },
+            { key: 'country', label: 'Страна', width: '120px' },
             { key: 'people', label: 'Чел.', width: '70px' },
+            { key: 'hunt_type', label: 'Вид охоты', width: '150px' },
             {
-              key: 'status',
-              label: 'Статус',
+              key: 'total',
+              label: 'Сумма тотал',
               width: '140px',
-              render: (r) => (
-                <span className="h-chip h-chip-grey text-[0.9em]">
-                  {STATUS[String(r.status)] || String(r.status)}
-                </span>
-              ),
+              render: (r) => money(r.total),
             },
-            { key: 'total', label: 'Сумма', render: (r) => money(r.total) },
-            { key: 'paid', label: 'Оплачено', render: (r) => money(r.paid) },
+            {
+              key: 'payment_type',
+              label: 'Факт оплаты',
+              width: '160px',
+              render: (r) => {
+                const fact = Number(r.prepay || 0) + Number(r.paid || 0);
+                if (!fact) return 'нет оплаты';
+                return `${money(fact)} · ${PAYMENT[String(r.payment_type)] || 'нал'}`;
+              },
+            },
             {
               key: '__act',
               label: '',

@@ -16,7 +16,8 @@ CORS = {
 
 TABLES = {
     'bookings': ['guest_id', 'guest_name', 'guest_phone', 'object_id', 'date_from', 'date_to',
-                 'people', 'status', 'source', 'total', 'paid', 'note', 'archived'],
+                 'people', 'status', 'source', 'total', 'paid', 'note', 'archived',
+                 'country', 'hunt_type', 'payment_type', 'prepay'],
     'objects': ['kind', 'name', 'capacity', 'price', 'note', 'status', 'photo_url', 'archived'],
     'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note', 'archived'],
     'services': ['name', 'category', 'price', 'unit', 'note', 'active', 'archived'],
@@ -111,8 +112,10 @@ def recalc(cur, table, booking_id):
         nights = max(1, (row['date_to'] - row['date_from']).days)
         stay = nights * int(row['price'] or 0)
 
-    cur.execute("UPDATE bookings SET total = " + str(stay + services_sum) +
-                ", paid = " + str(paid_sum) + " WHERE id = " + bid)
+    sets = 'paid = ' + str(paid_sum)
+    if stay or services_sum:
+        sets += ', total = ' + str(stay + services_sum)
+    cur.execute("UPDATE bookings SET " + sets + " WHERE id = " + bid)
 
 
 def handler(event: dict, context) -> dict:
