@@ -37,7 +37,7 @@ const filterBanya = (r: Row) => r.kind === 'banya';
 export const Transport = () => (
   <CrudPage
     table="objects"
-    index="03 / Парк техники"
+    index="Раздел / Транспорт"
     title="Транспорт"
     lede="Снегоходы, вездеходы, лодки: состояние и стоимость аренды."
     addLabel="Добавить технику"
@@ -51,7 +51,7 @@ export const Transport = () => (
 export const House = () => (
   <CrudPage
     table="objects"
-    index="04 / Проживание"
+    index="Раздел / Дом"
     title="Дом"
     lede="Охотничьи дома: вместимость, суточная стоимость, состояние."
     addLabel="Добавить дом"
@@ -65,7 +65,7 @@ export const House = () => (
 export const Hotel = () => (
   <CrudPage
     table="objects"
-    index="05 / Проживание"
+    index="Раздел / Гостиница"
     title="Гостиница"
     lede="Номерной фонд базы."
     addLabel="Добавить номер"
@@ -79,7 +79,7 @@ export const Hotel = () => (
 export const Banya = () => (
   <CrudPage
     table="objects"
-    index="06 / Услуги базы"
+    index="Раздел / Баня"
     title="Баня"
     lede="Парные и комнаты отдыха: почасовая стоимость и загрузка."
     addLabel="Добавить баню"

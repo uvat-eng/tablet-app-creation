@@ -3,7 +3,7 @@ import CrudPage from '@/components/app/CrudPage';
 const Trophies = () => (
   <CrudPage
     table="trophies"
-    index="07 / Журнал добычи"
+    index="Раздел / Трофейный зал"
     title="Трофейный зал"
     lede="Учёт добытых трофеев: вид, дата, охотник, угодье."
     addLabel="Записать трофей"

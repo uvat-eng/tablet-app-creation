@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
+import Icon from '@/components/ui/icon';
 import { Row, listRows } from '@/lib/api';
 
 const money = (v: number) => `${v.toLocaleString('ru-RU')} ₽`;
@@ -18,17 +19,31 @@ const Index = () => {
   const [bookings, setBookings] = useState<Row[]>([]);
   const [guests, setGuests] = useState<Row[]>([]);
   const [objects, setObjects] = useState<Row[]>([]);
+  const [services, setServices] = useState<Row[]>([]);
+  const [trophies, setTrophies] = useState<Row[]>([]);
+  const [locations, setLocations] = useState<Row[]>([]);
+  const [reviews, setReviews] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([listRows('bookings'), listRows('guests'), listRows('objects')]).then(
-      ([b, g, o]) => {
-        setBookings(b);
-        setGuests(g);
-        setObjects(o);
-        setLoading(false);
-      },
-    );
+    Promise.all([
+      listRows('bookings'),
+      listRows('guests'),
+      listRows('objects'),
+      listRows('services'),
+      listRows('trophies'),
+      listRows('locations'),
+      listRows('reviews'),
+    ]).then(([b, g, o, s, t, l, r]) => {
+      setBookings(b);
+      setGuests(g);
+      setObjects(o);
+      setServices(s);
+      setTrophies(t);
+      setLocations(l);
+      setReviews(r);
+      setLoading(false);
+    });
   }, []);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -47,9 +62,144 @@ const Index = () => {
     { label: 'Членов клуба', value: String(members), to: '/club' },
   ];
 
+  const byKind = (kind: string) => objects.filter((o) => o.kind === kind);
+
+  const chapters = [
+    {
+      to: '/services',
+      icon: 'ClipboardList',
+      index: '01',
+      title: 'Услуги',
+      lede: 'Прайс хозяйства: охота, лицензии, питание, съёмка.',
+      stats: [
+        { label: 'Позиций в прайсе', value: String(services.length) },
+        {
+          label: 'Средний чек услуги',
+          value: services.length
+            ? money(Math.round(services.reduce((s, x) => s + Number(x.price || 0), 0) / services.length))
+            : '—',
+        },
+      ],
+      preview: services.slice(0, 4).map((s) => `${s.name} — ${money(Number(s.price || 0))}`),
+    },
+    {
+      to: '/transport',
+      icon: 'Truck',
+      index: '02',
+      title: 'Транспорт',
+      lede: 'Снегоходы, вездеходы, квадроциклы и лодки.',
+      stats: [
+        { label: 'Единиц техники', value: String(byKind('transport').length) },
+        { label: 'В работе', value: String(byKind('transport').filter((o) => o.status === 'active').length) },
+      ],
+      preview: byKind('transport').slice(0, 4).map((o) => `${o.name} — ${money(Number(o.price || 0))}/день`),
+    },
+    {
+      to: '/house',
+      icon: 'Home',
+      index: '03',
+      title: 'Дом',
+      lede: 'Охотничьи дома: вместимость и суточная стоимость.',
+      stats: [
+        { label: 'Домов', value: String(byKind('house').length) },
+        {
+          label: 'Всего мест',
+          value: String(byKind('house').reduce((s, o) => s + Number(o.capacity || 0), 0)),
+        },
+      ],
+      preview: byKind('house').slice(0, 4).map((o) => `${o.name} — ${o.capacity} мест`),
+    },
+    {
+      to: '/hotel',
+      icon: 'BedDouble',
+      index: '04',
+      title: 'Гостиница',
+      lede: 'Номерной фонд базы для одиночных гостей и семей.',
+      stats: [
+        { label: 'Номеров', value: String(byKind('hotel').length) },
+        {
+          label: 'Всего мест',
+          value: String(byKind('hotel').reduce((s, o) => s + Number(o.capacity || 0), 0)),
+        },
+      ],
+      preview: byKind('hotel').slice(0, 4).map((o) => `${o.name} — ${money(Number(o.price || 0))}`),
+    },
+    {
+      to: '/banya',
+      icon: 'Flame',
+      index: '05',
+      title: 'Баня',
+      lede: 'Парные, купель и комнаты отдыха, почасовая оплата.',
+      stats: [
+        { label: 'Объектов', value: String(byKind('banya').length) },
+        {
+          label: 'Цена за час',
+          value: byKind('banya')[0] ? money(Number(byKind('banya')[0].price || 0)) : '—',
+        },
+      ],
+      preview: byKind('banya').slice(0, 4).map((o) => `${o.name} — ${o.capacity} чел.`),
+    },
+    {
+      to: '/trophies',
+      icon: 'Award',
+      index: '06',
+      title: 'Трофейный зал',
+      lede: 'Журнал добычи: вид, дата, охотник, угодье.',
+      stats: [
+        { label: 'Трофеев в журнале', value: String(trophies.length) },
+        { label: 'Последний', value: String(trophies[0]?.species || '—') },
+      ],
+      preview: trophies.slice(0, 4).map((t) => `${t.species} — ${t.hunter || 'без имени'}`),
+    },
+    {
+      to: '/locations',
+      icon: 'Map',
+      index: '07',
+      title: 'Локации',
+      lede: 'Закреплённые угодья: площадь, удалённость, виды.',
+      stats: [
+        { label: 'Угодий', value: String(locations.length) },
+        {
+          label: 'Общая площадь',
+          value: `${locations.reduce((s, l) => s + Number(l.area_ha || 0), 0).toLocaleString('ru-RU')} га`,
+        },
+      ],
+      preview: locations.slice(0, 4).map((l) => `${l.name} — ${l.distance_km} км`),
+    },
+    {
+      to: '/reviews',
+      icon: 'MessageSquare',
+      index: '08',
+      title: 'Отзывы',
+      lede: 'Обратная связь гостей и публикация на сайте.',
+      stats: [
+        { label: 'Отзывов', value: String(reviews.length) },
+        {
+          label: 'Средняя оценка',
+          value: reviews.length
+            ? (reviews.reduce((s, r) => s + Number(r.rating || 0), 0) / reviews.length).toFixed(1)
+            : '—',
+        },
+      ],
+      preview: reviews.slice(0, 3).map((r) => `${r.author} — ${r.rating}/5`),
+    },
+    {
+      to: '/club',
+      icon: 'Users',
+      index: '09',
+      title: 'Клуб охотников',
+      lede: 'Гости хозяйства и члены клуба, сроки членства.',
+      stats: [
+        { label: 'Членов клуба', value: String(members) },
+        { label: 'Всего гостей', value: String(guests.length) },
+      ],
+      preview: guests.slice(0, 4).map((g) => `${g.name}${g.club_member ? ' — клуб' : ''}`),
+    },
+  ];
+
   return (
     <Layout
-      index="00 / Сводка"
+      index="Раздел / Главная"
       title="Охотхозяйство"
       lede="Рабочий стол: заезды, загрузка объектов и деньги за сезон."
       action={
@@ -95,6 +245,53 @@ const Index = () => {
           empty={loading ? 'Загружаем…' : 'Заездов пока нет'}
         />
       </div>
+
+      {chapters.map((c) => (
+        <section key={c.to} className="mt-12 pt-10 h-rule">
+          <div className="grid gap-6 lg:grid-cols-[240px_1fr] items-start">
+            <div>
+              <div className="h-label flex items-center gap-2">
+                <Icon name={c.icon} size={14} fallback="Circle" />
+                {c.index} / Раздел
+              </div>
+              <h2 className="h-head text-[28px] mt-2">{c.title}</h2>
+              <p className="h-mono-cap mt-3 max-w-[30ch]">{c.lede}</p>
+              <Link className="h-cta mt-4" to={c.to}>
+                Открыть раздел
+              </Link>
+            </div>
+
+            <div>
+              <div
+                className="grid gap-px"
+                style={{
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  background: '#e2e2df',
+                  border: '1px solid #e2e2df',
+                }}
+              >
+                {c.stats.map((s) => (
+                  <div key={s.label} className="bg-white p-5">
+                    <div className="h-label">{s.label}</div>
+                    <div className="h-head text-[24px] mt-2">{s.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {c.preview.length > 0 && (
+                <ul className="mt-4 grid gap-2">
+                  {c.preview.map((p) => (
+                    <li key={p} className="text-[0.72em] flex gap-3">
+                      <span style={{ color: 'var(--hero-x-mark)' }}>—</span>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      ))}
     </Layout>
   );
 };

@@ -4,7 +4,7 @@ import { Row } from '@/lib/api';
 const Club = () => (
   <CrudPage
     table="guests"
-    index="10 / База гостей"
+    index="Раздел / Клуб охотников"
     title="Клуб охотников"
     lede="Гости хозяйства и члены клуба: контакты, статус, срок членства."
     addLabel="Добавить гостя"

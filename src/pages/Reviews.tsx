@@ -3,7 +3,7 @@ import CrudPage from '@/components/app/CrudPage';
 const Reviews = () => (
   <CrudPage
     table="reviews"
-    index="09 / Обратная связь"
+    index="Раздел / Отзывы"
     title="Отзывы"
     lede="Отзывы гостей: оценка, текст, публикация на сайте."
     addLabel="Добавить отзыв"

@@ -3,7 +3,7 @@ import CrudPage from '@/components/app/CrudPage';
 const Services = () => (
   <CrudPage
     table="services"
-    index="02 / Прайс"
+    index="Раздел / Услуги"
     title="Услуги"
     lede="Прайс хозяйства: охота, лицензии, питание, дополнительные услуги."
     addLabel="Добавить услугу"

@@ -3,7 +3,7 @@ import CrudPage from '@/components/app/CrudPage';
 const Locations = () => (
   <CrudPage
     table="locations"
-    index="08 / Угодья"
+    index="Раздел / Локации"
     title="Локации"
     lede="Закреплённые угодья: площадь, удалённость, что водится."
     addLabel="Добавить угодье"
