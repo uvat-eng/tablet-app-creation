@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Row } from '@/lib/api';
 
 const MONTHS = [
@@ -12,12 +12,21 @@ const iso = (y: number, m: number, d: number) =>
 
 interface BookingCalendarProps {
   bookings: Row[];
+  year?: number;
   onPick?: (from: string, to: string) => void;
 }
 
-const BookingCalendar = ({ bookings, onPick }: BookingCalendarProps) => {
+const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
   const today = new Date();
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
+
+  useEffect(() => {
+    if (!year) return;
+    setCursor((prev) =>
+      prev.y === year ? prev : { y: year, m: year === today.getFullYear() ? today.getMonth() : 0 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year]);
   const [from, setFrom] = useState<string | null>(null);
   const [to, setTo] = useState<string | null>(null);
 

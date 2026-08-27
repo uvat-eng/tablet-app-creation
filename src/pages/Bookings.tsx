@@ -35,17 +35,32 @@ const Bookings = () => {
   const [editing, setEditing] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [season, setSeason] = useState(new Date().getFullYear());
   const navigate = useNavigate();
 
+  const years = useMemo(() => {
+    const set = new Set<number>([new Date().getFullYear()]);
+    rows.forEach((r) => {
+      const y = Number(String(r.date_from || '').slice(0, 4));
+      if (y) set.add(y);
+    });
+    return Array.from(set).sort((a, b) => b - a);
+  }, [rows]);
+
+  const seasonRows = useMemo(
+    () => rows.filter((r) => String(r.date_from || '').slice(0, 4) === String(season)),
+    [rows, season],
+  );
+
   const visible = useMemo(() => {
-    if (!query.trim()) return rows;
+    if (!query.trim()) return seasonRows;
     const q = query.trim().toLowerCase();
-    return rows.filter((r) =>
+    return seasonRows.filter((r) =>
       ['guest_name', 'guest_phone', 'country', 'hunt_type', 'note'].some((k) =>
         String(r[k] ?? '').toLowerCase().includes(q),
       ),
     );
-  }, [rows, query]);
+  }, [seasonRows, query]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -123,26 +138,24 @@ const Bookings = () => {
   };
 
   const now = new Date();
-  const year = now.getFullYear();
-  const monthName = MONTHS[now.getMonth()];
+  const isCurrentYear = season === now.getFullYear();
+  const month = isCurrentYear ? now.getMonth() : 11;
+  const monthName = MONTHS[month];
 
   const stats = useMemo(() => {
-    const live = rows.filter((r) => r.status !== 'cancelled');
+    const live = seasonRows.filter((r) => r.status !== 'cancelled');
 
     const sum = (list: Row[]) => ({
-      count: list.length,
       active: list.filter((r) => r.status === 'confirmed' || r.status === 'new').length,
       prepay: list.reduce((s, r) => s + Number(r.prepay || 0) + Number(r.paid || 0), 0),
       total: list.reduce((s, r) => s + Number(r.total || 0), 0),
     });
 
-    const monthKey = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthKey = `${season}-${String(month + 1).padStart(2, '0')}`;
     const inMonth = live.filter((r) => String(r.date_from || '').slice(0, 7) === monthKey);
-    const inSeason = live.filter((r) => String(r.date_from || '').slice(0, 4) === String(year));
 
-    return { month: sum(inMonth), season: sum(inSeason) };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, year]);
+    return { month: sum(inMonth), season: sum(live) };
+  }, [seasonRows, season, month]);
 
   return (
     <Layout
@@ -160,14 +173,29 @@ const Bookings = () => {
         </button>
       }
     >
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <span className="h-label mr-1">Сезон</span>
+        {years.map((y) => (
+          <button
+            key={y}
+            className={season === y ? 'h-cta' : 'h-cta-ghost'}
+            onClick={() => setSeason(y)}
+          >
+            {y}
+          </button>
+        ))}
+      </div>
+
       <div className="mb-8 grid gap-6 lg:grid-cols-2">
         {[
           {
-            caption: `Текущий месяц — ${monthName} ${year}`,
+            caption: isCurrentYear
+              ? `Текущий месяц — ${monthName} ${season}`
+              : `${monthName} ${season}`,
             data: stats.month,
           },
           {
-            caption: `С начала сезона — 01.01.${year} — 31.12.${year}`,
+            caption: `Сезон целиком — 01.01.${season} — 31.12.${season}`,
             data: stats.season,
           },
         ].map((block) => (
@@ -198,6 +226,7 @@ const Bookings = () => {
 
       <BookingCalendar
         bookings={rows}
+        year={season}
         onPick={(from, to) => {
           setEditing({
             date_from: from,
