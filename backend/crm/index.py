@@ -59,6 +59,32 @@ def rows_to_list(cur):
     return [{k: jsonable(v) for k, v in dict(r).items()} for r in cur.fetchall()]
 
 
+def check_conflict(cur, body):
+    object_id = body.get('object_id')
+    date_from = body.get('date_from')
+    date_to = body.get('date_to')
+    status = body.get('status', 'new')
+    if not object_id or not date_from or not date_to or status == 'cancelled':
+        return None
+
+    sql = (
+        "SELECT b.id, b.guest_name, b.date_from, b.date_to, o.name AS object_name "
+        "FROM bookings b LEFT JOIN objects o ON o.id = b.object_id "
+        "WHERE b.object_id = " + str(int(object_id)) +
+        " AND b.status <> 'cancelled'"
+        " AND b.date_from < " + esc(date_to) +
+        " AND b.date_to > " + esc(date_from)
+    )
+    if body.get('id'):
+        sql += ' AND b.id <> ' + str(int(body['id']))
+    sql += ' LIMIT 1'
+    cur.execute(sql)
+    found = cur.fetchone()
+    if not found:
+        return None
+    return {k: jsonable(v) for k, v in dict(found).items()}
+
+
 def handler(event: dict, context) -> dict:
     """Учёт охотхозяйства: брони, объекты, гости, услуги, трофеи, локации, отзывы."""
     method = event.get('httpMethod', 'GET')
@@ -91,6 +117,14 @@ def handler(event: dict, context) -> dict:
 
     body = json.loads(event.get('body') or '{}')
     fields = TABLES[table]
+
+    if table == 'bookings' and method in ('POST', 'PUT'):
+        conflict = check_conflict(cur, body)
+        if conflict:
+            cur.close()
+            conn.close()
+            return {'statusCode': 409, 'headers': CORS,
+                    'body': json.dumps({'error': 'conflict', 'conflict': conflict})}
 
     if method == 'POST':
         cols = [f for f in fields if f in body]

@@ -3,7 +3,7 @@ import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import BookingCalendar from '@/components/app/BookingCalendar';
-import { Row, listRows, createRow, updateRow } from '@/lib/api';
+import { Row, listRows, createRow, updateRow, ConflictError } from '@/lib/api';
 import { toast } from 'sonner';
 
 const STATUS: Record<string, string> = {
@@ -22,6 +22,7 @@ const Bookings = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
+  const [objectFilter, setObjectFilter] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,12 +67,24 @@ const Bookings = () => {
       ...values,
       object_id: values.object_id ? Number(values.object_id) : null,
     };
-    if (editing?.id) {
-      await updateRow('bookings', { ...payload, id: editing.id });
-      toast.success('Бронь обновлена');
-    } else {
-      await createRow('bookings', payload);
-      toast.success('Бронь добавлена');
+    try {
+      if (editing?.id) {
+        await updateRow('bookings', { ...payload, id: editing.id });
+        toast.success('Бронь обновлена');
+      } else {
+        await createRow('bookings', payload);
+        toast.success('Бронь добавлена');
+      }
+    } catch (e) {
+      if (e instanceof ConflictError) {
+        const c = e.conflict;
+        toast.error('Даты заняты', {
+          description: `${c.object_name} уже забронирован: ${c.guest_name}, ${String(c.date_from)} — ${String(c.date_to)}`,
+        });
+        return;
+      }
+      toast.error('Не удалось сохранить');
+      return;
     }
     setOpen(false);
     setEditing(null);
@@ -116,10 +129,35 @@ const Bookings = () => {
         ))}
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="h-label mr-1">Объект</span>
+        <button
+          className={objectFilter ? 'h-cta-ghost' : 'h-cta'}
+          onClick={() => setObjectFilter(0)}
+        >
+          Все
+        </button>
+        {objects.map((o) => (
+          <button
+            key={String(o.id)}
+            className={objectFilter === Number(o.id) ? 'h-cta' : 'h-cta-ghost'}
+            onClick={() => setObjectFilter(Number(o.id))}
+          >
+            {String(o.name)}
+          </button>
+        ))}
+      </div>
+
       <BookingCalendar
-        bookings={rows}
+        bookings={objectFilter ? rows.filter((r) => Number(r.object_id) === objectFilter) : rows}
         onPick={(from, to) => {
-          setEditing({ date_from: from, date_to: to, status: 'new', people: 1 } as Row);
+          setEditing({
+            date_from: from,
+            date_to: to,
+            status: 'new',
+            people: 1,
+            object_id: objectFilter || null,
+          } as Row);
           setOpen(true);
         }}
       />
