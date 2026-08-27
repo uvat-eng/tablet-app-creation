@@ -1,8 +1,32 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --hero-bg: #ffffff;
+    --hero-surface: #f2f2f0;
+    --hero-text: #000000;
+    --hero-muted: #6d6d6d;
+    --hero-accent: #00e05a;
+    --hero-accent-contrast: #000000;
+    --hero-font-head: "Inter", sans-serif;
+    --hero-font-body: "IBM Plex Mono", monospace;
+    --hero-size-head: 66px;
+    --hero-size-body: 17px;
+    --hero-radius: 0px;
+    --hero-x-frame: #0b0b0b;
+    --hero-x-panel: #2b2b2b;
+    --hero-x-panel-text: #ffffff;
+    --hero-x-mark: #ff5a1f;
+    --hero-x-mark-contrast: #ffffff;
+    --hero-x-grid: #ff5a1f;
+    --hero-x-canvas: #ffffff;
+    --hero-x-btn-grey: #d9d9d9;
+  }
+
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -98,4 +122,123 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer components {
+  .h-shell {
+    background: var(--hero-bg);
+    color: var(--hero-text);
+    font-family: var(--hero-font-body);
+    font-size: var(--hero-size-body);
+  }
+  .h-pad { padding-left: 48px; padding-right: 48px; }
+  .h-col { padding-left: 300px; padding-right: 48px; }
+  .h-head { font-family: var(--hero-font-head); font-weight: 700; letter-spacing: -0.035em; line-height: 1.06; }
+  .h-h1 { font-size: var(--hero-size-head); }
+  .h-h2 { font-size: 34px; }
+  .h-mono-cap {
+    font-size: 0.65em;
+    line-height: 1.42;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .h-label {
+    font-size: 0.6em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hero-muted);
+  }
+  .h-cta {
+    display: inline-block;
+    background: var(--hero-accent);
+    color: var(--hero-accent-contrast);
+    border-radius: var(--hero-radius);
+    padding: 9px 20px;
+    font-size: 0.65em;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .h-cta-ghost {
+    display: inline-block;
+    border: 1px solid var(--hero-text);
+    color: var(--hero-text);
+    border-radius: var(--hero-radius);
+    padding: 8px 19px;
+    font-size: 0.65em;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .h-frame {
+    border: 8px solid var(--hero-x-frame);
+    border-radius: 10px;
+    background: var(--hero-x-canvas);
+    position: relative;
+    overflow: hidden;
+  }
+  .h-grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(to right, color-mix(in srgb, var(--hero-x-grid) 30%, transparent) 0 1px, transparent 1px 46px),
+      repeating-linear-gradient(to bottom, color-mix(in srgb, var(--hero-x-grid) 30%, transparent) 0 1px, transparent 1px 46px);
+  }
+  .h-shot { position: absolute; background: var(--hero-surface); overflow: hidden; }
+  .h-shot img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 55%; }
+  .h-shot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(to right, color-mix(in srgb, var(--hero-x-grid) 55%, transparent) 0 1px, transparent 1px 46px),
+      repeating-linear-gradient(to bottom, color-mix(in srgb, var(--hero-x-grid) 55%, transparent) 0 1px, transparent 1px 46px);
+  }
+  .h-tag {
+    position: absolute;
+    background: var(--hero-x-mark);
+    color: var(--hero-x-mark-contrast);
+    font-size: 0.4em;
+    letter-spacing: 0.06em;
+    padding: 2px 4px;
+    line-height: 1;
+  }
+  .h-dialog {
+    background: var(--hero-x-panel);
+    color: var(--hero-x-panel-text);
+    padding: 10px 12px 12px;
+    font-size: 0.58em;
+    line-height: 1.42;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .h-dialog b { font-weight: 500; color: var(--hero-accent); }
+  .h-chip { font-size: 1em; letter-spacing: 0.05em; padding: 4px 10px; line-height: 1.4; }
+  .h-chip-grey { background: var(--hero-x-btn-grey); color: var(--hero-text); }
+  .h-chip-mark { background: var(--hero-x-mark); color: var(--hero-x-mark-contrast); }
+  .h-cell { height: 11px; background: color-mix(in srgb, var(--hero-x-panel-text) 22%, transparent); }
+  .h-cell-g { background: color-mix(in srgb, var(--hero-accent) 80%, transparent); }
+  .h-cell-o { background: var(--hero-x-mark); }
+  .h-rule { border-top: 1px solid #e2e2df; }
+  .h-fade { animation: hrise 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+  .h-d1 { animation-delay: 0.05s; }
+  .h-d2 { animation-delay: 0.13s; }
+  .h-d3 { animation-delay: 0.21s; }
+  .h-d4 { animation-delay: 0.29s; }
+}
+
+@keyframes hrise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h-fade { animation: none; }
+}
+
+@media (max-width: 1100px) {
+  .h-col { padding-left: 24px; padding-right: 24px; }
+  .h-pad { padding-left: 24px; padding-right: 24px; }
+  :root { --hero-size-head: 40px; }
+  .h-h2 { font-size: 26px; }
 }
