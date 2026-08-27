@@ -22,8 +22,10 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const guard = (el: JSX.Element, ownerOnly = false) => (
-  <Protected ownerOnly={ownerOnly}>{el}</Protected>
+const guard = (el: JSX.Element, section?: string, ownerOnly = false) => (
+  <Protected section={section} ownerOnly={ownerOnly}>
+    {el}
+  </Protected>
 );
 
 const App = () => (
@@ -34,22 +36,22 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={guard(<Index />)} />
-            <Route path="/bookings" element={guard(<Bookings />)} />
-            <Route path="/bookings/:id" element={guard(<BookingCard />)} />
-            <Route path="/services" element={guard(<Services />)} />
-            <Route path="/transport" element={guard(<Transport />)} />
-            <Route path="/house" element={guard(<House />)} />
-            <Route path="/hotel" element={guard(<Hotel />)} />
-            <Route path="/banya" element={guard(<Banya />)} />
-            <Route path="/trophies" element={guard(<Trophies />)} />
-            <Route path="/locations" element={guard(<Locations />)} />
-            <Route path="/reviews" element={guard(<Reviews />)} />
-            <Route path="/club" element={guard(<Club />)} />
-            <Route path="/club/:id" element={guard(<GuestCard />)} />
-            <Route path="/finance" element={guard(<Finance />, true)} />
-            <Route path="/staff" element={guard(<Staff />, true)} />
-            <Route path="/archive" element={guard(<Archive />, true)} />
+            <Route path="/" element={guard(<Index />, 'dashboard')} />
+            <Route path="/bookings" element={guard(<Bookings />, 'bookings')} />
+            <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />
+            <Route path="/services" element={guard(<Services />, 'services')} />
+            <Route path="/transport" element={guard(<Transport />, 'transport')} />
+            <Route path="/house" element={guard(<House />, 'house')} />
+            <Route path="/hotel" element={guard(<Hotel />, 'hotel')} />
+            <Route path="/banya" element={guard(<Banya />, 'banya')} />
+            <Route path="/trophies" element={guard(<Trophies />, 'trophies')} />
+            <Route path="/locations" element={guard(<Locations />, 'locations')} />
+            <Route path="/reviews" element={guard(<Reviews />, 'reviews')} />
+            <Route path="/club" element={guard(<Club />, 'club')} />
+            <Route path="/club/:id" element={guard(<GuestCard />, 'club')} />
+            <Route path="/finance" element={guard(<Finance />, 'finance')} />
+            <Route path="/staff" element={guard(<Staff />, undefined, true)} />
+            <Route path="/archive" element={guard(<Archive />, 'archive')} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

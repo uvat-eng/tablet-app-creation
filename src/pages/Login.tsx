@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { ROLES } from '@/lib/permissions';
 
 const Login = () => {
   const { signIn } = useAuth();
   const [login, setLogin] = useState('');
+  const [role, setRole] = useState('owner');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -13,7 +15,7 @@ const Login = () => {
     setBusy(true);
     setError('');
     try {
-      await signIn(login, password);
+      await signIn(login, password, role);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка входа');
     } finally {
@@ -60,6 +62,22 @@ const Login = () => {
             onChange={(e) => setLogin(e.target.value)}
           />
         </label>
+
+        <div className="mt-4">
+          <span className="h-label block mb-2">Роль</span>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(ROLES).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={role === value ? 'h-cta' : 'h-cta-ghost'}
+                onClick={() => setRole(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <label className="block mt-4">
           <span className="h-label block mb-1">Пароль</span>

@@ -56,7 +56,7 @@ def handler(event: dict, context) -> dict:
         if not token:
             return None
         cur.execute(
-            "SELECT s.id, s.name, s.login, s.role FROM sessions x "
+            "SELECT s.id, s.name, s.login, s.role, s.permissions FROM sessions x "
             "JOIN staff s ON s.id = x.staff_id "
             "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
         )
@@ -66,8 +66,9 @@ def handler(event: dict, context) -> dict:
     if action == 'login':
         login = str(body.get('login', '')).strip().lower()
         password = str(body.get('password', ''))
+        role_claim = str(body.get('role', '')).strip()
         cur.execute(
-            "SELECT id, name, login, role, password_hash FROM staff "
+            "SELECT id, name, login, role, permissions, password_hash FROM staff "
             "WHERE lower(login) = " + esc(login) + " AND active = TRUE"
         )
         row = cur.fetchone()
@@ -76,13 +77,19 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 401, 'headers': CORS,
                     'body': json.dumps({'error': 'Неверный логин или пароль'})}
 
+        if role_claim and role_claim != row['role']:
+            close()
+            return {'statusCode': 401, 'headers': CORS,
+                    'body': json.dumps({'error': 'Выбрана не та роль для этого логина'})}
+
         new_token = secrets.token_hex(24)
         expires = (datetime.utcnow() + timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
         cur.execute(
             "INSERT INTO sessions (token, staff_id, expires_at) VALUES (" +
             esc(new_token) + ", " + str(row['id']) + ", " + esc(expires) + ")"
         )
-        user = {'id': row['id'], 'name': row['name'], 'login': row['login'], 'role': row['role']}
+        user = {'id': row['id'], 'name': row['name'], 'login': row['login'],
+                'role': row['role'], 'permissions': row.get('permissions') or ''}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}
@@ -106,7 +113,7 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({'error': 'forbidden'})}
 
     if action == 'staff' and method == 'GET':
-        cur.execute("SELECT id, login, name, role, active FROM staff ORDER BY id")
+        cur.execute("SELECT id, login, name, role, active, permissions FROM staff ORDER BY id")
         items = [dict(r) for r in cur.fetchall()]
         close()
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'items': items})}
@@ -116,14 +123,18 @@ def handler(event: dict, context) -> dict:
         name = str(body.get('name', '')).strip()
         password = str(body.get('password', ''))
         role = body.get('role', 'staff')
+        if role == 'owner':
+            role = 'manager'
+        perms = body.get('permissions', '')
         if not login or not password:
             close()
             return {'statusCode': 400, 'headers': CORS,
                     'body': json.dumps({'error': 'Нужны логин и пароль'})}
         cur.execute(
-            "INSERT INTO staff (login, name, password_hash, role) VALUES (" +
+            "INSERT INTO staff (login, name, password_hash, role, permissions) VALUES (" +
             esc(login) + ", " + esc(name) + ", " + esc(hash_password(password)) + ", " +
-            esc(role) + ") ON CONFLICT (login) DO NOTHING RETURNING id, login, name, role, active"
+            esc(role) + ", " + esc(perms) + ") ON CONFLICT (login) DO NOTHING "
+            "RETURNING id, login, name, role, active, permissions"
         )
         row = cur.fetchone()
         close()
@@ -137,8 +148,10 @@ def handler(event: dict, context) -> dict:
         sets = []
         if 'name' in body:
             sets.append('name = ' + esc(body['name']))
-        if 'role' in body:
+        if 'role' in body and body['role'] != 'owner':
             sets.append('role = ' + esc(body['role']))
+        if 'permissions' in body:
+            sets.append('permissions = ' + esc(body['permissions']))
         if 'active' in body:
             sets.append('active = ' + esc(bool(body['active'])))
         if body.get('password'):
@@ -147,7 +160,7 @@ def handler(event: dict, context) -> dict:
             close()
             return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'bad request'})}
         cur.execute("UPDATE staff SET " + ', '.join(sets) + " WHERE id = " + str(staff_id) +
-                    " RETURNING id, login, name, role, active")
+                    " RETURNING id, login, name, role, active, permissions")
         row = cur.fetchone()
         close()
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': dict(row)})}

@@ -4,6 +4,8 @@ import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import Icon from '@/components/ui/icon';
 import { Row, listRows } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { can } from '@/lib/permissions';
 
 const money = (v: number) => `${v.toLocaleString('ru-RU')} ₽`;
 
@@ -24,6 +26,7 @@ const Index = () => {
   const [locations, setLocations] = useState<Row[]>([]);
   const [reviews, setReviews] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     Promise.all([
@@ -197,6 +200,8 @@ const Index = () => {
     },
   ];
 
+  const visibleChapters = chapters.filter((c) => can(user, c.to.replace('/', '')));
+
   return (
     <Layout
       index="Раздел / Главная"
@@ -246,7 +251,7 @@ const Index = () => {
         />
       </div>
 
-      {chapters.map((c) => (
+      {visibleChapters.map((c) => (
         <section key={c.to} className="mt-12 pt-10 h-rule">
           <div className="grid gap-6 lg:grid-cols-[240px_1fr] items-start">
             <div>

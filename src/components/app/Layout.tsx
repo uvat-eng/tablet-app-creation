@@ -2,26 +2,7 @@ import { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { useAuth } from '@/context/AuthContext';
-
-const NAV = [
-  { to: '/', label: 'Главная', icon: 'LayoutDashboard' },
-  { to: '/bookings', label: 'Бронирования', icon: 'CalendarDays' },
-  { to: '/services', label: 'Услуги', icon: 'ClipboardList' },
-  { to: '/transport', label: 'Транспорт', icon: 'Truck' },
-  { to: '/house', label: 'Дом', icon: 'Home' },
-  { to: '/hotel', label: 'Гостиница', icon: 'BedDouble' },
-  { to: '/banya', label: 'Баня', icon: 'Flame' },
-  { to: '/trophies', label: 'Трофейный зал', icon: 'Award' },
-  { to: '/locations', label: 'Локации', icon: 'Map' },
-  { to: '/reviews', label: 'Отзывы', icon: 'MessageSquare' },
-  { to: '/club', label: 'Клуб охотников', icon: 'Users' },
-];
-
-const OWNER_NAV = [
-  { to: '/finance', label: 'Финансы', icon: 'Wallet' },
-  { to: '/staff', label: 'Сотрудники', icon: 'UserCog' },
-  { to: '/archive', label: 'Архив', icon: 'Archive' },
-];
+import { allowedSections, ROLES } from '@/lib/permissions';
 
 interface LayoutProps {
   title: string;
@@ -33,7 +14,7 @@ interface LayoutProps {
 
 const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
   const { user, signOut } = useAuth();
-  const items = user?.role === 'owner' ? [...NAV, ...OWNER_NAV] : NAV;
+  const items = allowedSections(user);
 
   return (
   <div className="h-shell min-h-screen flex">
@@ -81,6 +62,7 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
       {user && (
         <div className="mt-8 pt-5 h-rule">
           <div className="h-label">{user.name}</div>
+          <div className="h-label mt-1">{ROLES[user.role] || user.role}</div>
           <button className="h-label underline mt-2" onClick={signOut}>
             Выйти
           </button>

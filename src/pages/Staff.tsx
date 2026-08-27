@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
-import RecordDialog from '@/components/app/RecordDialog';
+import PermissionsDialog from '@/components/app/PermissionsDialog';
 import { Row, listStaff, saveStaff } from '@/lib/api';
+import { ROLES, SECTIONS, DEFAULT_PERMISSIONS, parsePermissions } from '@/lib/permissions';
 import { toast } from 'sonner';
 
-const ROLES: Record<string, string> = {
-  owner: 'Владелец',
-  manager: 'Администратор',
-  staff: 'Егерь',
+const describe = (row: Row) => {
+  if (row.role === 'owner') return 'Все разделы';
+  const saved = parsePermissions(row.permissions);
+  const list = saved.length ? saved : DEFAULT_PERMISSIONS[String(row.role)] || [];
+  if (!list.length) return 'Нет доступа';
+  const names = SECTIONS.filter((s) => list.includes(s.key)).map((s) => s.label);
+  return `${names.length} разд.: ${names.slice(0, 3).join(', ')}${names.length > 3 ? '…' : ''}`;
 };
 
 const Staff = () => {
@@ -48,7 +52,7 @@ const Staff = () => {
     <Layout
       index="Раздел / Сотрудники"
       title="Сотрудники"
-      lede="Доступ к базе: кто входит и с какими правами."
+      lede="Кто заходит в базу, с какой ролью и к каким разделам имеет доступ."
       action={
         <button
           className="h-cta"
@@ -64,17 +68,18 @@ const Staff = () => {
       <DataTable
         columns={[
           { key: 'name', label: 'Имя' },
-          { key: 'login', label: 'Логин', width: '160px' },
+          { key: 'login', label: 'Логин', width: '150px' },
           {
             key: 'role',
-            label: 'Права',
-            width: '160px',
+            label: 'Роль',
+            width: '150px',
             render: (r) => ROLES[String(r.role)] || String(r.role),
           },
+          { key: 'permissions', label: 'Доступ', render: describe },
           {
             key: 'active',
-            label: 'Доступ',
-            width: '120px',
+            label: 'Вход',
+            width: '110px',
             render: (r) => (r.active ? 'Открыт' : 'Закрыт'),
           },
         ]}
@@ -86,29 +91,11 @@ const Staff = () => {
         }}
       />
 
-      <RecordDialog
+      <PermissionsDialog
         open={open}
         onOpenChange={setOpen}
-        title={editing?.id ? 'Сотрудник' : 'Новый сотрудник'}
         initial={editing}
         onSubmit={save}
-        fields={[
-          { key: 'name', label: 'Имя' },
-          ...(editing?.id ? [] : [{ key: 'login', label: 'Логин (латиницей)' }]),
-          {
-            key: 'password',
-            label: editing?.id ? 'Новый пароль (если меняем)' : 'Пароль',
-          },
-          {
-            key: 'role',
-            label: 'Права',
-            type: 'select' as const,
-            options: Object.entries(ROLES).map(([value, label]) => ({ value, label })),
-          },
-          ...(editing?.id
-            ? [{ key: 'active', label: 'Доступ открыт', type: 'checkbox' as const }]
-            : []),
-        ]}
       />
     </Layout>
   );

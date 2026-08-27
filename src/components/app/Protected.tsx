@@ -1,8 +1,15 @@
 import { ReactNode } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { can } from '@/lib/permissions';
 import Login from '@/pages/Login';
 
-const Protected = ({ children, ownerOnly = false }: { children: ReactNode; ownerOnly?: boolean }) => {
+interface ProtectedProps {
+  children: ReactNode;
+  ownerOnly?: boolean;
+  section?: string;
+}
+
+const Protected = ({ children, ownerOnly = false, section }: ProtectedProps) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -15,10 +22,12 @@ const Protected = ({ children, ownerOnly = false }: { children: ReactNode; owner
 
   if (!user) return <Login />;
 
-  if (ownerOnly && user.role !== 'owner') {
+  const denied = (ownerOnly && user.role !== 'owner') || (section && !can(user, section));
+
+  if (denied) {
     return (
       <div className="h-shell min-h-screen flex items-center justify-center h-mono-cap px-6 text-center">
-        Раздел доступен только владельцу хозяйства.
+        Раздел закрыт. Доступ выдаёт владелец хозяйства.
       </div>
     );
   }

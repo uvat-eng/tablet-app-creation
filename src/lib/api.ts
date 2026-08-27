@@ -76,13 +76,18 @@ export interface StaffUser {
   name: string;
   login: string;
   role: string;
+  permissions?: string;
 }
 
-export const login = async (loginName: string, password: string): Promise<StaffUser> => {
+export const login = async (
+  loginName: string,
+  password: string,
+  role?: string,
+): Promise<StaffUser> => {
   const res = await fetch(`${AUTH_URL}?action=login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ login: loginName, password }),
+    body: JSON.stringify({ login: loginName, password, role }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Ошибка входа');

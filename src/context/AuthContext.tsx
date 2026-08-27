@@ -4,7 +4,7 @@ import { StaffUser, fetchMe, login as apiLogin, logout as apiLogout } from '@/li
 interface AuthValue {
   user: StaffUser | null;
   loading: boolean;
-  signIn: (login: string, password: string) => Promise<void>;
+  signIn: (login: string, password: string, role?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -25,8 +25,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .finally(() => setLoading(false));
   }, []);
 
-  const signIn = async (login: string, password: string) => {
-    const u = await apiLogin(login, password);
+  const signIn = async (login: string, password: string, role?: string) => {
+    const u = await apiLogin(login, password, role);
     setUser(u);
   };
 
