@@ -21,6 +21,11 @@ const PAYMENT: Record<string, string> = {
   cashless: 'Безнал',
 };
 
+const MONTHS = [
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+];
+
 const money = (v: unknown) => `${Number(v || 0).toLocaleString('ru-RU')} ₽`;
 
 const Bookings = () => {
@@ -117,16 +122,27 @@ const Bookings = () => {
     load();
   };
 
+  const now = new Date();
+  const year = now.getFullYear();
+  const monthName = MONTHS[now.getMonth()];
+
   const stats = useMemo(() => {
     const live = rows.filter((r) => r.status !== 'cancelled');
-    const active = live.filter((r) => r.status === 'confirmed' || r.status === 'new').length;
-    const prepay = live.reduce(
-      (s, r) => s + Number(r.prepay || 0) + Number(r.paid || 0),
-      0,
-    );
-    const total = live.reduce((s, r) => s + Number(r.total || 0), 0);
-    return { active, prepay, total };
-  }, [rows]);
+
+    const sum = (list: Row[]) => ({
+      count: list.length,
+      active: list.filter((r) => r.status === 'confirmed' || r.status === 'new').length,
+      prepay: list.reduce((s, r) => s + Number(r.prepay || 0) + Number(r.paid || 0), 0),
+      total: list.reduce((s, r) => s + Number(r.total || 0), 0),
+    });
+
+    const monthKey = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const inMonth = live.filter((r) => String(r.date_from || '').slice(0, 7) === monthKey);
+    const inSeason = live.filter((r) => String(r.date_from || '').slice(0, 4) === String(year));
+
+    return { month: sum(inMonth), season: sum(inSeason) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, year]);
 
   return (
     <Layout
@@ -144,22 +160,38 @@ const Bookings = () => {
         </button>
       }
     >
-      <div
-        className="grid gap-px mb-8"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
-        }}
-      >
+      <div className="mb-8 grid gap-6 lg:grid-cols-2">
         {[
-          { label: 'Активных бронирований', value: String(stats.active) },
-          { label: 'Аванс', value: money(stats.prepay) },
-          { label: 'Тотал', value: money(stats.total) },
-        ].map((s) => (
-          <div key={s.label} className="bg-white p-5">
-            <div className="h-label">{s.label}</div>
-            <div className="h-head text-[26px] mt-2">{s.value}</div>
+          {
+            caption: `Текущий месяц — ${monthName} ${year}`,
+            data: stats.month,
+          },
+          {
+            caption: `С начала сезона — 01.01.${year} — 31.12.${year}`,
+            data: stats.season,
+          },
+        ].map((block) => (
+          <div key={block.caption}>
+            <div className="h-label mb-2">{block.caption}</div>
+            <div
+              className="grid gap-px"
+              style={{
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                background: '#e2e2df',
+                border: '1px solid #e2e2df',
+              }}
+            >
+              {[
+                { label: 'Активных', value: String(block.data.active) },
+                { label: 'Аванс', value: money(block.data.prepay) },
+                { label: 'Тотал', value: money(block.data.total) },
+              ].map((s) => (
+                <div key={s.label} className="bg-white p-4">
+                  <div className="h-label">{s.label}</div>
+                  <div className="h-head text-[22px] mt-2">{s.value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
