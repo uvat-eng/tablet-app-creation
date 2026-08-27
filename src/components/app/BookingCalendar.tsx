@@ -128,8 +128,9 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
                       key={String(b.id)}
                       className="block truncate text-[9px] leading-[12px] px-1"
                       style={{
-                        background: b.status === 'new' ? 'var(--hero-x-mark)' : 'var(--hero-x-panel)',
-                        color: '#fff',
+                        background:
+                          b.status === 'new' ? 'var(--hero-x-mark)' : 'var(--hero-accent)',
+                        color: b.status === 'new' ? '#fff' : 'var(--hero-accent-contrast)',
                       }}
                     >
                       {String(b.guest_name || 'Бронь')}
@@ -149,7 +150,7 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
 
       <div className="mt-5 flex flex-wrap gap-5 h-label">
         <span>Оранжевый — новая заявка</span>
-        <span>Тёмный — подтверждена</span>
+        <span>Зелёный — завершено</span>
         <span>Клик по дням — создать бронь</span>
       </div>
     </div>
