@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Список броней",
+      "method": "GET",
+      "path": "/?table=bookings",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Список объектов",
+      "method": "GET",
+      "path": "/?table=objects",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Неизвестная таблица",
+      "method": "GET",
+      "path": "/?table=nope",
+      "expectedStatus": 400
+    }
+  ]
+}
