@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { readOffline, offlineTileLayer, probeOffline } from '@/lib/offlineMap';
@@ -28,6 +29,15 @@ interface Props {
   onPick: (coords: string) => void;
 }
 
+const PIN = L.divIcon({
+  className: '',
+  html:
+    '<div style="width:18px;height:18px;border-radius:50%;background:#ff5a1f;' +
+    'border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)"></div>',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
 const parse = (v?: string): [number, number] | null => {
   const p = String(v || '').replace(/;/g, ',').split(',');
   const lat = Number(String(p[0] || '').trim());
@@ -53,8 +63,16 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
 
   useEffect(() => {
     if (!open) return;
-    const t = setTimeout(() => {
-      if (!boxRef.current || mapRef.current) return;
+    let raf = 0;
+    let tries = 0;
+
+    const build = () => {
+      if (mapRef.current) return;
+      const box = boxRef.current;
+      if (!box || box.clientWidth === 0) {
+        if (tries++ < 60) raf = requestAnimationFrame(build);
+        return;
+      }
       const start = parse(value);
       const map = L.map(boxRef.current, {
         center: start || [56.55, 68.65],
@@ -66,7 +84,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
 
       if (start) {
         setPoint(start);
-        markRef.current = L.marker(start, { draggable: true }).addTo(map);
+        markRef.current = L.marker(start, { draggable: true, icon: PIN }).addTo(map);
         markRef.current.on('dragend', () => {
           const p = markRef.current!.getLatLng();
           setPoint([p.lat, p.lng]);
@@ -79,18 +97,20 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
         if (markRef.current) {
           markRef.current.setLatLng(p);
         } else {
-          markRef.current = L.marker(p, { draggable: true }).addTo(map);
+          markRef.current = L.marker(p, { draggable: true, icon: PIN }).addTo(map);
           markRef.current.on('dragend', () => {
             const q = markRef.current!.getLatLng();
             setPoint([q.lat, q.lng]);
           });
         }
       });
-      map.invalidateSize();
-    }, 120);
+      setTimeout(() => map.invalidateSize(), 60);
+    };
+
+    raf = requestAnimationFrame(build);
 
     return () => {
-      clearTimeout(t);
+      cancelAnimationFrame(raf);
       mapRef.current?.remove();
       mapRef.current = null;
       markRef.current = null;
@@ -125,7 +145,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
       if (!map) return;
       map.setView(p, 16);
       if (markRef.current) markRef.current.setLatLng(p);
-      else markRef.current = L.marker(p, { draggable: true }).addTo(map);
+      else markRef.current = L.marker(p, { draggable: true, icon: PIN }).addTo(map);
     });
   };
 

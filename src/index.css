@@ -368,3 +368,13 @@
     font-size: 26px;
   }
 }
+
+/* карта внутри модального окна не должна перекрывать интерфейс */
+.leaflet-container {
+  z-index: 0;
+}
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1;
+}
