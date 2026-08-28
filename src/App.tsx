@@ -37,6 +37,7 @@ import Transfers from "./pages/Transfers";
 import Staff from "./pages/Staff";
 import Settings from "./pages/Settings";
 import Archive from "./pages/Archive";
+import Download from "./pages/Download";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -92,6 +93,7 @@ const App = () => (
             <Route path="/staff" element={guard(<Staff />, undefined, true)} />
             <Route path="/settings" element={guard(<Settings />, undefined, true)} />
             <Route path="/archive" element={guard(<Archive />, 'archive')} />
+            <Route path="/download" element={<Download />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
