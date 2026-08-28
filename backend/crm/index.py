@@ -393,7 +393,19 @@ def handler(event: dict, context) -> dict:
             vals += [str(me['id']), esc(me['name']), str(me['id']), 'NOW()']
         sql = ('INSERT INTO ' + table + ' (' + ', '.join(cols) + ') VALUES (' +
                ', '.join(vals) + ') RETURNING *')
-        cur.execute(sql)
+        try:
+            cur.execute(sql)
+        except psycopg2.errors.NumericValueOutOfRange:
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({
+                'error': 'Слишком большое число в одном из полей. '
+                         'Проверьте площадь, количество и координаты'})}
+        except psycopg2.Error as err:
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({
+                'error': 'Не удалось сохранить: ' + str(err).split('\n')[0]})}
         item = rows_to_list(cur)[0]
         recalc(cur, table, item.get('booking_id'))
         write_log(cur, me, 'create', table, item.get('id'),
@@ -435,8 +447,20 @@ def handler(event: dict, context) -> dict:
                     'body': json.dumps({'error': 'id and fields required'})}
         if table in AUTHORED and me:
             sets += ['updated_by = ' + str(me['id']), 'updated_at = NOW()']
-        cur.execute('UPDATE ' + table + ' SET ' + ', '.join(sets) +
-                    ' WHERE id = ' + str(item_id) + ' RETURNING *')
+        try:
+            cur.execute('UPDATE ' + table + ' SET ' + ', '.join(sets) +
+                        ' WHERE id = ' + str(item_id) + ' RETURNING *')
+        except psycopg2.errors.NumericValueOutOfRange:
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({
+                'error': 'Слишком большое число в одном из полей. '
+                         'Проверьте площадь, количество и координаты'})}
+        except psycopg2.Error as err:
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({
+                'error': 'Не удалось сохранить: ' + str(err).split('\n')[0]})}
         item = rows_to_list(cur)[0]
         recalc(cur, table, item.get('booking_id'))
         changes = diff_fields(before, body, fields)

@@ -103,10 +103,16 @@ const send = async (table: string, method: string, body: Row): Promise<Row> => {
     const data = await res.json();
     if (res.status === 409) throw new ConflictError(data.conflict);
     if (res.status === 403) throw new Error(data.error || 'Недостаточно прав');
+    if (res.status >= 400) {
+      const err = new Error(data.error || 'Сервер отклонил запись');
+      err.name = 'ServerReject';
+      throw err;
+    }
     setOnline(true);
     return data.item;
   } catch (e) {
     if (e instanceof ConflictError) throw e;
+    if (e instanceof Error && e.name === 'ServerReject') throw e;
     if (e instanceof Error && /прав|Недостаточно/.test(e.message)) throw e;
 
     setOnline(false);
