@@ -1,9 +1,10 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { PriceItem, loadPriceItems, lineSum, money, GROUP_LABELS } from '@/lib/price';
 import { rublesInWords } from '@/lib/rubles';
+import ActServiceDialog from '@/components/app/ActServiceDialog';
 import { toast } from 'sonner';
 
 const dmy = (v: unknown) => {
@@ -31,13 +32,17 @@ const ActCard = () => {
     accepted_by: '',
   });
   const [items, setItems] = useState<PriceItem[]>([]);
+  const [price, setPrice] = useState<PriceItem[]>([]);
   const [discount, setDiscount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [pickOpen, setPickOpen] = useState(false);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const price = await loadPriceItems();
+    const list0 = await loadPriceItems();
+    setPrice(list0);
     if (isNew) {
-      setItems(price);
+      setItems([]);
       setLoading(false);
       return;
     }
@@ -48,17 +53,8 @@ const ActCard = () => {
       const raw = found.items;
       const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
       const saved: PriceItem[] = Array.isArray(parsed) ? (parsed as PriceItem[]) : [];
-      const merged = price.map((p) => {
-        const s = saved.find((x) => x.name === p.name || x.service_id === p.service_id);
-        return s
-          ? { ...p, hunters: s.hunters || 0, days: s.days || 0, tariff: s.tariff, discount: s.discount || 0 }
-          : p;
-      });
-      const orphans = saved.filter((s) => !price.some((p) => p.name === s.name));
-      setItems([...merged, ...orphans]);
+      setItems(saved.filter((s) => s.hunters || s.days || s.tariff));
       setDiscount(Number(found.discount_pct || 0));
-    } else {
-      setItems(price);
     }
     setLoading(false);
   }, [id, isNew]);
@@ -84,14 +80,28 @@ const ActCard = () => {
     };
   }, [items, discount]);
 
-  const patch = (idx: number, field: keyof PriceItem, value: string) => {
-    setItems((prev) =>
-      prev.map((it, i) => (i === idx ? { ...it, [field]: Number(value || 0) } : it)),
+  const days = useMemo(() => {
+    const a = String(head.date_from || '');
+    const b = String(head.date_to || '');
+    if (!a || !b) return 1;
+    const diff = Math.round(
+      (new Date(b).getTime() - new Date(a).getTime()) / 86400000,
     );
+    return diff > 0 ? diff : 1;
+  }, [head.date_from, head.date_to]);
+
+  const applyItem = (it: PriceItem) => {
+    setItems((prev) =>
+      editIdx === null ? [...prev, it] : prev.map((x, i) => (i === editIdx ? it : x)),
+    );
+    setEditIdx(null);
   };
 
+  const dropItem = (idx: number) =>
+    setItems((prev) => prev.filter((_, i) => i !== idx));
+
   const save = async () => {
-    const used = items.filter((i, idx) => totals.sums[idx] !== 0 || i.hunters || i.days);
+    const used = items;
     const body: Row = {
       guest_name: String(head.guest_name || ''),
       guest_phone: String(head.guest_phone || ''),
@@ -227,15 +237,22 @@ const ActCard = () => {
         {field('Охоту провёл', 'hunted_by')}
         {field('Расчёт произвёл', 'calculated_by')}
         {field('Оплату принял', 'accepted_by')}
-        <label className="block">
-          <span className="h-label">Скидка, %</span>
-          <input
-            type="number"
-            className="mt-1 w-full border border-[#e2e2df] px-3 py-2 text-[0.72em] bg-white"
-            value={discount}
-            onChange={(e) => setDiscount(Number(e.target.value || 0))}
-          />
-        </label>
+      </div>
+
+      <div className="no-print mb-8 border border-[#e2e2df] bg-white px-5 py-4 flex flex-wrap items-center gap-4">
+        <span className="h-label">Скидка на весь акт</span>
+        <input
+          type="number"
+          className="w-[110px] border border-[#e2e2df] px-3 py-2 text-[0.75em] bg-white"
+          value={discount}
+          onChange={(e) => setDiscount(Number(e.target.value || 0))}
+        />
+        <span className="h-label">%</span>
+        {discount > 0 && (
+          <span className="text-[0.78em]">
+            минус {money(totals.cut)} · к оплате {money(totals.final)}
+          </span>
+        )}
       </div>
 
       <div id="check-print" className="border border-[#e2e2df] bg-white p-6">
@@ -286,57 +303,80 @@ const ActCard = () => {
           </div>
         </div>
 
-        <div className="mt-8 overflow-x-auto">
-          <table className="w-full min-w-[760px]">
+        <div className="no-print mt-8 flex flex-wrap items-center gap-3">
+          <button
+            className="h-cta"
+            onClick={() => {
+              setEditIdx(null);
+              setPickOpen(true);
+            }}
+          >
+            Добавить услугу
+          </button>
+          <span className="h-label">Позиций в акте: {items.length}</span>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="bg-[var(--hero-surface)]">
-                {['Статья', 'Кол-во', 'Дней', 'Тариф', 'Скидка %', 'Сумма', 'Примечание'].map(
-                  (h) => (
-                    <th key={h} className="h-label text-left px-2 py-2 font-normal">
-                      {h}
-                    </th>
-                  ),
-                )}
+                {['Услуга', 'Кол-во', 'Дней', 'Тариф', 'Скидка', 'Сумма', ''].map((h, i) => (
+                  <th
+                    key={h + i}
+                    className={`h-label text-left px-2 py-2 font-normal${i === 6 ? ' no-print' : ''}`}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {items.map((it, idx) => {
-                const sum = totals.sums[idx];
-                const dim = sum === 0;
-                const firstOfCat =
-                  idx === 0 || (items[idx - 1].category || 'Прочее') !== (it.category || 'Прочее');
-                return (
-                  <Fragment key={`${it.name}-${idx}`}>
-                    {firstOfCat && (
-                      <tr>
-                        <td colSpan={7} className="px-2 pt-4 pb-1 h-label">
-                          {it.category || 'Прочее'}
-                        </td>
-                      </tr>
-                    )}
-                    <tr
-                      className={`border-t border-[#e2e2df] ${dim ? 'text-[var(--hero-muted)] hide-empty' : ''}`}
-                    >
-                      <td className="px-2 py-1 text-[0.7em]">{it.name}</td>
-                      {(['hunters', 'days', 'tariff', 'discount'] as const).map((f) => (
-                        <td key={f} className="px-2 py-1">
-                          <input
-                            type="number"
-                            className="w-[74px] border border-[#e2e2df] px-2 py-1 text-[0.7em]"
-                            value={it[f]}
-                            disabled={f === 'days' && it.mode !== 'perDayPerHunter'}
-                            onChange={(e) => patch(idx, f, e.target.value)}
-                          />
-                        </td>
-                      ))}
-                      <td className="px-2 py-1 text-[0.7em] whitespace-nowrap">{money(sum)}</td>
-                      <td className="px-2 py-1 text-[0.6em]">
-                        {it.note || GROUP_LABELS[it.group]}
-                      </td>
-                    </tr>
-                  </Fragment>
-                );
-              })}
+              {items.map((it, idx) => (
+                <tr key={`${it.name}-${idx}`} className="border-t border-[#e2e2df]">
+                  <td className="px-2 py-2 text-[0.72em]">
+                    <div>{it.name}</div>
+                    <div className="h-label mt-[2px]">{it.category || GROUP_LABELS[it.group]}</div>
+                  </td>
+                  <td className="px-2 py-2 text-[0.72em]">{it.hunters || '—'}</td>
+                  <td className="px-2 py-2 text-[0.72em]">
+                    {it.mode === 'perDayPerHunter' ? it.days || '—' : '—'}
+                  </td>
+                  <td className="px-2 py-2 text-[0.72em] whitespace-nowrap">{money(it.tariff)}</td>
+                  <td className="px-2 py-2 text-[0.72em]">
+                    {it.discount ? `${it.discount}%` : '—'}
+                  </td>
+                  <td className="px-2 py-2 text-[0.72em] font-bold whitespace-nowrap">
+                    {money(totals.sums[idx])}
+                  </td>
+                  <td className="px-2 py-2 no-print">
+                    <span className="flex gap-3">
+                      <button
+                        className="h-label underline"
+                        onClick={() => {
+                          setEditIdx(idx);
+                          setPickOpen(true);
+                        }}
+                      >
+                        Править
+                      </button>
+                      <button
+                        className="h-label underline"
+                        style={{ color: '#c0392b' }}
+                        onClick={() => dropItem(idx)}
+                      >
+                        Убрать
+                      </button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {!items.length && (
+                <tr>
+                  <td className="px-2 py-6 text-[0.72em] text-[var(--hero-muted)]" colSpan={7}>
+                    Услуги не добавлены. Нажмите «Добавить услугу».
+                  </td>
+                </tr>
+              )}
               <tr className="border-t-2 border-black">
                 <td className="px-2 py-2 h-label" colSpan={5}>
                   Итого
@@ -345,14 +385,16 @@ const ActCard = () => {
                   {money(totals.total)}
                 </td>
               </tr>
-              <tr>
-                <td className="px-2 py-1 h-label" colSpan={5}>
-                  Скидка {discount}%
-                </td>
-                <td className="px-2 py-1 text-[0.75em] whitespace-nowrap" colSpan={2}>
-                  −{money(totals.cut)}
-                </td>
-              </tr>
+              {discount > 0 && (
+                <tr>
+                  <td className="px-2 py-1 h-label" colSpan={5}>
+                    Скидка {discount}%
+                  </td>
+                  <td className="px-2 py-1 text-[0.75em] whitespace-nowrap" colSpan={2}>
+                    −{money(totals.cut)}
+                  </td>
+                </tr>
+              )}
               <tr>
                 <td className="px-2 py-2 h-label" colSpan={5}>
                   Итог к оплате
@@ -379,6 +421,15 @@ const ActCard = () => {
           ))}
         </div>
       </div>
+      <ActServiceDialog
+        open={pickOpen}
+        onOpenChange={setPickOpen}
+        price={price}
+        initial={editIdx === null ? null : items[editIdx]}
+        defaultHunters={Number(head.people || 1)}
+        defaultDays={days}
+        onSubmit={applyItem}
+      />
     </Layout>
   );
 };
