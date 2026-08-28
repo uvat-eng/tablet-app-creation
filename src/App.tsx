@@ -66,6 +66,7 @@ const App = () => (
             <Route path="/trophies/catalog" element={guard(<Trophies />, 'trophies')} />
             <Route path="/trophies/:category" element={guard(<TrophyHall />, 'trophies')} />
             <Route path="/locations" element={guard(<Locations />, 'locations')} />
+            <Route path="/locations/:kind" element={guard(<Locations />, 'locations')} />
             <Route path="/reviews" element={guard(<Reviews />, 'reviews')} />
             <Route path="/club" element={guard(<Club />, 'club')} />
             <Route path="/club/:id" element={guard(<GuestCard />, 'club')} />
