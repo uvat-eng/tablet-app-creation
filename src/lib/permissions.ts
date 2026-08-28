@@ -22,6 +22,7 @@ export const SECTIONS: Section[] = [
   { key: 'reviews', to: '/reviews', label: 'Отзывы', icon: 'MessageSquare' },
   { key: 'club', to: '/club', label: 'Клуб охотников', icon: 'Users' },
   { key: 'finance', to: '/finance', label: 'Финансы', icon: 'Wallet' },
+  { key: 'office', to: '/office', label: 'Финансы ОФИС', icon: 'Landmark' },
   { key: 'archive', to: '/archive', label: 'Архив', icon: 'Archive' },
 ];
 

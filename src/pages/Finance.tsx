@@ -9,6 +9,8 @@ import {
   SPLIT_KINDS,
   HUNT_CATEGORIES,
   HUNT_CATEGORY_LABEL,
+  OFFICE_CATEGORIES,
+  OFFICE_CATEGORY_LABEL,
   KIND_LABEL,
   money,
 } from '@/lib/expenses';
@@ -41,6 +43,7 @@ const Finance = () => {
   const [expenses, setExpenses] = useState<Row[]>([]);
   const [facilityRows, setFacilityRows] = useState<Row[]>([]);
   const [locations, setLocations] = useState<Row[]>([]);
+  const [office, setOffice] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [season, setSeason] = useState<number | 'all'>('all');
   const [open, setOpen] = useState(false);
@@ -48,16 +51,18 @@ const Finance = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [a, e, h, l] = await Promise.all([
+    const [a, e, h, l, o] = await Promise.all([
       listRows('checks'),
       listRows('expenses'),
       listRows('house_expenses'),
       listRows('locations'),
+      listRows('office_expenses'),
     ]);
     setActs(a);
     setExpenses(e);
     setFacilityRows(h);
     setLocations(l);
+    setOffice(o);
     setLoading(false);
   }, []);
 
@@ -128,6 +133,25 @@ const Finance = () => {
 
   const huntTotal = huntExpenses.reduce((s, e) => s + Number(e.total || 0), 0);
 
+  const seasonOffice = useMemo(
+    () => office.filter((r) => inSeason(r.spent_on)),
+    [office, inSeason],
+  );
+
+  const officeByCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    OFFICE_CATEGORIES.forEach((c) => {
+      map[c.key] = 0;
+    });
+    seasonOffice.forEach((r) => {
+      const k = String(r.category || 'other');
+      map[k] = (map[k] || 0) + Number(r.amount || 0);
+    });
+    return map;
+  }, [seasonOffice]);
+
+  const officeTotal = seasonOffice.reduce((s, r) => s + Number(r.amount || 0), 0);
+
   const otherByKind = useMemo(() => {
     const map: Record<string, { sum: number; rows: Row[] }> = {};
     OTHER_KINDS.forEach((k) => {
@@ -181,7 +205,7 @@ const Finance = () => {
   }, [seasonExpenses, locationKindOf]);
 
   const locationTotal = Object.values(locationTotals).reduce((s, v) => s + v, 0);
-  const expenseTotal = huntTotal + otherTotal + facilityTotal + locationTotal;
+  const expenseTotal = huntTotal + officeTotal + otherTotal + facilityTotal + locationTotal;
   const profit = income.total - expenseTotal;
 
   const splitRows = useMemo(
@@ -328,7 +352,7 @@ const Finance = () => {
               label: 'Потрачено',
               icon: 'Receipt',
               value: expenseTotal,
-              hint: 'Охота, прочие, объекты, локации',
+              hint: 'Охота, безнал, прочие, объекты, локации',
               clickable: false,
             },
             {
@@ -498,6 +522,62 @@ const Finance = () => {
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center h-mono-cap text-[var(--hero-muted)]">
                   Расходы вносятся в акте о расходах после каждой охоты
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-end justify-between mb-3 gap-4 flex-wrap">
+        <span className="h-head text-[22px]">Расходы безнал</span>
+        <button className="h-cta-ghost" onClick={() => navigate('/office')}>
+          <Icon name="Landmark" size={14} /> Вести в разделе «Финансы ОФИС»
+        </button>
+      </div>
+      <div
+        className="grid gap-px mb-3"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+          background: '#e2e2df',
+          border: '1px solid #e2e2df',
+        }}
+      >
+        {OFFICE_CATEGORIES.map((c) => block(c.label, money(officeByCategory[c.key] || 0)))}
+        {block('Итого', money(officeTotal))}
+      </div>
+
+      <div className="border border-[#e2e2df] overflow-x-auto mb-10">
+        <table className="w-full min-w-[760px]">
+          <thead>
+            <tr className="bg-[var(--hero-surface)]">
+              <th className="h-label text-left px-4 py-3 font-normal w-[110px]">Дата</th>
+              <th className="h-label text-left px-4 py-3 font-normal w-[160px]">Статья</th>
+              <th className="h-label text-left px-4 py-3 font-normal">Наименование</th>
+              <th className="h-label text-left px-4 py-3 font-normal w-[140px]">Период</th>
+              <th className="h-label text-left px-4 py-3 font-normal w-[130px]">Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            {seasonOffice.slice(0, 15).map((r) => (
+              <tr
+                key={String(r.id)}
+                className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
+                onClick={() => navigate('/office')}
+              >
+                <td className="px-4 py-3 text-[0.68em]">{String(r.spent_on || '').slice(0, 10)}</td>
+                <td className="px-4 py-3 text-[0.68em]">
+                  {OFFICE_CATEGORY_LABEL(String(r.category))}
+                </td>
+                <td className="px-4 py-3 text-[0.72em]">{String(r.name || '—')}</td>
+                <td className="px-4 py-3 text-[0.68em]">{String(r.period || '—')}</td>
+                <td className="px-4 py-3 text-[0.72em] whitespace-nowrap">{money(r.amount)}</td>
+              </tr>
+            ))}
+            {!seasonOffice.length && (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center h-mono-cap text-[var(--hero-muted)]">
+                  Зарплата, налоги, свет и аренда вносятся в разделе «Финансы ОФИС»
                 </td>
               </tr>
             )}

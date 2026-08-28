@@ -45,6 +45,8 @@ TABLES = {
                        'spent_on', 'vendor', 'note', 'archived'],
     'expenses': ['kind', 'category', 'check_id', 'booking_id', 'location_id', 'name',
                  'unit_price', 'qty', 'unit', 'total', 'spent_on', 'vendor', 'note', 'archived'],
+    'office_expenses': ['category', 'name', 'period', 'amount', 'spent_on', 'payer',
+                        'recipient', 'doc_number', 'note', 'archived'],
 }
 
 ORDER = {
@@ -62,22 +64,25 @@ ORDER = {
     'house_expenses': 'spent_on DESC NULLS LAST, id DESC',
     'expenses': 'spent_on DESC NULLS LAST, id DESC',
     'map_layers': 'id',
+    'office_expenses': 'spent_on DESC NULLS LAST, id DESC',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
-              'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers'}
+              'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
+              'office_expenses'}
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
 AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'map_layers',
             'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
-            'payments'}
+            'payments', 'office_expenses'}
 
 TITLE_FIELD = {
     'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
     'trophies': 'species', 'locations': 'name', 'map_layers': 'name', 'reviews': 'author',
     'checks': 'guest_name', 'receipts': 'number', 'house_expenses': 'name',
     'expenses': 'name', 'booking_services': 'name', 'payments': 'amount',
+    'office_expenses': 'name',
 }
 
 TABLE_LABEL = {
@@ -85,6 +90,7 @@ TABLE_LABEL = {
     'trophies': 'Трофей', 'locations': 'Локация', 'map_layers': 'Слой карты',
     'reviews': 'Отзыв', 'checks': 'Расчёт', 'receipts': 'Квитанция',
     'house_expenses': 'Расход по базе', 'expenses': 'Расход', 'settings': 'Настройки',
+    'office_expenses': 'Офисный расход',
     'booking_services': 'Услуга в брони', 'payments': 'Платёж',
 }
 

@@ -23,6 +23,17 @@ export const SPLIT_KINDS = [
   { key: 'to_account', label: 'Отправлено на расчётный счёт', icon: 'Landmark' },
 ];
 
+export const OFFICE_CATEGORIES: ExpenseCategory[] = [
+  { key: 'payroll', label: 'ФОТ сотрудников', icon: 'Users' },
+  { key: 'taxes', label: 'Налоги', icon: 'Landmark' },
+  { key: 'power', label: 'Свет на базе', icon: 'Zap' },
+  { key: 'land_rent', label: 'Аренда земель', icon: 'Trees' },
+  { key: 'other', label: 'Иное', icon: 'Package' },
+];
+
+export const OFFICE_CATEGORY_LABEL = (key: string) =>
+  OFFICE_CATEGORIES.find((c) => c.key === key)?.label || 'Иное';
+
 export const HUNT_CATEGORY_LABEL = (key: string) =>
   HUNT_CATEGORIES.find((c) => c.key === key)?.label || 'Иное';
 

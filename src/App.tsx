@@ -27,6 +27,7 @@ import Reviews from "./pages/Reviews";
 import Club from "./pages/Club";
 import GuestCard from "./pages/GuestCard";
 import Finance from "./pages/Finance";
+import OfficeFinance from "./pages/OfficeFinance";
 import Staff from "./pages/Staff";
 import Settings from "./pages/Settings";
 import Archive from "./pages/Archive";
@@ -75,6 +76,7 @@ const App = () => (
             <Route path="/club" element={guard(<Club />, 'club')} />
             <Route path="/club/:id" element={guard(<GuestCard />, 'club')} />
             <Route path="/finance" element={guard(<Finance />, 'finance')} />
+            <Route path="/office" element={guard(<OfficeFinance />, 'office')} />
             <Route path="/staff" element={guard(<Staff />, undefined, true)} />
             <Route path="/settings" element={guard(<Settings />, undefined, true)} />
             <Route path="/archive" element={guard(<Archive />, 'archive')} />
