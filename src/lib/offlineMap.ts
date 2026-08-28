@@ -14,7 +14,7 @@ export const DEFAULT_OFFLINE: OfflineCfg = {
   enabled: false,
   url: '/maps/tiles/{z}/{x}/{y}.jpg',
   minZoom: 9,
-  maxZoom: 16,
+  maxZoom: 18,
   label: 'Офлайн',
 };
 
