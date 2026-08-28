@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Без входа документ не выдается",
+      "method": "GET",
+      "path": "/?kind=contract&guest_id=1",
+      "expectedStatus": 401
+    },
+    {
+      "name": "Проверка доступа перед параметрами",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    },
+    {
+      "name": "OPTIONS отвечает для CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}

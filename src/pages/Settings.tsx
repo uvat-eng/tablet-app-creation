@@ -5,15 +5,47 @@ import { uploadPhoto } from '@/lib/api';
 import BackupPanel from '@/components/app/BackupPanel';
 import { toast } from 'sonner';
 
+const ORG_FIELDS = [
+  { key: 'org_name', label: 'Организация', wide: true },
+  { key: 'org_inn', label: 'ИНН' },
+  { key: 'org_kpp', label: 'КПП' },
+  { key: 'org_address', label: 'Юридический адрес', wide: true },
+  { key: 'org_director', label: 'Директор (в лице кого, родительный падеж)', wide: true },
+  { key: 'org_director_short', label: 'Директор для подписи' },
+  { key: 'base_place', label: 'Населённый пункт базы' },
+  { key: 'base_region', label: 'Район и область', wide: true },
+  { key: 'agreement_no', label: 'Охотхозяйственное соглашение' },
+  { key: 'grounds', label: 'Охотничьи угодья' },
+  { key: 'pay_card', label: 'Карта для взносов' },
+  { key: 'pay_day', label: 'Оплата до какого числа' },
+  { key: 'fee_monthly', label: 'Взнос в месяц, ₽' },
+];
+
 const Settings = () => {
   const { settings, save } = useSettings();
   const [name, setName] = useState('');
   const [logo, setLogo] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [org, setOrg] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setName(settings.farm_name);
     setLogo(settings.logo_url || '');
+    setOrg({
+      org_name: settings.org_name,
+      org_inn: settings.org_inn,
+      org_kpp: settings.org_kpp,
+      org_address: settings.org_address,
+      org_director: settings.org_director,
+      org_director_short: settings.org_director_short,
+      base_place: settings.base_place,
+      base_region: settings.base_region,
+      agreement_no: settings.agreement_no,
+      grounds: settings.grounds,
+      pay_card: settings.pay_card,
+      pay_day: settings.pay_day,
+      fee_monthly: String(settings.fee_monthly),
+    });
   }, [settings]);
 
   const pick = async (file: File | undefined) => {
@@ -30,7 +62,13 @@ const Settings = () => {
   };
 
   const submit = async () => {
-    await save({ farm_name: name.trim(), logo_url: logo || null, configured: true });
+    await save({
+      farm_name: name.trim(),
+      logo_url: logo || null,
+      configured: true,
+      ...org,
+      fee_monthly: Number(org.fee_monthly || 6500),
+    });
     toast.success('Настройки сохранены');
   };
 
@@ -73,6 +111,25 @@ const Settings = () => {
             Убрать логотип
           </button>
         )}
+      </div>
+
+      <div className="mt-10 pt-8 border-t border-[#e2e2df]">
+        <div className="h-head text-[22px] mb-1">Реквизиты для договоров</div>
+        <div className="h-mono-cap normal-case mb-5 text-[var(--hero-muted)]">
+          Подставляются в путёвку-договор члена клуба при печати.
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 max-w-[880px]">
+          {ORG_FIELDS.map((f) => (
+            <label key={f.key} className={f.wide ? 'sm:col-span-2' : ''}>
+              <span className="h-label block mb-1">{f.label}</span>
+              <input
+                className="w-full border border-[#e2e2df] px-3 py-2 text-[0.8em] bg-white"
+                value={org[f.key] || ''}
+                onChange={(e) => setOrg({ ...org, [f.key]: e.target.value })}
+              />
+            </label>
+          ))}
+        </div>
       </div>
 
       <BackupPanel />

@@ -8,7 +8,24 @@ interface SettingsValue {
   reload: () => Promise<void>;
 }
 
-const EMPTY: FarmSettings = { farm_name: '', logo_url: null, configured: false };
+const EMPTY: FarmSettings = {
+  farm_name: '',
+  logo_url: null,
+  configured: false,
+  org_name: '',
+  org_inn: '',
+  org_kpp: '',
+  org_address: '',
+  org_director: '',
+  org_director_short: '',
+  base_place: '',
+  base_region: '',
+  agreement_no: '',
+  grounds: '',
+  pay_card: '',
+  pay_day: '03',
+  fee_monthly: 6500,
+};
 
 const SettingsContext = createContext<SettingsValue>({
   settings: EMPTY,

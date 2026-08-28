@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
-import { Row, listRows } from '@/lib/api';
+import { Row, listRows, downloadContract } from '@/lib/api';
+import Icon from '@/components/ui/icon';
+import { toast } from 'sonner';
 
 const money = (v: unknown) => `${Number(v || 0).toLocaleString('ru-RU')} ₽`;
 
@@ -26,6 +28,20 @@ const GuestCard = () => {
   const [guest, setGuest] = useState<Row | null>(null);
   const [bookings, setBookings] = useState<Row[]>([]);
   const [trophies, setTrophies] = useState<Row[]>([]);
+  const [printing, setPrinting] = useState(false);
+
+  const printContract = async () => {
+    if (!guest) return;
+    setPrinting(true);
+    try {
+      await downloadContract(guestId, String(guest.name));
+      toast.success('Договор собран — файл скачан');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось собрать договор');
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([listRows('guests'), listRows('bookings'), listRows('trophies')]).then(
@@ -61,9 +77,17 @@ const GuestCard = () => {
       title={String(guest.name)}
       lede={[guest.city, guest.phone].filter(Boolean).join(' — ') || undefined}
       action={
-        <Link className="h-cta-ghost" to={backTo}>
-          К списку
-        </Link>
+        <span className="flex flex-wrap gap-2">
+          <Link className="h-cta-ghost" to={backTo}>
+            К списку
+          </Link>
+          {Boolean(guest.club_member) && (
+            <button className="h-cta" onClick={printContract} disabled={printing}>
+              <Icon name="FileText" size={15} />
+              {printing ? 'Собираем…' : 'Печать договора'}
+            </button>
+          )}
+        </span>
       }
     >
       <div

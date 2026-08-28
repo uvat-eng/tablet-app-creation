@@ -3,6 +3,7 @@ import { cacheKey, saveCache, readCache, pushQueue, readQueue, writeQueue } from
 const CRM_URL = 'https://functions.poehali.dev/85ee97e6-1ee1-4333-be9f-698f0c374677';
 export const AUTH_URL = 'https://functions.poehali.dev/de14562b-724c-4ed9-80c1-c0d1787d0889';
 const UPLOAD_URL = 'https://functions.poehali.dev/ee5bce4e-47ca-4200-ae73-937c1cf34339';
+const DOCS_URL = 'https://functions.poehali.dev/00cd6749-c34b-44dc-8de2-a3cbeed57785';
 
 export type Row = Record<string, string | number | boolean | null>;
 
@@ -264,16 +265,45 @@ export interface FarmSettings {
   farm_name: string;
   logo_url: string | null;
   configured: boolean;
+  org_name: string;
+  org_inn: string;
+  org_kpp: string;
+  org_address: string;
+  org_director: string;
+  org_director_short: string;
+  base_place: string;
+  base_region: string;
+  agreement_no: string;
+  grounds: string;
+  pay_card: string;
+  pay_day: string;
+  fee_monthly: number;
 }
+
+const ORG_KEYS = [
+  'org_name', 'org_inn', 'org_kpp', 'org_address', 'org_director',
+  'org_director_short', 'base_place', 'base_region', 'agreement_no',
+  'grounds', 'pay_card', 'pay_day',
+] as const;
+
+const mapSettings = (item: Row | undefined): FarmSettings => {
+  const src = item || {};
+  const out = {
+    farm_name: String(src.farm_name || ''),
+    logo_url: (src.logo_url as string) || null,
+    configured: Boolean(src.configured),
+    fee_monthly: Number(src.fee_monthly || 6500),
+  } as FarmSettings;
+  ORG_KEYS.forEach((k) => {
+    (out as unknown as Record<string, string>)[k] = String(src[k] ?? '');
+  });
+  return out;
+};
 
 export const getSettings = async (): Promise<FarmSettings> => {
   const res = await fetch(`${CRM_URL}?table=settings`, { headers: authHeaders() });
   const data = await res.json();
-  return {
-    farm_name: data.item?.farm_name || '',
-    logo_url: data.item?.logo_url || null,
-    configured: Boolean(data.item?.configured),
-  };
+  return mapSettings(data.item);
 };
 
 export const saveSettings = async (body: Row): Promise<FarmSettings> => {
@@ -283,11 +313,7 @@ export const saveSettings = async (body: Row): Promise<FarmSettings> => {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  return {
-    farm_name: data.item?.farm_name || '',
-    logo_url: data.item?.logo_url || null,
-    configured: Boolean(data.item?.configured),
-  };
+  return mapSettings(data.item);
 };
 
 export interface StaffUser {
@@ -375,4 +401,22 @@ export const saveStaff = async (body: Row, method: 'POST' | 'PUT') => {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Ошибка сохранения');
   return data.item;
+};
+export const downloadContract = async (guestId: number, fileName: string) => {
+  const res = await fetch(`${DOCS_URL}?kind=contract&guest_id=${guestId}`, {
+    headers: { 'X-Auth-Token': getToken() },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Не удалось собрать договор');
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Договор ${fileName}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 };

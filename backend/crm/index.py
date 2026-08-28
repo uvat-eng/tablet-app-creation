@@ -290,7 +290,10 @@ def handler(event: dict, context) -> dict:
 
         body = json.loads(event.get('body') or '{}')
         sets = []
-        for f in ('farm_name', 'logo_url', 'configured'):
+        for f in ('farm_name', 'logo_url', 'configured', 'org_name', 'org_inn', 'org_kpp',
+                  'org_address', 'org_director', 'org_director_short', 'base_place',
+                  'base_region', 'agreement_no', 'grounds', 'pay_card', 'pay_day',
+                  'fee_monthly'):
             if f in body:
                 sets.append(f + ' = ' + esc(body[f]))
         if not sets:
