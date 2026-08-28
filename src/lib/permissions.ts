@@ -10,6 +10,7 @@ export interface Section {
 export const SECTIONS: Section[] = [
   { key: 'dashboard', to: '/', label: 'Главная', icon: 'LayoutDashboard' },
   { key: 'bookings', to: '/bookings', label: 'Бронирования', icon: 'CalendarDays' },
+  { key: 'checks', to: '/checks', label: 'Чеки', icon: 'ReceiptText' },
   { key: 'services', to: '/services', label: 'Услуги', icon: 'ClipboardList' },
   { key: 'transport', to: '/transport', label: 'Транспорт', icon: 'Truck' },
   { key: 'house', to: '/house', label: 'Дом', icon: 'Home' },
@@ -36,7 +37,7 @@ export const ROLES: Record<string, string> = {
 
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   manager: [
-    'dashboard', 'bookings', 'services', 'transport', 'house',
+    'dashboard', 'bookings', 'checks', 'services', 'transport', 'house',
     'hotel', 'banya', 'trophies', 'locations', 'reviews', 'club',
   ],
   staff: ['dashboard', 'bookings', 'trophies', 'locations'],

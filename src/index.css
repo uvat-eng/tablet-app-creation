@@ -131,11 +131,26 @@
     font-family: var(--hero-font-body);
     font-size: var(--hero-size-body);
   }
-  .h-pad { padding-left: 48px; padding-right: 48px; }
-  .h-col { padding-left: 300px; padding-right: 48px; }
-  .h-head { font-family: var(--hero-font-head); font-weight: 700; letter-spacing: -0.035em; line-height: 1.06; }
-  .h-h1 { font-size: var(--hero-size-head); }
-  .h-h2 { font-size: 34px; }
+  .h-pad {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+  .h-col {
+    padding-left: 300px;
+    padding-right: 48px;
+  }
+  .h-head {
+    font-family: var(--hero-font-head);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.06;
+  }
+  .h-h1 {
+    font-size: var(--hero-size-head);
+  }
+  .h-h2 {
+    font-size: 34px;
+  }
   .h-mono-cap {
     font-size: 0.65em;
     line-height: 1.42;
@@ -181,18 +196,43 @@
     position: absolute;
     inset: 0;
     background-image:
-      repeating-linear-gradient(to right, color-mix(in srgb, var(--hero-x-grid) 30%, transparent) 0 1px, transparent 1px 46px),
-      repeating-linear-gradient(to bottom, color-mix(in srgb, var(--hero-x-grid) 30%, transparent) 0 1px, transparent 1px 46px);
+      repeating-linear-gradient(
+        to right,
+        color-mix(in srgb, var(--hero-x-grid) 30%, transparent) 0 1px,
+        transparent 1px 46px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--hero-x-grid) 30%, transparent) 0 1px,
+        transparent 1px 46px
+      );
   }
-  .h-shot { position: absolute; background: var(--hero-surface); overflow: hidden; }
-  .h-shot img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 55%; }
+  .h-shot {
+    position: absolute;
+    background: var(--hero-surface);
+    overflow: hidden;
+  }
+  .h-shot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 55%;
+  }
   .h-shot::after {
     content: "";
     position: absolute;
     inset: 0;
     background-image:
-      repeating-linear-gradient(to right, color-mix(in srgb, var(--hero-x-grid) 55%, transparent) 0 1px, transparent 1px 46px),
-      repeating-linear-gradient(to bottom, color-mix(in srgb, var(--hero-x-grid) 55%, transparent) 0 1px, transparent 1px 46px);
+      repeating-linear-gradient(
+        to right,
+        color-mix(in srgb, var(--hero-x-grid) 55%, transparent) 0 1px,
+        transparent 1px 46px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--hero-x-grid) 55%, transparent) 0 1px,
+        transparent 1px 46px
+      );
   }
   .h-tag {
     position: absolute;
@@ -212,33 +252,116 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
   }
-  .h-dialog b { font-weight: 500; color: var(--hero-accent); }
-  .h-chip { font-size: 1em; letter-spacing: 0.05em; padding: 4px 10px; line-height: 1.4; }
-  .h-chip-grey { background: var(--hero-x-btn-grey); color: var(--hero-text); }
-  .h-chip-mark { background: var(--hero-x-mark); color: var(--hero-x-mark-contrast); }
-  .h-cell { height: 11px; background: color-mix(in srgb, var(--hero-x-panel-text) 22%, transparent); }
-  .h-cell-g { background: color-mix(in srgb, var(--hero-accent) 80%, transparent); }
-  .h-cell-o { background: var(--hero-x-mark); }
-  .h-rule { border-top: 1px solid #e2e2df; }
-  .h-fade { animation: hrise 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
-  .h-d1 { animation-delay: 0.05s; }
-  .h-d2 { animation-delay: 0.13s; }
-  .h-d3 { animation-delay: 0.21s; }
-  .h-d4 { animation-delay: 0.29s; }
+  .h-dialog b {
+    font-weight: 500;
+    color: var(--hero-accent);
+  }
+  .h-chip {
+    font-size: 1em;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    line-height: 1.4;
+  }
+  .h-chip-grey {
+    background: var(--hero-x-btn-grey);
+    color: var(--hero-text);
+  }
+  .h-chip-mark {
+    background: var(--hero-x-mark);
+    color: var(--hero-x-mark-contrast);
+  }
+  .h-cell {
+    height: 11px;
+    background: color-mix(in srgb, var(--hero-x-panel-text) 22%, transparent);
+  }
+  .h-cell-g {
+    background: color-mix(in srgb, var(--hero-accent) 80%, transparent);
+  }
+  .h-cell-o {
+    background: var(--hero-x-mark);
+  }
+  .h-rule {
+    border-top: 1px solid #e2e2df;
+  }
+  .h-fade {
+    animation: hrise 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+  .h-d1 {
+    animation-delay: 0.05s;
+  }
+  .h-d2 {
+    animation-delay: 0.13s;
+  }
+  .h-d3 {
+    animation-delay: 0.21s;
+  }
+  .h-d4 {
+    animation-delay: 0.29s;
+  }
+}
+
+@media print {
+  aside,
+  .no-print,
+  nav {
+    display: none !important;
+  }
+  body,
+  .h-shell {
+    background: #fff;
+  }
+  main > div:first-child {
+    display: none;
+  }
+  #check-print {
+    border: none;
+    padding: 0;
+  }
+  #check-print input {
+    border: none !important;
+    background: transparent;
+    width: auto !important;
+    padding: 0 !important;
+  }
+  #check-print .hide-empty {
+    display: none;
+  }
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
 }
 
 @keyframes hrise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .h-fade { animation: none; }
+  .h-fade {
+    animation: none;
+  }
 }
 
 @media (max-width: 1100px) {
-  .h-col { padding-left: 24px; padding-right: 24px; }
-  .h-pad { padding-left: 24px; padding-right: 24px; }
-  :root { --hero-size-head: 40px; }
-  .h-h2 { font-size: 26px; }
+  .h-col {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .h-pad {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  :root {
+    --hero-size-head: 40px;
+  }
+  .h-h2 {
+    font-size: 26px;
+  }
 }

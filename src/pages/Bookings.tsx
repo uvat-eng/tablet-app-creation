@@ -287,7 +287,7 @@ const Bookings = () => {
                     className="h-label underline"
                     onClick={(e) => {
                       e.stopPropagation();
-                      toast('Форма чека — в работе');
+                      navigate(`/checks?booking=${r.id}`);
                     }}
                   >
                     Чек

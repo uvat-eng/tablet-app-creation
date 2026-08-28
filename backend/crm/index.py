@@ -27,6 +27,10 @@ TABLES = {
     'reviews': ['author', 'city', 'rating', 'text', 'published', 'archived'],
     'booking_services': ['booking_id', 'service_id', 'name', 'price', 'qty'],
     'payments': ['booking_id', 'amount', 'method', 'paid_on', 'note'],
+    'checks': ['booking_id', 'guest_name', 'guest_phone', 'hunt_type', 'people', 'transport',
+               'date_from', 'date_to', 'plan_bag', 'items', 'discount_pct', 'total',
+               'licenses_total', 'extras_total', 'stay_total', 'final_total',
+               'hunted_by', 'calculated_by', 'accepted_by', 'note', 'archived'],
 }
 
 ORDER = {
@@ -39,9 +43,13 @@ ORDER = {
     'reviews': 'id DESC',
     'booking_services': 'id',
     'payments': 'paid_on DESC, id DESC',
+    'checks': 'date_from DESC NULLS LAST, id DESC',
 }
 
-ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews'}
+ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
+              'checks'}
+
+JSON_FIELDS = {'checks': {'items'}}
 
 
 def esc(value):
@@ -53,6 +61,12 @@ def esc(value):
         return str(value)
     text = str(value).replace("'", "''")
     return "'" + text + "'"
+
+
+def field_value(table, field, value):
+    if field in JSON_FIELDS.get(table, set()):
+        return esc(json.dumps(value, ensure_ascii=False)) + '::jsonb'
+    return esc(value)
 
 
 def jsonable(value):
@@ -168,7 +182,7 @@ def handler(event: dict, context) -> dict:
         where = []
         if table in ARCHIVABLE and not show_archived:
             where.append('archived = FALSE')
-        if params.get('booking_id') and table in ('booking_services', 'payments'):
+        if params.get('booking_id') and table in ('booking_services', 'payments', 'checks'):
             where.append('booking_id = ' + str(int(params['booking_id'])))
 
         if table == 'bookings':
@@ -203,7 +217,7 @@ def handler(event: dict, context) -> dict:
     if method == 'POST':
         cols = [f for f in fields if f in body]
         sql = ('INSERT INTO ' + table + ' (' + ', '.join(cols) + ') VALUES (' +
-               ', '.join(esc(body[c]) for c in cols) + ') RETURNING *')
+               ', '.join(field_value(table, c, body[c]) for c in cols) + ') RETURNING *')
         cur.execute(sql)
         item = rows_to_list(cur)[0]
         recalc(cur, table, item.get('booking_id'))
@@ -213,7 +227,7 @@ def handler(event: dict, context) -> dict:
 
     if method == 'PUT':
         item_id = int(body.get('id', 0))
-        sets = [f + ' = ' + esc(body[f]) for f in fields if f in body]
+        sets = [f + ' = ' + field_value(table, f, body[f]) for f in fields if f in body]
         if not item_id or not sets:
             cur.close()
             conn.close()

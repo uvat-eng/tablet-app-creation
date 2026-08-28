@@ -1,0 +1,303 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import Layout from '@/components/app/Layout';
+import { Row, listRows, createRow, updateRow } from '@/lib/api';
+import { CheckItem, emptyItems, lineSum, money } from '@/lib/checkTariffs';
+import { toast } from 'sonner';
+
+const dmy = (v: unknown) => {
+  const s = String(v || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const [y, m, d] = s.split('-');
+  return `${d}.${m}.${y}`;
+};
+
+const CheckCard = () => {
+  const { id } = useParams();
+  const isNew = id === 'new';
+  const navigate = useNavigate();
+  const [head, setHead] = useState<Row>({
+    guest_name: '',
+    guest_phone: '',
+    hunt_type: '',
+    people: 1,
+    transport: 'Хозяйство',
+    date_from: '',
+    date_to: '',
+    plan_bag: '',
+    hunted_by: 'Земеров Н.А.',
+    calculated_by: 'Туркин Д.А.',
+    accepted_by: 'Усков А.Н.',
+  });
+  const [items, setItems] = useState<CheckItem[]>(emptyItems());
+  const [discount, setDiscount] = useState(5);
+  const [loading, setLoading] = useState(!isNew);
+
+  const load = useCallback(async () => {
+    if (isNew) return;
+    const list = await listRows('checks');
+    const found = list.find((r) => String(r.id) === id);
+    if (found) {
+      setHead(found);
+      const raw = found.items;
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (Array.isArray(parsed) && parsed.length) setItems(parsed as CheckItem[]);
+      setDiscount(Number(found.discount_pct || 0));
+    }
+    setLoading(false);
+  }, [id, isNew]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const totals = useMemo(() => {
+    const sums = items.map(lineSum);
+    const total = sums.reduce((s, v) => s + v, 0);
+    const by = (g: CheckItem['group']) =>
+      items.reduce((s, i, idx) => (i.group === g ? s + sums[idx] : s), 0);
+    const cut = Math.round((total * discount) / 100);
+    return {
+      total,
+      stay: by('stay'),
+      license: by('license'),
+      extra: by('extra'),
+      cut,
+      final: total - cut,
+      sums,
+    };
+  }, [items, discount]);
+
+  const patch = (idx: number, field: keyof CheckItem, value: string) => {
+    setItems((prev) =>
+      prev.map((it, i) =>
+        i === idx
+          ? {
+              ...it,
+              [field]: field === 'note' || field === 'name' ? value : Number(value || 0),
+            }
+          : it,
+      ),
+    );
+  };
+
+  const save = async () => {
+    const body: Row = {
+      guest_name: String(head.guest_name || ''),
+      guest_phone: String(head.guest_phone || ''),
+      hunt_type: String(head.hunt_type || ''),
+      people: Number(head.people || 1),
+      transport: String(head.transport || ''),
+      date_from: String(head.date_from || '') || null,
+      date_to: String(head.date_to || '') || null,
+      plan_bag: String(head.plan_bag || ''),
+      items: items as never,
+      discount_pct: discount,
+      total: totals.total,
+      stay_total: totals.stay,
+      licenses_total: totals.license,
+      extras_total: totals.extra,
+      final_total: totals.final,
+      hunted_by: String(head.hunted_by || ''),
+      calculated_by: String(head.calculated_by || ''),
+      accepted_by: String(head.accepted_by || ''),
+      booking_id: head.booking_id ? Number(head.booking_id) : null,
+    };
+    if (isNew) {
+      const created = await createRow('checks', body);
+      toast.success('Чек сохранён');
+      navigate(`/checks/${created.id}`, { replace: true });
+      return;
+    }
+    await updateRow('checks', { ...body, id: Number(id) });
+    toast.success('Чек сохранён');
+  };
+
+  if (loading) {
+    return (
+      <Layout index="Раздел / Документы" title="Чек">
+        <div className="h-mono-cap">Загружаем…</div>
+      </Layout>
+    );
+  }
+
+  const field = (label: string, key: string, type = 'text') => (
+    <label className="block">
+      <span className="h-label">{label}</span>
+      <input
+        type={type}
+        className="mt-1 w-full border border-[#e2e2df] px-3 py-2 text-[0.72em] bg-white"
+        value={String(head[key] ?? '')}
+        onChange={(e) => setHead((p) => ({ ...p, [key]: e.target.value }))}
+      />
+    </label>
+  );
+
+  return (
+    <Layout
+      index="Раздел / Документы"
+      title={isNew ? 'Новый чек' : `Чек № ${id}`}
+      lede={`${head.guest_name || 'Без имени'} — ${head.hunt_type || 'вид охоты не указан'}`}
+      action={
+        <span className="flex gap-2 no-print">
+          <Link className="h-cta-ghost" to="/checks">
+            К списку
+          </Link>
+          <button className="h-cta-ghost" onClick={() => window.print()}>
+            Скачать PDF
+          </button>
+          <button className="h-cta" onClick={save}>
+            Сохранить
+          </button>
+        </span>
+      }
+    >
+      <div className="no-print grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        {field('Гость ФИО', 'guest_name')}
+        {field('Телефон', 'guest_phone')}
+        {field('Вид охоты', 'hunt_type')}
+        {field('Кол-во участников', 'people', 'number')}
+        {field('Транспорт', 'transport')}
+        {field('Заезд', 'date_from', 'date')}
+        {field('Выезд', 'date_to', 'date')}
+        {field('План добычи', 'plan_bag')}
+        {field('Охоту провёл', 'hunted_by')}
+        {field('Расчёт произвёл', 'calculated_by')}
+        {field('Оплату принял', 'accepted_by')}
+        <label className="block">
+          <span className="h-label">Скидка, %</span>
+          <input
+            type="number"
+            className="mt-1 w-full border border-[#e2e2df] px-3 py-2 text-[0.72em] bg-white"
+            value={discount}
+            onChange={(e) => setDiscount(Number(e.target.value || 0))}
+          />
+        </label>
+      </div>
+
+      <div id="check-print" className="border border-[#e2e2df] bg-white p-6">
+        <div className="flex flex-wrap justify-between gap-6">
+          <div>
+            <div className="h-head text-[20px]">
+              {String(head.guest_name || '—')} {String(head.guest_phone || '')}
+            </div>
+            <div className="mt-4 grid gap-2 text-[0.72em]">
+              <div>
+                <span className="h-label">Вид охоты</span> {String(head.hunt_type || '—')}
+              </div>
+              <div>
+                <span className="h-label">Кол-во участников</span> {String(head.people || 0)} чел
+              </div>
+              <div>
+                <span className="h-label">Транспорт</span> {String(head.transport || '—')}
+              </div>
+              <div>
+                <span className="h-label">Срок охоты</span> {dmy(head.date_from)} — {dmy(head.date_to)}
+              </div>
+              <div>
+                <span className="h-label">План добычи</span> {String(head.plan_bag || '—')}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 min-w-[240px]">
+            {[
+              { l: 'Общая стоимость охоты', v: totals.final },
+              { l: 'Стоимость лицензий', v: totals.license },
+              { l: 'Стоимость доп. услуг', v: totals.extra + totals.stay },
+              { l: `Скидка ${discount}%`, v: totals.cut },
+            ].map((b) => (
+              <div key={b.l} className="border border-[#e2e2df] p-3">
+                <div className="h-label">{b.l}</div>
+                <div className="h-head text-[17px] mt-1 whitespace-nowrap">{money(b.v)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8 overflow-x-auto">
+          <table className="w-full min-w-[720px]">
+            <thead>
+              <tr className="bg-[var(--hero-surface)]">
+                {['Статья', 'Охотников', 'Дней', 'Тариф', 'Скидка %', 'Сумма', 'Примечание'].map(
+                  (h) => (
+                    <th key={h} className="h-label text-left px-2 py-2 font-normal">
+                      {h}
+                    </th>
+                  ),
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, idx) => {
+                const sum = totals.sums[idx];
+                const dim = sum === 0;
+                return (
+                  <tr
+                    key={it.name}
+                    className={`border-t border-[#e2e2df] ${dim ? 'text-[var(--hero-muted)] hide-empty' : ''}`}
+                  >
+                    <td className="px-2 py-1 text-[0.7em]">{it.name}</td>
+                    {(['hunters', 'days', 'tariff', 'discount'] as const).map((f) => (
+                      <td key={f} className="px-2 py-1">
+                        <input
+                          type="number"
+                          className="w-[74px] border border-[#e2e2df] px-2 py-1 text-[0.7em] print-plain"
+                          value={it[f]}
+                          disabled={f === 'days' && it.mode !== 'perDayPerHunter'}
+                          onChange={(e) => patch(idx, f, e.target.value)}
+                        />
+                      </td>
+                    ))}
+                    <td className="px-2 py-1 text-[0.7em] whitespace-nowrap">{money(sum)}</td>
+                    <td className="px-2 py-1 text-[0.65em]">{it.note}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border-t-2 border-black">
+                <td className="px-2 py-2 h-label" colSpan={5}>
+                  Итого
+                </td>
+                <td className="px-2 py-2 text-[0.75em] font-bold whitespace-nowrap" colSpan={2}>
+                  {money(totals.total)}
+                </td>
+              </tr>
+              <tr>
+                <td className="px-2 py-1 h-label" colSpan={5}>
+                  Скидка {discount}%
+                </td>
+                <td className="px-2 py-1 text-[0.75em] whitespace-nowrap" colSpan={2}>
+                  −{money(totals.cut)}
+                </td>
+              </tr>
+              <tr>
+                <td className="px-2 py-2 h-label" colSpan={5}>
+                  Итог к оплате
+                </td>
+                <td className="px-2 py-2 h-head text-[18px] whitespace-nowrap" colSpan={2}>
+                  {money(totals.final)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-10 grid gap-4 text-[0.72em]">
+          {[
+            { l: 'Охоту провёл:', v: head.hunted_by },
+            { l: 'Расчёт произвёл:', v: head.calculated_by },
+            { l: 'Оплату принял:', v: head.accepted_by },
+          ].map((s) => (
+            <div key={s.l} className="flex gap-6 items-end">
+              <span className="w-[150px]">{s.l}</span>
+              <span className="flex-1 border-b border-black max-w-[220px]" />
+              <span>{String(s.v || '')}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default CheckCard;
