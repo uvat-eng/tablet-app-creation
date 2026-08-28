@@ -19,7 +19,12 @@ TABLES = {
                  'people', 'status', 'source', 'total', 'paid', 'note', 'archived',
                  'country', 'hunt_type', 'payment_type', 'prepay'],
     'objects': ['kind', 'name', 'capacity', 'price', 'note', 'status', 'photo_url', 'archived'],
-    'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note', 'archived'],
+    'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note', 'archived',
+               'born_on', 'passport', 'passport_date', 'address', 'contract_no', 'cert_type',
+               'fee_monthly', 'joined_on'],
+    'club_fees': ['guest_id', 'year', 'month', 'amount', 'paid', 'paid_on', 'method', 'note'],
+    'club_bag': ['guest_id', 'season', 'species', 'taken_on', 'mode', 'price', 'debt',
+                 'debt_status', 'paid_on', 'hours_credited', 'note', 'archived'],
     'services': ['name', 'category', 'price', 'unit', 'note', 'active', 'archived',
                  'calc_mode', 'price_group', 'sort_order', 'season', 'in_check'],
     'trophies': ['species', 'taken_on', 'hunter', 'location', 'weight', 'note', 'photo_url',
@@ -69,17 +74,19 @@ ORDER = {
     'map_layers': 'id',
     'office_expenses': 'spent_on DESC NULLS LAST, id DESC',
     'biotech_works': 'work_on DESC NULLS LAST, id DESC',
+    'club_fees': 'year DESC, month',
+    'club_bag': 'taken_on DESC NULLS LAST, id DESC',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
-              'office_expenses', 'biotech_works'}
+              'office_expenses', 'biotech_works', 'club_bag'}
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
 AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'map_layers',
             'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
-            'payments', 'office_expenses', 'biotech_works'}
+            'payments', 'office_expenses', 'biotech_works', 'club_bag'}
 
 TITLE_FIELD = {
     'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
@@ -88,6 +95,8 @@ TITLE_FIELD = {
     'expenses': 'name', 'booking_services': 'name', 'payments': 'amount',
     'office_expenses': 'name',
     'biotech_works': 'hunter_name',
+    'club_fees': 'note',
+    'club_bag': 'species',
 }
 
 TABLE_LABEL = {
@@ -97,6 +106,8 @@ TABLE_LABEL = {
     'house_expenses': 'Расход по базе', 'expenses': 'Расход', 'settings': 'Настройки',
     'office_expenses': 'Офисный расход',
     'biotech_works': 'Биотехния',
+    'club_fees': 'Взнос',
+    'club_bag': 'Добыча члена клуба',
     'booking_services': 'Услуга в брони', 'payments': 'Платёж',
 }
 
@@ -303,6 +314,12 @@ def handler(event: dict, context) -> dict:
         if params.get('booking_id') and table in ('booking_services', 'payments', 'checks',
                                                   'receipts', 'expenses'):
             where.append('booking_id = ' + str(int(params['booking_id'])))
+        if params.get('guest_id') and table in ('club_fees', 'club_bag', 'biotech_works'):
+            where.append('guest_id = ' + str(int(params['guest_id'])))
+        if params.get('year') and table == 'club_fees':
+            where.append('year = ' + str(int(params['year'])))
+        if params.get('season') and table == 'club_bag':
+            where.append('season = ' + str(int(params['season'])))
 
         if table == 'bookings':
             cond = ' WHERE b.archived = FALSE' if not show_archived else ''
@@ -315,7 +332,7 @@ def handler(event: dict, context) -> dict:
             sql = 'SELECT * FROM ' + table
             if where:
                 sql += ' WHERE ' + ' AND '.join(where)
-            sql += ' ORDER BY ' + ORDER[table] + ' LIMIT 500'
+            sql += ' ORDER BY ' + ORDER[table] + ' LIMIT 2000'
             cur.execute(sql)
         data = rows_to_list(cur)
         cur.close()
