@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Малышенское</string>
+    <string name="title_activity_main">Малышенское</string>
+    <string name="package_name">ru.malyshenskoe.crm</string>
+    <string name="custom_url_scheme">ru.malyshenskoe.crm</string>
+</resources>
