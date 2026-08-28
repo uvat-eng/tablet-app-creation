@@ -6,6 +6,7 @@ import SearchBar from '@/components/app/SearchBar';
 import DataTable from '@/components/app/DataTable';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import WorldPins from '@/components/app/WorldPins';
+import CollectiveSheetDialog from '@/components/app/CollectiveSheetDialog';
 import { Row, listRows, createRow } from '@/lib/api';
 import { SPECIES } from '@/lib/species';
 import { COUNTRIES } from '@/lib/countries';
@@ -41,6 +42,7 @@ const Hunters = () => {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -126,9 +128,14 @@ const Hunters = () => {
       title="База охотников"
       lede="Все охотники и гости хозяйства, кроме членов закрытого клуба."
       action={
-        <button className="h-cta" onClick={() => setOpen(true)}>
-          <Icon name="Plus" size={15} /> Добавить охотника
-        </button>
+        <span className="flex flex-wrap gap-2">
+          <button className="h-cta-ghost" onClick={() => setSheetOpen(true)}>
+            <Icon name="ClipboardList" size={15} /> Коллективный лист
+          </button>
+          <button className="h-cta" onClick={() => setOpen(true)}>
+            <Icon name="Plus" size={15} /> Добавить охотника
+          </button>
+        </span>
       }
     >
       <div
@@ -210,6 +217,8 @@ const Hunters = () => {
         empty={loading ? 'Загружаем…' : 'В базе пока нет охотников'}
         onRowClick={(r) => navigate(`/hunters/${r.id}`)}
       />
+
+      <CollectiveSheetDialog open={sheetOpen} onOpenChange={setSheetOpen} />
 
       <RecordDialog
         open={open}

@@ -420,3 +420,37 @@ export const downloadContract = async (guestId: number, fileName: string) => {
   a.remove();
   URL.revokeObjectURL(url);
 };
+
+export interface CollectiveSheet {
+  hunt_date: string;
+  place: string;
+  responsible: string;
+  permit: string;
+  species: string;
+  qty: string;
+  instructor: string;
+  rows: number;
+  guest_ids: number[];
+}
+
+export const downloadCollective = async (body: CollectiveSheet) => {
+  const res = await fetch(`${DOCS_URL}?kind=collective`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': getToken() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Не удалось собрать лист');
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const day = body.hunt_date || new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `Коллективная охота ${day}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};

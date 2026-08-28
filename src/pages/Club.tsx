@@ -1,23 +1,32 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CrudPage from '@/components/app/CrudPage';
 import Icon from '@/components/ui/icon';
 import { Row } from '@/lib/api';
 import { money } from '@/lib/expenses';
+import CollectiveSheetDialog from '@/components/app/CollectiveSheetDialog';
 
 const FEE = 6500;
 
 const Club = () => {
   const onlyMembers = useCallback((r: Row) => Boolean(r.club_member), []);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
-    <CrudPage
+    <>
+      <CollectiveSheetDialog open={sheetOpen} onOpenChange={setSheetOpen} />
+      <CrudPage
       table="guests"
       index="Раздел / Закрытый клуб охотников"
       title="Закрытый клуб охотников"
       lede="Члены клуба: контакты, срок членства, взносы и привилегии."
       addLabel="Добавить члена клуба"
       searchKeys={['name', 'phone', 'city', 'note']}
+      headExtra={
+        <button className="h-cta-ghost" onClick={() => setSheetOpen(true)}>
+          <Icon name="ClipboardList" size={15} /> Коллективный лист
+        </button>
+      }
       rowLink={(r) => `/club/${r.id}`}
       filter={onlyMembers}
       defaults={{ club_member: true }}
@@ -96,7 +105,8 @@ const Club = () => {
           </>
         );
       }}
-    />
+      />
+    </>
   );
 };
 

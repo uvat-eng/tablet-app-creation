@@ -22,6 +22,7 @@ interface CrudPageProps {
   rowLink?: (row: Row) => string;
   backTo?: string;
   backLabel?: string;
+  headExtra?: React.ReactNode;
 }
 
 const CrudPage = ({
@@ -39,6 +40,7 @@ const CrudPage = ({
   rowLink,
   backTo,
   backLabel,
+  headExtra,
 }: CrudPageProps) => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +113,8 @@ const CrudPage = ({
       title={title}
       lede={lede}
       action={
-        <span className="flex gap-2">
+        <span className="flex flex-wrap gap-2">
+          {headExtra}
           {backTo && (
             <button className="h-cta-ghost" onClick={() => navigate(backTo)}>
               {backLabel || 'Назад'}

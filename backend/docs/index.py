@@ -284,8 +284,160 @@ def build_contract(guest, st):
     return buf.getvalue()
 
 
+SAFETY = [
+    'соблюдать Правила охоты, утвержденные приказом Министерства природных ресурсов '
+    'и экологии РФ №477 от 24.07.2020 г., а также параметры осуществления охоты в '
+    'соответствующих охотничьих угодьях, указанных в части 2 статьи 23 ФЗ об охоте;',
+    'при осуществлении коллективной охоты загоном, все лица обязаны носить '
+    'специальную сигнальную одежду, повышенной видимости красного, желтого или '
+    'оранжевого цвета;',
+    'запрещается осуществлять добычу охотничьих животных ближе 200 метров от жилого '
+    'дома или жилого строения;',
+    'запрещается стрелять «на шум», «на шорох», по неясно видимой цели;',
+    'запрещается стрелять вдоль линии стрелков, когда снаряд может пройти ближе, '
+    'чем 15 метров от соседнего стрелка;',
+    'запрещается сходить со стрелковой позиции, подходить к упавшему, добытому, '
+    'раненому охотничьему животному до окончания загона;',
+    'запрещается осуществлять охоту с неисправным охотничьим оружием;',
+    'запрещается использование патронов, снаряженных дробью или картечью при '
+    'осуществлении охоты на копытных животных, за исключением использования дроби '
+    '(картечи) диаметром не менее 5 мм для стрельбы по косулям, и диаметром не '
+    'менее 7,5 мм для стрельбы по кабану;',
+    'заряжать или разряжать охотничье оружие направленное только вверх или в землю, '
+    'отвернувшись от других физических лиц;',
+    'отстрел охотничьих животных осуществлять способом, не допускающими жестокого '
+    'обращения с животными, стрелять только по ясно видимой цели, стрелять на '
+    'дистанцию больше установленной;',
+    'стрелять только по охотничьему животному, на которое осуществляется '
+    'коллективная охота в соответствии с выданным разрешением на добычу;',
+    'соблюдать меры пожарной безопасности нахождения в лесу;',
+]
+
+
+def split_ticket(value):
+    raw = str(value or '').strip()
+    if not raw:
+        return '', ''
+    parts = raw.replace('№', ' ').replace('-', ' ').split()
+    if len(parts) >= 2:
+        return parts[0], ' '.join(parts[1:])
+    return '', raw
+
+
+def dotted(doc, label, value, tail_min=30):
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.space_after = Pt(6)
+    run = p.add_run(label + ': ')
+    run.font.size = Pt(12)
+    val = doc_value(value, tail_min)
+    r2 = p.add_run(val)
+    r2.font.size = Pt(12)
+    r2.underline = bool(str(value or '').strip())
+    return p
+
+
+def doc_value(value, tail_min):
+    text = str(value or '').strip()
+    if text:
+        return text
+    return '_' * tail_min
+
+
+def build_collective(payload, hunters, st):
+    doc = Document()
+    set_font(doc, size=12)
+    sec = doc.sections[0]
+    sec.top_margin = Cm(1.0)
+    sec.bottom_margin = Cm(1.0)
+    sec.left_margin = Cm(1.0)
+    sec.right_margin = Cm(1.0)
+
+    para(doc, 'Список лиц,', bold=True, align='center', size=14, space_after=0)
+    para(doc, 'участвующих в коллективной охоте', bold=True, align='center', size=14,
+         space_after=12)
+
+    dotted(doc, 'Дата осуществления охоты', ru_date(payload.get('hunt_date')), 26)
+    dotted(doc, 'Место осуществления охоты',
+           payload.get('place') or st.get('grounds'), 60)
+    dotted(doc, 'Сведения о лице, ответственного за осуществление коллективной охоты '
+                'или которому выдано разрешение на добычу охотничьих ресурсов',
+           payload.get('responsible'), 60)
+    dotted(doc, 'Разрешение на добычу охотничьих ресурсов', payload.get('permit'), 40)
+    dotted(doc, 'Вид охотничьих животных, подлежащих добыче', payload.get('species'), 40)
+    dotted(doc, 'Количество охотничьих животных, подлежащих добыче',
+           payload.get('qty'), 30)
+
+    rows_count = max(int(payload.get('rows') or 0), len(hunters), 21)
+    t = doc.add_table(rows=0, cols=5)
+    t.style = 'Table Grid'
+    widths = (Cm(1.2), Cm(10.2), Cm(1.5), Cm(3.3), Cm(3.2))
+
+    head = t.add_row().cells
+    head2 = t.add_row().cells
+    titles = ['№\nп/п', 'Ф. И. О.', 'Охотничий билет', '', 
+              'Подпись о прохождении инструктажа по технике безопасности']
+    for i, val in enumerate(titles):
+        head[i].text = val
+    head2[0].text = ''
+    head2[1].text = ''
+    head2[2].text = 'серия'
+    head2[3].text = 'номер'
+    head2[4].text = ''
+    head[0].merge(head2[0])
+    head[1].merge(head2[1])
+    head[2].merge(head[3])
+    head[4].merge(head2[4])
+
+    for n in range(rows_count):
+        cells = t.add_row().cells
+        cells[0].text = str(n + 1)
+        if n < len(hunters):
+            h = hunters[n]
+            serie, number = split_ticket(h.get('hunt_ticket'))
+            cells[1].text = str(h.get('name') or '')
+            cells[2].text = serie
+            cells[3].text = number
+        cells[4].text = ''
+
+    for row in t.rows:
+        row.height = Cm(0.8)
+        for i, cell in enumerate(row.cells):
+            cell.width = widths[i] if i < len(widths) else Cm(3)
+            for p in cell.paragraphs:
+                p.paragraph_format.space_after = Pt(0)
+                p.paragraph_format.space_before = Pt(0)
+                if i in (0, 2, 3):
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                for r in p.runs:
+                    r.font.size = Pt(11)
+
+    doc.add_page_break()
+    para(doc, 'Инструктаж по технике безопасности и порядку осуществлению охоты',
+         bold=True, align='center', size=12, space_after=10)
+    for item in SAFETY:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        p.paragraph_format.space_after = Pt(4)
+        run = p.add_run('- ' + item)
+        run.font.size = Pt(12)
+
+    para(doc, '«____» _______________ 20___ года.', align='right', space_before=10,
+         space_after=14)
+    para(doc, 'Инструктаж лиц, участвующих в коллективной охоте по технике '
+              'безопасности и порядку осуществления охоты провел:', align='left',
+         space_after=14)
+    lead = str(payload.get('instructor') or '').strip()
+    para(doc, ('__________________ / ' + lead + ' /.') if lead
+         else '__________________ / ___________________________ /.', align='left')
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 def handler(event: dict, context) -> dict:
-    """Формирует печатные документы хозяйства: путевку-договор члена клуба в Word."""
+    """Формирует печатные документы: путевку-договор и коллективный лист охоты в Word."""
     method = event.get('httpMethod', 'GET')
     if method == 'OPTIONS':
         return {'statusCode': 200, 'headers': CORS, 'body': ''}
@@ -304,6 +456,33 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return {'statusCode': 401, 'headers': CORS,
                 'body': json.dumps({'error': 'Нужен вход в систему'})}
+
+    if kind == 'collective':
+        payload = json.loads(event.get('body') or '{}')
+        ids = [int(x) for x in (payload.get('guest_ids') or []) if str(x).isdigit()]
+        hunters = []
+        if ids:
+            cur.execute('SELECT id, name, hunt_ticket FROM guests WHERE id IN (' +
+                        ','.join(str(i) for i in ids) + ')')
+            found = {int(r['id']): dict(r) for r in cur.fetchall()}
+            hunters = [found[i] for i in ids if i in found]
+        cur.execute('SELECT * FROM settings WHERE id = 1')
+        srow = cur.fetchone()
+        st = dict(srow) if srow else {}
+        cur.close()
+        conn.close()
+        data = build_collective(payload, hunters, st)
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/vnd.openxmlformats-officedocument.'
+                                'wordprocessingml.document',
+                'Content-Disposition': 'attachment; filename="collective.docx"',
+            },
+            'isBase64Encoded': True,
+            'body': base64.b64encode(data).decode(),
+        }
 
     if kind != 'contract' or not guest_id:
         cur.close()
