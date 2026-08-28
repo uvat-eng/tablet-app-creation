@@ -35,7 +35,17 @@ const Club = () => {
         { key: 'name', label: 'Имя' },
         { key: 'cert_type', label: 'Статус', width: '110px' },
         { key: 'phone', label: 'Телефон', width: '150px' },
-        { key: 'city', label: 'Город', width: '130px' },
+        {
+          key: 'hunt_ticket',
+          label: 'Охотбилет',
+          width: '140px',
+          render: (r) =>
+            r.hunt_ticket ? (
+              String(r.hunt_ticket)
+            ) : (
+              <span className="text-[#c0392b]">не внесён</span>
+            ),
+        },
         {
           key: 'born_on',
           label: 'Год рожд.',
@@ -61,6 +71,11 @@ const Club = () => {
             { value: 'инспектор', label: 'Инспектор' },
           ],
         },
+        { key: 'hunt_ticket', label: 'Охотничий билет: серия и номер' },
+        { key: 'hunt_ticket_date', label: 'Охотбилет: дата выдачи', type: 'date' },
+        { key: 'roh_number', label: 'РОХа: номер' },
+        { key: 'roh_date', label: 'РОХа: действует до', type: 'date' },
+        { key: 'roh_weapon', label: 'Оружие по РОХе' },
         { key: 'fee_monthly', label: 'Взнос в месяц, ₽', type: 'number' },
         { key: 'club_member', label: 'Член клуба', type: 'checkbox' },
         { key: 'club_until', label: 'Членство до', type: 'date' },
@@ -69,6 +84,7 @@ const Club = () => {
       extra={(rows: Row[]) => {
         const year = new Date().getFullYear();
         const planYear = rows.length * FEE * 12;
+        const withTicket = rows.filter((r) => String(r.hunt_ticket || '').trim()).length;
         return (
           <>
             <div
@@ -90,6 +106,15 @@ const Club = () => {
               <div className="bg-white p-5">
                 <div className="h-label">План взносов на {year}</div>
                 <div className="h-head text-[26px] mt-2">{money(planYear)}</div>
+              </div>
+              <div className="bg-white p-5">
+                <div className="h-label">Охотбилеты внесены</div>
+                <div
+                  className="h-head text-[26px] mt-2"
+                  style={{ color: withTicket < rows.length ? '#c0392b' : undefined }}
+                >
+                  {withTicket} из {rows.length}
+                </div>
               </div>
               <div className="bg-white p-5">
                 <div className="h-label">Свободных мест</div>

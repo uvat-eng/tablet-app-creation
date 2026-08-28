@@ -338,13 +338,22 @@ SAFETY = [
 
 
 def split_ticket(value):
+    """Делит номер охотбилета на серию и номер: 72 № 123456, 72-123456, 72123456."""
     raw = str(value or '').strip()
     if not raw:
         return '', ''
-    parts = raw.replace('№', ' ').replace('-', ' ').split()
+    cleaned = raw.replace('№', ' ').replace('-', ' ').replace('/', ' ')
+    parts = [p for p in cleaned.split() if p]
     if len(parts) >= 2:
         return parts[0], ' '.join(parts[1:])
-    return '', raw
+    one = parts[0] if parts else raw
+    letters = ''.join(c for c in one if c.isalpha())
+    digits = ''.join(c for c in one if c.isdigit())
+    if letters and digits:
+        return letters, digits
+    if len(digits) > 6:
+        return digits[:2], digits[2:]
+    return '', one
 
 
 def dotted(doc, label, value, tail_min=30):

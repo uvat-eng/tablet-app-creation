@@ -57,6 +57,11 @@ const CollectiveSheetDialog = ({ open, onOpenChange }: Props) => {
     [picked, guests],
   );
 
+  const noTicket = useMemo(
+    () => pickedRows.filter((g) => !String(g.hunt_ticket || '').trim()),
+    [pickedRows],
+  );
+
   const toggle = (id: number) =>
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -182,7 +187,12 @@ const CollectiveSheetDialog = ({ open, onOpenChange }: Props) => {
                     {on && <Icon name="Check" size={11} />}
                   </span>
                   <span className="text-[0.74em] flex-1">{String(g.name)}</span>
-                  <span className="h-label">{String(g.hunt_ticket || '')}</span>
+                  <span
+                    className="h-label"
+                    style={{ color: g.hunt_ticket ? undefined : '#c0392b' }}
+                  >
+                    {g.hunt_ticket ? String(g.hunt_ticket) : 'нет билета'}
+                  </span>
                 </button>
               );
             })}
@@ -194,6 +204,17 @@ const CollectiveSheetDialog = ({ open, onOpenChange }: Props) => {
           {pickedRows.length > 0 && (
             <div className="h-label mt-3 leading-relaxed">
               В листе: {pickedRows.map((g) => String(g.name)).join(', ')}
+            </div>
+          )}
+
+          {noTicket.length > 0 && (
+            <div
+              className="mt-3 px-3 py-2 text-[0.68em] leading-relaxed"
+              style={{ background: '#fdeceb', color: '#c0392b' }}
+            >
+              <b>Без охотбилета: {noTicket.length}</b> — {' '}
+              {noTicket.map((g) => String(g.name)).join(', ')}. В листе серия и номер
+              останутся пустыми, впишите от руки или внесите данные в карточку.
             </div>
           )}
         </div>
