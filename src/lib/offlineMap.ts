@@ -43,8 +43,8 @@ export const probeOffline = async (): Promise<boolean> => {
 };
 
 const EMPTY =
-  'data:image/svg+xml;base64,' +
-  btoa(
+  'data:image/svg+xml;charset=utf-8,' +
+  encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">' +
       '<rect width="256" height="256" fill="#eceae4"/>' +
       '<text x="128" y="130" font-size="13" fill="#a8a49a" text-anchor="middle">нет плитки</text></svg>',
