@@ -8,6 +8,7 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { LOCATION_KINDS, KIND, STATUSES } from '@/lib/locationKinds';
 import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
+import useGeoLocate from '@/lib/useGeoLocate';
 import { toast } from 'sonner';
 
 const BASES = [
@@ -71,6 +72,8 @@ const MapPage = () => {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Row | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const geo = useGeoLocate(mapRef);
 
   const load = useCallback(async () => {
     const [locs, layers] = await Promise.all([listRows('locations'), listRows('map_layers')]);
@@ -357,11 +360,99 @@ const MapPage = () => {
         })}
       </div>
 
-      <div
-        ref={boxRef}
-        className="border border-[#e2e2df]"
-        style={{ height: '620px', width: '100%' }}
-      />
+      <div className="relative">
+        <div
+          ref={boxRef}
+          className="border border-[#e2e2df]"
+          style={{ height: '620px', width: '100%' }}
+        />
+
+        <button
+          onClick={geo.tracking ? geo.center : geo.start}
+          title={geo.tracking ? 'Показать себя на карте' : 'Определить моё местоположение'}
+          className="absolute flex items-center justify-center border shadow-md"
+          style={{
+            right: 12,
+            bottom: 28,
+            zIndex: 1000,
+            width: 46,
+            height: 46,
+            borderColor: '#e2e2df',
+            borderRadius: '50%',
+            background: '#fff',
+            color: geo.tracking ? '#1a73e8' : '#3b3b38',
+          }}
+        >
+          <Icon name={geo.tracking ? 'LocateFixed' : 'Locate'} size={22} />
+        </button>
+
+        {geo.tracking && (
+          <button
+            onClick={geo.stop}
+            title="Выключить слежение"
+            className="absolute flex items-center justify-center border shadow-md"
+            style={{
+              right: 12,
+              bottom: 82,
+              zIndex: 1000,
+              width: 46,
+              height: 46,
+              borderColor: '#e2e2df',
+              borderRadius: '50%',
+              background: '#fff',
+              color: '#3b3b38',
+            }}
+          >
+            <Icon name="X" size={20} />
+          </button>
+        )}
+      </div>
+
+      {(geo.fix || geo.error) && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {geo.fix && (
+            <>
+              <span className="h-label">Вы здесь</span>
+              <span className="text-sm">
+                {geo.fix.lat.toFixed(6)}, {geo.fix.lng.toFixed(6)}
+              </span>
+              <span className="text-sm text-[#6d6d6d]">
+                точность ±{Math.round(geo.fix.accuracy)} м
+              </span>
+              <button
+                className="h-cta-ghost"
+                onClick={() => {
+                  const f = geo.fix!;
+                  setDraft({
+                    kind: 'tower',
+                    name: '',
+                    lat: Number(f.lat.toFixed(6)),
+                    lng: Number(f.lng.toFixed(6)),
+                    coords: `${f.lat.toFixed(6)}, ${f.lng.toFixed(6)}`,
+                    qty: 1,
+                    unit: 'шт',
+                    status: 'ok',
+                  } as Row);
+                  setOpen(true);
+                }}
+              >
+                Добавить точку здесь
+              </button>
+              <button
+                className="h-cta-ghost"
+                onClick={() => {
+                  const f = geo.fix!;
+                  navigator.clipboard?.writeText(`${f.lat.toFixed(6)}, ${f.lng.toFixed(6)}`);
+                  toast.success('Координаты скопированы');
+                }}
+              >
+                Скопировать координаты
+              </button>
+            </>
+          )}
+          {geo.error && <span className="text-sm text-[#c0392b]">{geo.error}</span>}
+        </div>
+      )}
 
       <div className="mt-3 h-label">
         Точек на карте: {points.length}
