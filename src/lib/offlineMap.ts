@@ -13,7 +13,7 @@ export interface OfflineCfg {
 export const DEFAULT_OFFLINE: OfflineCfg = {
   enabled: false,
   url: '/maps/tiles/{z}/{x}/{y}.jpg',
-  minZoom: 8,
+  minZoom: 9,
   maxZoom: 16,
   label: 'Офлайн',
 };
