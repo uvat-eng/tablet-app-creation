@@ -16,7 +16,7 @@ import { FACILITIES } from '@/lib/houseCategories';
 import { toast } from 'sonner';
 
 const OTHER_KINDS = EXPENSE_KINDS.filter((k) => k.key !== 'hunt');
-const SPLIT_KEYS = SPLIT_KINDS.map((k) => k.key);
+const SPLIT_KEYS = [...SPLIT_KINDS.map((k) => k.key), 'to_farm'];
 
 const FIELDS: Field[] = [
   { key: 'name', label: 'Наименование' },
@@ -169,6 +169,7 @@ const Finance = () => {
     });
     splitRows.forEach((r) => {
       const k = String(r.kind);
+      if (!map[k]) map[k] = { sum: 0, rows: [] };
       map[k].sum += Number(r.total || 0);
       map[k].rows.push(r);
     });
