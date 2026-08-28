@@ -1,16 +1,27 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CrudPage from '@/components/app/CrudPage';
 import Icon from '@/components/ui/icon';
-import { Row } from '@/lib/api';
+import { Row, listRows } from '@/lib/api';
 import { money } from '@/lib/expenses';
 import CollectiveSheetDialog from '@/components/app/CollectiveSheetDialog';
 
 const FEE = 6500;
+const QUARTERS = [
+  { key: 1, label: 'I квартал', months: [1, 2, 3] },
+  { key: 2, label: 'II квартал', months: [4, 5, 6] },
+  { key: 3, label: 'III квартал', months: [7, 8, 9] },
+  { key: 4, label: 'IV квартал', months: [10, 11, 12] },
+];
 
 const Club = () => {
   const onlyMembers = useCallback((r: Row) => Boolean(r.club_member), []);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [fees, setFees] = useState<Row[]>([]);
+
+  useEffect(() => {
+    listRows('club_fees').then(setFees).catch(() => setFees([]));
+  }, []);
 
   return (
     <>
@@ -122,7 +133,134 @@ const Club = () => {
               </div>
             </div>
 
-            <div className="mt-4">
+            {(() => {
+              const yFees = fees.filter((f) => Number(f.year) === year);
+              const paidIn = (months: number[]) =>
+                yFees
+                  .filter((f) => f.paid && months.includes(Number(f.month)))
+                  .reduce((s, f) => s + Number(f.amount || 0), 0);
+              const planQ = rows.length * FEE * 3;
+
+              const debtors = rows
+                .map((m) => {
+                  const own = yFees.filter((f) => Number(f.guest_id) === Number(m.id));
+                  const paidMonths = own.filter((f) => f.paid).length;
+                  const debtMonths = Math.max(0, 12 - paidMonths);
+                  return { name: String(m.name), debtMonths, debt: debtMonths * FEE };
+                })
+                .filter((d) => d.debt > 0)
+                .sort((a, b) => b.debt - a.debt);
+
+              return (
+                <>
+                  <div className="mt-8 h-label mb-3">Квартальный учёт взносов · {year}</div>
+                  <div className="border border-[#e2e2df] overflow-x-auto bg-white">
+                    <table className="w-full min-w-[620px]">
+                      <thead>
+                        <tr className="bg-[var(--hero-surface)]">
+                          <th className="h-label text-left px-4 py-3 font-normal w-[150px]">
+                            Квартал
+                          </th>
+                          <th className="h-label text-left px-4 py-3 font-normal w-[150px]">План</th>
+                          <th className="h-label text-left px-4 py-3 font-normal w-[150px]">Факт</th>
+                          <th className="h-label text-left px-4 py-3 font-normal">Отклонение</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {QUARTERS.map((q) => {
+                          const fact = paidIn(q.months);
+                          const diff = fact - planQ;
+                          return (
+                            <tr key={q.key} className="border-t border-[#e2e2df]">
+                              <td className="px-4 py-3 text-[0.72em]">{q.label}</td>
+                              <td className="px-4 py-3 text-[0.72em] whitespace-nowrap">
+                                {money(planQ)}
+                              </td>
+                              <td className="px-4 py-3 text-[0.72em] font-bold whitespace-nowrap">
+                                {money(fact)}
+                              </td>
+                              <td
+                                className="px-4 py-3 text-[0.72em] whitespace-nowrap"
+                                style={{ color: diff < 0 ? '#c0392b' : '#007a43' }}
+                              >
+                                {diff < 0 ? `−${money(Math.abs(diff))}` : money(diff)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t border-black bg-[var(--hero-surface)]">
+                          <td className="px-4 py-3 text-[0.72em] font-bold">Итого за год</td>
+                          <td className="px-4 py-3 text-[0.72em] font-bold whitespace-nowrap">
+                            {money(planYear)}
+                          </td>
+                          <td className="px-4 py-3 text-[0.72em] font-bold whitespace-nowrap">
+                            {money(paidIn([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]))}
+                          </td>
+                          <td className="px-4 py-3" />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  <div className="mt-8 h-label mb-3">
+                    Не сдали взносы · {debtors.length} из {rows.length}
+                  </div>
+                  <div className="border border-[#e2e2df] overflow-x-auto bg-white">
+                    <table className="w-full min-w-[520px]">
+                      <thead>
+                        <tr className="bg-[var(--hero-surface)]">
+                          <th className="h-label text-left px-4 py-3 font-normal">ФИО</th>
+                          <th className="h-label text-left px-4 py-3 font-normal w-[160px]">
+                            Месяцев не сдано
+                          </th>
+                          <th className="h-label text-left px-4 py-3 font-normal w-[160px]">Долг</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {debtors.map((d) => (
+                          <tr key={d.name} className="border-t border-[#e2e2df]">
+                            <td className="px-4 py-3 text-[0.72em]">{d.name}</td>
+                            <td className="px-4 py-3 text-[0.72em]">{d.debtMonths}</td>
+                            <td
+                              className="px-4 py-3 text-[0.72em] font-bold whitespace-nowrap"
+                              style={{ color: '#c0392b' }}
+                            >
+                              {money(d.debt)}
+                            </td>
+                          </tr>
+                        ))}
+                        {!debtors.length && (
+                          <tr>
+                            <td className="px-4 py-6 text-[0.72em]" colSpan={3}>
+                              Все взносы сданы
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                      {debtors.length > 0 && (
+                        <tfoot>
+                          <tr className="border-t border-black bg-[var(--hero-surface)]">
+                            <td className="px-4 py-3 text-[0.72em] font-bold" colSpan={2}>
+                              Общая задолженность
+                            </td>
+                            <td
+                              className="px-4 py-3 text-[0.75em] font-bold whitespace-nowrap"
+                              style={{ color: '#c0392b' }}
+                            >
+                              {money(debtors.reduce((s, d) => s + d.debt, 0))}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
+
+            <div className="mt-6">
               <Link className="h-cta-ghost inline-flex" to="/club/fees">
                 <Icon name="Table" size={14} /> Журнал учёта взносов
               </Link>
