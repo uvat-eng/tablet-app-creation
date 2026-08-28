@@ -53,7 +53,8 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
   }, [bookings]);
 
   const yearList = useMemo(() => {
-    const set = new Set<number>([today.getFullYear(), cursor.y]);
+    const base = today.getFullYear();
+    const set = new Set<number>([base - 1, base, base + 1, base + 2, cursor.y]);
     bookings.forEach((b) => {
       const y = Number(String(b.date_from || '').slice(0, 4));
       if (y) set.add(y);

@@ -39,7 +39,8 @@ const Bookings = () => {
   const navigate = useNavigate();
 
   const years = useMemo(() => {
-    const set = new Set<number>([new Date().getFullYear()]);
+    const base = new Date().getFullYear();
+    const set = new Set<number>([base - 1, base, base + 1, base + 2]);
     rows.forEach((r) => {
       const y = Number(String(r.date_from || '').slice(0, 4));
       if (y) set.add(y);
