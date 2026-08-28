@@ -151,7 +151,7 @@ const Settings = () => {
       <div className="mt-10 pt-8 border-t border-[#e2e2df]">
         <div className="h-head text-[22px] mb-1">Приложение для планшета</div>
         <div className="h-mono-cap normal-case mb-5 text-[var(--hero-muted)]">
-          Версия для Android с офлайн-картами. Откройте эту страницу на планшете.
+          Версия для Android. Карты угодий скачиваются в приложение отдельно, один раз.
         </div>
         <a
           href="/download"
