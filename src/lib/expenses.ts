@@ -21,7 +21,6 @@ export const EXPENSE_KINDS = [
 
 export const SPLIT_KINDS = [
   { key: 'to_account', label: 'Отправлено на расчётный счёт', icon: 'Landmark' },
-  { key: 'to_farm', label: 'Оставлено на хозяйстве', icon: 'Home' },
 ];
 
 export const HUNT_CATEGORY_LABEL = (key: string) =>

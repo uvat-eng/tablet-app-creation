@@ -175,8 +175,8 @@ const Finance = () => {
     return map;
   }, [splitRows]);
 
-  const distributed = SPLIT_KINDS.reduce((s, k) => s + split[k.key].sum, 0);
-  const undistributed = profit - distributed;
+  const toAccount = split.to_account?.sum || 0;
+  const leftOnFarm = income.total - expenseTotal - toAccount;
 
   const save = async (values: Row) => {
     const unitPrice = Number(values.unit_price || 0);
@@ -275,7 +275,7 @@ const Finance = () => {
         {block(profit >= 0 ? 'Прибыль' : 'Убыток', money(Math.abs(profit)), true)}
       </div>
 
-      <div className="h-head text-[22px] mb-3">Распределение прибыли</div>
+      <div className="h-head text-[22px] mb-3">Распределение поступлений</div>
       <div
         className="grid gap-px mb-3"
         style={{
@@ -284,48 +284,81 @@ const Finance = () => {
           border: '1px solid #e2e2df',
         }}
       >
-        {SPLIT_KINDS.map((k) => {
-          const sum = split[k.key].sum;
-          const share = profit > 0 ? Math.round((sum / profit) * 100) : 0;
-          return (
-            <button
-              key={k.key}
-              className="bg-white p-5 text-left hover:bg-[var(--hero-surface)] transition-colors"
-              onClick={() => {
-                setEditing({
-                  kind: k.key,
-                  qty: 1,
-                  unit: 'шт',
-                  name: k.label,
-                  spent_on: new Date().toISOString().slice(0, 10),
-                } as Row);
-                setOpen(true);
-              }}
-            >
-              <span className="flex items-center gap-2">
-                <Icon name={k.icon} size={15} fallback="Circle" />
-                <span className="h-label">{k.label}</span>
-              </span>
-              <div className="h-head text-[24px] mt-2 whitespace-nowrap">{money(sum)}</div>
-              <div className="h-mono-cap mt-2 text-[var(--hero-muted)]">
-                {share}% от прибыли · {split[k.key].rows.length} записей
+        {(() => {
+          const base = income.total || 0;
+          const cards = [
+            {
+              key: 'to_account',
+              label: 'Отправлено на расчётный счёт',
+              icon: 'Landmark',
+              value: toAccount,
+              hint: `${split.to_account?.rows.length || 0} записей`,
+              clickable: true,
+            },
+            {
+              key: 'spent',
+              label: 'Потрачено',
+              icon: 'Receipt',
+              value: expenseTotal,
+              hint: 'Охота, прочие расходы, объекты',
+              clickable: false,
+            },
+            {
+              key: 'left',
+              label: 'Оставлено на хозяйстве',
+              icon: 'Home',
+              value: leftOnFarm,
+              hint: 'Поступления минус траты и перевод',
+              clickable: false,
+            },
+          ];
+          return cards.map((c) => {
+            const share = base > 0 ? Math.round((c.value / base) * 100) : 0;
+            const body = (
+              <>
+                <span className="flex items-center gap-2">
+                  <Icon name={c.icon} size={15} fallback="Circle" />
+                  <span className="h-label">{c.label}</span>
+                </span>
+                <div className="h-head text-[24px] mt-2 whitespace-nowrap">{money(c.value)}</div>
+                <div className="h-mono-cap mt-2 text-[var(--hero-muted)]">
+                  {share}% от поступлений · {c.hint}
+                </div>
+                <div className="mt-3 h-[4px] bg-[#e2e2df]">
+                  <div
+                    className="h-full"
+                    style={{
+                      width: `${Math.max(0, Math.min(share, 100))}%`,
+                      background: 'var(--hero-accent)',
+                    }}
+                  />
+                </div>
+              </>
+            );
+            return c.clickable ? (
+              <button
+                key={c.key}
+                className="bg-white p-5 text-left hover:bg-[var(--hero-surface)] transition-colors"
+                onClick={() => {
+                  setEditing({
+                    kind: 'to_account',
+                    qty: 1,
+                    unit: 'шт',
+                    name: 'Перевод на расчётный счёт',
+                    spent_on: new Date().toISOString().slice(0, 10),
+                  } as Row);
+                  setOpen(true);
+                }}
+              >
+                {body}
+              </button>
+            ) : (
+              <div key={c.key} className="bg-white p-5">
+                {body}
               </div>
-              <div className="mt-3 h-[4px] bg-[#e2e2df]">
-                <div
-                  className="h-full"
-                  style={{ width: `${Math.min(share, 100)}%`, background: 'var(--hero-accent)' }}
-                />
-              </div>
-            </button>
-          );
-        })}
-        <div className="bg-white p-5">
-          <div className="h-label">Не распределено</div>
-          <div className="h-head text-[24px] mt-2 whitespace-nowrap">{money(undistributed)}</div>
-          <div className="h-mono-cap mt-2 text-[var(--hero-muted)]">
-            Прибыль минус распределённое
-          </div>
-        </div>
+            );
+          });
+        })()}
       </div>
 
       {splitRows.length > 0 && (
