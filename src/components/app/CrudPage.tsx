@@ -18,6 +18,7 @@ interface CrudPageProps {
   defaults?: Row;
   addLabel?: string;
   extra?: (rows: Row[]) => React.ReactNode;
+  below?: (rows: Row[]) => React.ReactNode;
   searchKeys?: string[];
   rowLink?: (row: Row) => string;
   backTo?: string;
@@ -36,6 +37,7 @@ const CrudPage = ({
   defaults,
   addLabel = 'Добавить',
   extra,
+  below,
   searchKeys,
   rowLink,
   backTo,
@@ -149,6 +151,8 @@ const CrudPage = ({
           }}
         />
       </div>
+
+      {below?.(rows)}
 
       <RecordDialog
         open={open}

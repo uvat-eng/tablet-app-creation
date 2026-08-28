@@ -136,7 +136,14 @@ const Club = () => {
                 <div className="h-head text-[26px] mt-2">{Math.max(0, 24 - rows.length)}</div>
               </div>
             </div>
-
+          </>
+        );
+      }}
+      below={(rows: Row[]) => {
+        const year = new Date().getFullYear();
+        const planYear = rows.length * FEE * 12;
+        return (
+          <div className="mt-10">
             {(() => {
               const yFees = fees.filter((f) => Number(f.year) === year);
               const paidIn = (months: number[]) =>
@@ -161,7 +168,7 @@ const Club = () => {
 
               return (
                 <>
-                  <div className="mt-8 h-label mb-3">Квартальный учёт взносов · {year}</div>
+                  <div className="h-label mb-3">Квартальный учёт взносов · {year}</div>
                   <div className="border border-[#e2e2df] overflow-x-auto bg-white">
                     <table className="w-full min-w-[620px]">
                       <thead>
@@ -276,7 +283,7 @@ const Club = () => {
                 <Icon name="Table" size={14} /> Журнал учёта взносов
               </Link>
             </div>
-          </>
+          </div>
         );
       }}
       />
