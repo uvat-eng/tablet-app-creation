@@ -258,6 +258,29 @@ def build_contract(guest, st):
          '. Оплата до ' + str(st.get('pay_day') or '03') + ' числа месяца.',
          bold=True, space_before=8, space_after=12)
 
+    para(doc, '4. РЕКВИЗИТЫ ОХОТХОЗЯЙСТВА', bold=True, align='left', space_before=8)
+    req = []
+    if st.get('org_full_name'):
+        req.append(str(st['org_full_name']))
+    line = 'ИНН ' + str(st.get('org_inn') or '') + ', КПП ' + str(st.get('org_kpp') or '')
+    if st.get('org_ogrn'):
+        line += ', ОГРН ' + str(st['org_ogrn'])
+    req.append(line)
+    if st.get('org_address'):
+        req.append('Юридический адрес: ' + str(st['org_address']))
+    if st.get('org_address_fact'):
+        req.append('Фактический адрес: ' + str(st['org_address_fact']))
+    if st.get('org_rs'):
+        bank = 'Р/с ' + str(st['org_rs'])
+        if st.get('org_bank'):
+            bank += ', ' + str(st['org_bank'])
+        req.append(bank)
+    if st.get('org_ks'):
+        req.append('К/с ' + str(st['org_ks']) + ', БИК ' + str(st.get('org_bik') or ''))
+    for item in req:
+        para(doc, item, align='left', space_after=2)
+
+    para(doc, '', space_after=8)
     sign = doc.add_table(rows=0, cols=2)
     sign.alignment = WD_TABLE_ALIGNMENT.CENTER
     r1 = sign.add_row().cells

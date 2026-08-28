@@ -278,12 +278,21 @@ export interface FarmSettings {
   pay_card: string;
   pay_day: string;
   fee_monthly: number;
+  org_full_name: string;
+  org_ogrn: string;
+  org_okved: string;
+  org_address_fact: string;
+  org_bank: string;
+  org_rs: string;
+  org_ks: string;
+  org_bik: string;
 }
 
 const ORG_KEYS = [
   'org_name', 'org_inn', 'org_kpp', 'org_address', 'org_director',
   'org_director_short', 'base_place', 'base_region', 'agreement_no',
-  'grounds', 'pay_card', 'pay_day',
+  'grounds', 'pay_card', 'pay_day', 'org_full_name', 'org_ogrn', 'org_okved',
+  'org_address_fact', 'org_bank', 'org_rs', 'org_ks', 'org_bik',
 ] as const;
 
 const mapSettings = (item: Row | undefined): FarmSettings => {

@@ -293,7 +293,8 @@ def handler(event: dict, context) -> dict:
         for f in ('farm_name', 'logo_url', 'configured', 'org_name', 'org_inn', 'org_kpp',
                   'org_address', 'org_director', 'org_director_short', 'base_place',
                   'base_region', 'agreement_no', 'grounds', 'pay_card', 'pay_day',
-                  'fee_monthly'):
+                  'fee_monthly', 'org_full_name', 'org_ogrn', 'org_okved',
+                  'org_address_fact', 'org_bank', 'org_rs', 'org_ks', 'org_bik'):
             if f in body:
                 sets.append(f + ' = ' + esc(body[f]))
         if not sets:

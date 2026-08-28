@@ -25,6 +25,14 @@ const EMPTY: FarmSettings = {
   pay_card: '',
   pay_day: '03',
   fee_monthly: 6500,
+  org_full_name: '',
+  org_ogrn: '',
+  org_okved: '',
+  org_address_fact: '',
+  org_bank: '',
+  org_rs: '',
+  org_ks: '',
+  org_bik: '',
 };
 
 const SettingsContext = createContext<SettingsValue>({
