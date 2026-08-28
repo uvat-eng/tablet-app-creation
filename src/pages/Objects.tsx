@@ -42,7 +42,6 @@ const makeFields = (kind: string) => [
 ];
 
 const filterTransport = (r: Row) => r.kind === 'transport';
-const filterHotel = (r: Row) => r.kind === 'hotel';
 const filterBanya = (r: Row) => r.kind === 'banya';
 
 export const Transport = () => (
@@ -56,20 +55,6 @@ export const Transport = () => (
     fields={makeFields('transport')}
     filter={filterTransport}
     defaults={{ kind: 'transport' }}
-  />
-);
-
-export const Hotel = () => (
-  <CrudPage
-    table="objects"
-    index="Раздел / Гостиница"
-    title="Гостиница"
-    lede="Номерной фонд базы."
-    addLabel="Добавить номер"
-    columns={columns}
-    fields={makeFields('hotel')}
-    filter={filterHotel}
-    defaults={{ kind: 'hotel' }}
   />
 );
 

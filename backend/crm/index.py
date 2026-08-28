@@ -36,8 +36,8 @@ TABLES = {
                  'accepted_from', 'basis', 'amount', 'amount_words', 'attachment',
                  'credit_account', 'debit_account', 'chief_accountant', 'cashier',
                  'note', 'archived'],
-    'house_expenses': ['category', 'name', 'unit_price', 'qty', 'unit', 'total', 'spent_on',
-                       'vendor', 'note', 'archived'],
+    'house_expenses': ['facility', 'category', 'name', 'unit_price', 'qty', 'unit', 'total',
+                       'spent_on', 'vendor', 'note', 'archived'],
 }
 
 ORDER = {
