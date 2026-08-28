@@ -373,8 +373,3 @@
 .leaflet-container {
   z-index: 0;
 }
-.leaflet-pane,
-.leaflet-top,
-.leaflet-bottom {
-  z-index: 1;
-}
