@@ -38,6 +38,8 @@ TABLES = {
                  'note', 'archived'],
     'house_expenses': ['facility', 'category', 'name', 'unit_price', 'qty', 'unit', 'total',
                        'spent_on', 'vendor', 'note', 'archived'],
+    'expenses': ['kind', 'category', 'check_id', 'booking_id', 'name', 'unit_price', 'qty',
+                 'unit', 'total', 'spent_on', 'vendor', 'note', 'archived'],
 }
 
 ORDER = {
@@ -53,10 +55,11 @@ ORDER = {
     'checks': 'date_from DESC NULLS LAST, id DESC',
     'receipts': 'issued_on DESC NULLS LAST, id DESC',
     'house_expenses': 'spent_on DESC NULLS LAST, id DESC',
+    'expenses': 'spent_on DESC NULLS LAST, id DESC',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
-              'checks', 'receipts', 'house_expenses'}
+              'checks', 'receipts', 'house_expenses', 'expenses'}
 
 JSON_FIELDS = {'checks': {'items'}}
 
@@ -192,7 +195,7 @@ def handler(event: dict, context) -> dict:
         if table in ARCHIVABLE and not show_archived:
             where.append('archived = FALSE')
         if params.get('booking_id') and table in ('booking_services', 'payments', 'checks',
-                                                  'receipts'):
+                                                  'receipts', 'expenses'):
             where.append('booking_id = ' + str(int(params['booking_id'])))
 
         if table == 'bookings':

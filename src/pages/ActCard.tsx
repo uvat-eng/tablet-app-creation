@@ -181,9 +181,14 @@ const ActCard = () => {
             К списку
           </Link>
           {!isNew && (
-            <button className="h-cta-ghost" onClick={openReceipt}>
-              Чек (ПКО)
-            </button>
+            <>
+              <Link className="h-cta-ghost" to={`/documents/expenses/${id}`}>
+                Акт о расходах
+              </Link>
+              <button className="h-cta-ghost" onClick={openReceipt}>
+                Чек (ПКО)
+              </button>
+            </>
           )}
           <button className="h-cta-ghost" onClick={() => window.print()}>
             Скачать PDF

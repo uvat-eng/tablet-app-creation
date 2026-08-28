@@ -225,7 +225,7 @@ const Documents = () => {
           {
             key: '__act',
             label: '',
-            width: '210px',
+            width: '280px',
             render: (r) => (
               <span className="flex gap-3">
                 <button
@@ -245,6 +245,15 @@ const Documents = () => {
                   }}
                 >
                   Чек
+                </button>
+                <button
+                  className="h-label underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/documents/expenses/${r.id}`);
+                  }}
+                >
+                  Расходы
                 </button>
                 <button
                   className="h-label underline"
