@@ -18,7 +18,7 @@ const makeFields = (kindKey?: string): Field[] => {
       type: 'select',
       options: LOCATION_KINDS.map((x) => ({ value: x.key, label: x.label })),
     },
-    { key: 'coords', label: 'Координаты / место', placeholder: '57.123, 68.456' },
+    { key: 'coords', label: 'Координаты', type: 'coords', placeholder: '56.550000, 68.650000' },
     { key: 'distance_km', label: 'Расстояние от базы, км', type: 'number' },
     { key: 'qty', label: `Количество${k ? `, ${k.unit}` : ''}`, type: 'number' },
     { key: 'unit', label: 'Единица', placeholder: k?.unit || 'шт' },

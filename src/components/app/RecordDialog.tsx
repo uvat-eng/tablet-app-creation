@@ -7,12 +7,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Row, uploadPhoto } from '@/lib/api';
+import Icon from '@/components/ui/icon';
+import PickPointDialog from '@/components/app/PickPointDialog';
 import { toast } from 'sonner';
 
 export interface Field {
   key: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'checkbox' | 'photo';
+  type?: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'checkbox' | 'photo' | 'coords';
   options?: { value: string; label: string }[];
   placeholder?: string;
   folder?: string;
@@ -30,6 +32,7 @@ interface RecordDialogProps {
 const RecordDialog = ({ open, onOpenChange, title, fields, initial, onSubmit }: RecordDialogProps) => {
   const [values, setValues] = useState<Row>({});
   const [uploading, setUploading] = useState('');
+  const [mapFor, setMapFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) setValues(initial ? { ...initial } : {});
@@ -93,6 +96,22 @@ const RecordDialog = ({ open, onOpenChange, title, fields, initial, onSubmit }: 
                   checked={Boolean(values[f.key])}
                   onChange={(e) => set(f.key, e.target.checked)}
                 />
+              ) : f.type === 'coords' ? (
+                <span className="flex gap-2">
+                  <input
+                    className={input}
+                    placeholder={f.placeholder}
+                    value={String(values[f.key] ?? '')}
+                    onChange={(e) => set(f.key, e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="h-cta-ghost whitespace-nowrap text-[0.7em]"
+                    onClick={() => setMapFor(f.key)}
+                  >
+                    <Icon name="MapPin" size={14} /> На карте
+                  </button>
+                </span>
               ) : f.type === 'photo' ? (
                 <span className="block">
                   {values[f.key] && (
@@ -134,6 +153,16 @@ const RecordDialog = ({ open, onOpenChange, title, fields, initial, onSubmit }: 
           </button>
         </DialogFooter>
       </DialogContent>
+
+      <PickPointDialog
+        open={!!mapFor}
+        onOpenChange={(v) => !v && setMapFor(null)}
+        value={mapFor ? String(values[mapFor] ?? '') : ''}
+        onPick={(coords) => {
+          if (mapFor) set(mapFor, coords);
+          setMapFor(null);
+        }}
+      />
     </Dialog>
   );
 };
