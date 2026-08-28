@@ -195,15 +195,33 @@ const Index = () => {
     },
     {
       to: '/club',
-      icon: 'Users',
+      icon: 'ShieldCheck',
       index: '09',
-      title: 'Клуб охотников',
-      lede: 'Гости хозяйства и члены клуба, сроки членства.',
+      title: 'Закрытый клуб охотников',
+      lede: 'Члены клуба, сроки членства, взносы и привилегии.',
       stats: [
         { label: 'Членов клуба', value: String(members) },
-        { label: 'Всего гостей', value: String(guests.length) },
+        { label: 'Свободных мест', value: String(Math.max(0, 24 - members)) },
       ],
-      preview: guests.slice(0, 4).map((g) => `${g.name}${g.club_member ? ' — клуб' : ''}`),
+      preview: guests
+        .filter((g) => g.club_member)
+        .slice(0, 4)
+        .map((g) => `${g.name}${g.club_until ? ` — до ${String(g.club_until).slice(0, 10)}` : ''}`),
+    },
+    {
+      to: '/hunters',
+      icon: 'Users',
+      index: '10',
+      title: 'База охотников',
+      lede: 'Все охотники и гости хозяйства вне закрытого клуба.',
+      stats: [
+        { label: 'Охотников в базе', value: String(guests.length - members) },
+        { label: 'Всего в базе', value: String(guests.length) },
+      ],
+      preview: guests
+        .filter((g) => !g.club_member)
+        .slice(0, 4)
+        .map((g) => `${g.name}${g.city ? ` — ${g.city}` : ''}`),
     },
   ];
 

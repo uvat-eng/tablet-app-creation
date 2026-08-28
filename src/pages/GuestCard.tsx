@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import { Row, listRows } from '@/lib/api';
@@ -16,6 +16,12 @@ const STATUS: Record<string, string> = {
 
 const GuestCard = () => {
   const { id } = useParams();
+  const { pathname } = useLocation();
+  const fromHunters = pathname.startsWith('/hunters');
+  const backTo = fromHunters ? '/hunters' : '/club';
+  const sectionIndex = fromHunters
+    ? 'Раздел / База охотников'
+    : 'Раздел / Закрытый клуб охотников';
   const guestId = Number(id);
   const [guest, setGuest] = useState<Row | null>(null);
   const [bookings, setBookings] = useState<Row[]>([]);
@@ -40,7 +46,7 @@ const GuestCard = () => {
 
   if (!guest) {
     return (
-      <Layout index="Раздел / Клуб охотников" title="Гость">
+      <Layout index={sectionIndex} title="Гость">
         <div className="h-mono-cap">Загружаем…</div>
       </Layout>
     );
@@ -51,11 +57,11 @@ const GuestCard = () => {
 
   return (
     <Layout
-      index="Раздел / Клуб охотников"
+      index={sectionIndex}
       title={String(guest.name)}
       lede={[guest.city, guest.phone].filter(Boolean).join(' — ') || undefined}
       action={
-        <Link className="h-cta-ghost" to="/club">
+        <Link className="h-cta-ghost" to={backTo}>
           К списку
         </Link>
       }
