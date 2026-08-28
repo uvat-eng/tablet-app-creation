@@ -15,6 +15,7 @@ import {
   money,
 } from '@/lib/expenses';
 import { FACILITIES } from '@/lib/houseCategories';
+import { SECTION_LABEL, SOURCE_LABEL } from '@/lib/transfers';
 import { LOCATION_KINDS } from '@/lib/locationKinds';
 import { toast } from 'sonner';
 
@@ -44,6 +45,7 @@ const Finance = () => {
   const [facilityRows, setFacilityRows] = useState<Row[]>([]);
   const [locations, setLocations] = useState<Row[]>([]);
   const [office, setOffice] = useState<Row[]>([]);
+  const [transfers, setTransfers] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [season, setSeason] = useState<number | 'all'>('all');
   const [open, setOpen] = useState(false);
@@ -51,18 +53,20 @@ const Finance = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [a, e, h, l, o] = await Promise.all([
+    const [a, e, h, l, o, t] = await Promise.all([
       listRows('checks'),
       listRows('expenses'),
       listRows('house_expenses'),
       listRows('locations'),
       listRows('office_expenses'),
+      listRows('transfers'),
     ]);
     setActs(a);
     setExpenses(e);
     setFacilityRows(h);
     setLocations(l);
     setOffice(o);
+    setTransfers(t);
     setLoading(false);
   }, []);
 
@@ -169,6 +173,16 @@ const Finance = () => {
 
   const otherTotal = OTHER_KINDS.reduce((s, k) => s + (otherByKind[k.key]?.sum || 0), 0);
 
+  const seasonTransfers = useMemo(
+    () => transfers.filter((r) => inSeason(r.spent_on)),
+    [transfers, inSeason],
+  );
+
+  const transfersTotal = seasonTransfers.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const transfersFree = seasonTransfers
+    .filter((r) => !r.section)
+    .reduce((s, r) => s + Number(r.amount || 0), 0);
+
   const facilityTotals = useMemo(() => {
     const map: Record<string, number> = {};
     Object.keys(FACILITIES).forEach((k) => {
@@ -205,7 +219,8 @@ const Finance = () => {
   }, [seasonExpenses, locationKindOf]);
 
   const locationTotal = Object.values(locationTotals).reduce((s, v) => s + v, 0);
-  const expenseTotal = huntTotal + officeTotal + otherTotal + facilityTotal + locationTotal;
+  const expenseTotal =
+    huntTotal + officeTotal + otherTotal + facilityTotal + locationTotal + transfersFree;
   const profit = income.total - expenseTotal;
 
   const splitRows = useMemo(
@@ -586,6 +601,58 @@ const Finance = () => {
       </div>
 
       <div className="h-head text-[22px] mb-3">Прочие расходы</div>
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <span className="flex items-center gap-2">
+            <Icon name="ArrowLeftRight" size={15} fallback="Circle" />
+            <span className="h-label">Переводы и траты с личных карт</span>
+          </span>
+          <span className="h-head text-[18px]">{money(transfersTotal)}</span>
+        </div>
+        <div className="border border-[#e2e2df] overflow-x-auto">
+          <table className="w-full min-w-[760px]">
+            <thead>
+              <tr className="bg-[var(--hero-surface)]">
+                <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Дата</th>
+                <th className="h-label text-left px-4 py-2 font-normal">Назначение</th>
+                <th className="h-label text-left px-4 py-2 font-normal w-[150px]">Источник</th>
+                <th className="h-label text-left px-4 py-2 font-normal w-[160px]">Раздел</th>
+                <th className="h-label text-left px-4 py-2 font-normal w-[130px]">Сумма</th>
+              </tr>
+            </thead>
+            <tbody>
+              {seasonTransfers.map((r) => (
+                <tr
+                  key={String(r.id)}
+                  className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
+                  onClick={() => navigate('/transfers')}
+                >
+                  <td className="px-4 py-2 text-[0.68em]">
+                    {String(r.spent_on || '').slice(0, 10)}
+                  </td>
+                  <td className="px-4 py-2 text-[0.72em]">{String(r.name || '')}</td>
+                  <td className="px-4 py-2 text-[0.68em]">{SOURCE_LABEL(String(r.source))}</td>
+                  <td className="px-4 py-2 text-[0.68em]">
+                    {r.section ? SECTION_LABEL(String(r.section)) : 'без привязки'}
+                  </td>
+                  <td className="px-4 py-2 text-[0.72em] whitespace-nowrap">{money(r.amount)}</td>
+                </tr>
+              ))}
+              {!seasonTransfers.length && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-6 text-center h-mono-cap text-[var(--hero-muted)]"
+                  >
+                    Переводы вносятся в разделе «Финансы переводы»
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="grid gap-6 mb-10">
         {OTHER_KINDS.map((k) => {
           const data = otherByKind[k.key] || { sum: 0, rows: [] };

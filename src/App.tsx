@@ -33,6 +33,7 @@ import ClubFees from "./pages/ClubFees";
 import GuestCard from "./pages/GuestCard";
 import Finance from "./pages/Finance";
 import OfficeFinance from "./pages/OfficeFinance";
+import Transfers from "./pages/Transfers";
 import Staff from "./pages/Staff";
 import Settings from "./pages/Settings";
 import Archive from "./pages/Archive";
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/hunters/:id" element={guard(<HunterCard />, 'hunters')} />
             <Route path="/biotech" element={guard(<Biotech />, 'biotech')} />
             <Route path="/finance" element={guard(<Finance />, 'finance')} />
+            <Route path="/transfers" element={guard(<Transfers />, 'transfers')} />
             <Route path="/office" element={guard(<OfficeFinance />, 'office')} />
             <Route path="/staff" element={guard(<Staff />, undefined, true)} />
             <Route path="/settings" element={guard(<Settings />, undefined, true)} />

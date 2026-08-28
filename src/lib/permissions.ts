@@ -24,6 +24,7 @@ export const SECTIONS: Section[] = [
   { key: 'hunters', to: '/hunters', label: 'База охотников', icon: 'Users' },
   { key: 'biotech', to: '/biotech', label: 'Охотники / биотехния', icon: 'Trees' },
   { key: 'finance', to: '/finance', label: 'Финансы', icon: 'Wallet' },
+  { key: 'transfers', to: '/transfers', label: 'Финансы переводы', icon: 'ArrowLeftRight' },
   { key: 'office', to: '/office', label: 'Финансы ОФИС', icon: 'Landmark' },
   { key: 'archive', to: '/archive', label: 'Архив', icon: 'Archive' },
 ];

@@ -16,11 +16,11 @@ CORS = {
 
 TABLES = ['objects', 'guests', 'services', 'bookings', 'booking_services', 'payments',
           'checks', 'receipts', 'trophies', 'locations', 'map_layers', 'reviews',
-          'house_expenses', 'expenses', 'office_expenses', 'transport_expenses', 'biotech_works', 'club_fees', 'club_bag', 'hunter_bag', 'guest_docs', 'work_photos', 'settings']
+          'house_expenses', 'expenses', 'office_expenses', 'transport_expenses', 'transfers', 'biotech_works', 'club_fees', 'club_bag', 'hunter_bag', 'guest_docs', 'work_photos', 'settings']
 
 RESTORE_ORDER = ['objects', 'guests', 'services', 'locations', 'map_layers', 'trophies',
                  'reviews', 'bookings', 'booking_services', 'payments', 'checks',
-                 'receipts', 'house_expenses', 'expenses', 'office_expenses', 'transport_expenses', 'biotech_works', 'club_fees', 'club_bag', 'hunter_bag', 'guest_docs', 'work_photos']
+                 'receipts', 'house_expenses', 'expenses', 'office_expenses', 'transport_expenses', 'transfers', 'biotech_works', 'club_fees', 'club_bag', 'hunter_bag', 'guest_docs', 'work_photos']
 
 JSON_COLS = {'items', 'geojson'}
 

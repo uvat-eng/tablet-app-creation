@@ -61,6 +61,8 @@ TABLES = {
     'biotech_works': ['guest_id', 'hunter_name', 'kind', 'location_id', 'place', 'work_on',
                       'hours', 'qty', 'unit', 'value_rub', 'status', 'note', 'photo_url',
                       'archived'],
+    'transfers': ['name', 'amount', 'spent_on', 'source', 'payer', 'recipient', 'section',
+                  'target_id', 'category', 'note', 'linked_table', 'linked_id', 'archived'],
     'transport_expenses': ['object_id', 'category', 'name', 'unit_price', 'qty', 'unit',
                            'total', 'spent_on', 'vendor', 'mileage', 'note', 'archived'],
 }
@@ -88,19 +90,20 @@ ORDER = {
     'guest_docs': 'signed_on DESC NULLS LAST, id DESC',
     'work_photos': 'shot_on DESC NULLS LAST, id DESC',
     'transport_expenses': 'spent_on DESC NULLS LAST, id DESC',
+    'transfers': 'spent_on DESC NULLS LAST, id DESC',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
               'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag', 'guest_docs',
-              'transport_expenses'}
+              'transport_expenses', 'transfers'}
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
 AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'map_layers',
             'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
             'payments', 'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag',
-            'guest_docs', 'transport_expenses'}
+            'guest_docs', 'transport_expenses', 'transfers'}
 
 TITLE_FIELD = {
     'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
@@ -115,6 +118,7 @@ TITLE_FIELD = {
     'guest_docs': 'title',
     'work_photos': 'caption',
     'transport_expenses': 'name',
+    'transfers': 'name',
 }
 
 TABLE_LABEL = {
@@ -130,6 +134,7 @@ TABLE_LABEL = {
     'guest_docs': 'Документ охотника',
     'work_photos': 'Фото работы',
     'transport_expenses': 'Расход по технике',
+    'transfers': 'Перевод / личная карта',
     'booking_services': 'Услуга в брони', 'payments': 'Платёж',
 }
 
