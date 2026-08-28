@@ -4,7 +4,7 @@ import DataTable from '@/components/app/DataTable';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import BookingCalendar from '@/components/app/BookingCalendar';
 import SearchBar from '@/components/app/SearchBar';
-import { Row, listRows, createRow, updateRow, removeRow, ConflictError } from '@/lib/api';
+import { Row, listRows, createRow, updateRow, ConflictError } from '@/lib/api';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -269,7 +269,7 @@ const Bookings = () => {
             {
               key: '__act',
               label: '',
-              width: '150px',
+              width: '190px',
               render: (r) => (
                 <span className="flex gap-3">
                   <button
@@ -284,14 +284,21 @@ const Bookings = () => {
                   </button>
                   <button
                     className="h-label underline"
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.stopPropagation();
-                      await removeRow('bookings', Number(r.id));
-                      toast.success('Бронь убрана в архив');
-                      load();
+                      toast('Форма чека — в работе');
                     }}
                   >
-                    В архив
+                    Чек
+                  </button>
+                  <button
+                    className="h-label underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast('Форма акта — в работе');
+                    }}
+                  >
+                    Акт
                   </button>
                 </span>
               ),
