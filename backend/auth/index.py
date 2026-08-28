@@ -180,5 +180,30 @@ def handler(event: dict, context) -> dict:
         close()
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': dict(row)})}
 
+    if action == 'staff' and method == 'DELETE':
+        staff_id = int(params.get('id', 0) or body.get('id', 0))
+        if not staff_id:
+            close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'id required'})}
+        if staff_id == me['id']:
+            close()
+            return {'statusCode': 400, 'headers': CORS,
+                    'body': json.dumps({'error': 'Нельзя удалить самого себя'})}
+        cur.execute("SELECT name FROM staff WHERE id = " + str(staff_id))
+        row = cur.fetchone()
+        if not row:
+            close()
+            return {'statusCode': 404, 'headers': CORS,
+                    'body': json.dumps({'error': 'Сотрудник не найден'})}
+        cur.execute("DELETE FROM sessions WHERE staff_id = " + str(staff_id))
+        cur.execute("DELETE FROM staff WHERE id = " + str(staff_id))
+        cur.execute(
+            "INSERT INTO activity_log (staff_id, staff_name, action, table_name, row_id, "
+            "title, app) VALUES (" + str(me['id']) + ", " + esc(me['name']) +
+            ", 'delete', 'staff', " + str(staff_id) + ", " + esc(row['name']) + ", 'core')"
+        )
+        close()
+        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'deleted': staff_id})}
+
     close()
     return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'unknown action'})}

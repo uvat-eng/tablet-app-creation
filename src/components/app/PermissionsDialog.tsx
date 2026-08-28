@@ -11,11 +11,13 @@ import { SECTIONS, ROLES, DEFAULT_PERMISSIONS, parsePermissions } from '@/lib/pe
 
 interface Values {
   name: string;
+  title: string;
   login: string;
   role: string;
   password: string;
   active: boolean;
   permissions: string[];
+  canRemove: boolean;
 }
 
 interface PermissionsDialogProps {
@@ -23,16 +25,25 @@ interface PermissionsDialogProps {
   onOpenChange: (v: boolean) => void;
   initial?: Row | null;
   onSubmit: (values: Row) => void;
+  onDelete?: (row: Row) => void;
 }
 
-const PermissionsDialog = ({ open, onOpenChange, initial, onSubmit }: PermissionsDialogProps) => {
+const PermissionsDialog = ({
+  open,
+  onOpenChange,
+  initial,
+  onSubmit,
+  onDelete,
+}: PermissionsDialogProps) => {
   const [v, setV] = useState<Values>({
     name: '',
+    title: '',
     login: '',
     role: 'staff',
     password: '',
     active: true,
     permissions: DEFAULT_PERMISSIONS.staff,
+    canRemove: false,
   });
 
   useEffect(() => {
@@ -41,11 +52,13 @@ const PermissionsDialog = ({ open, onOpenChange, initial, onSubmit }: Permission
     const saved = parsePermissions(initial?.permissions);
     setV({
       name: String(initial?.name || ''),
+      title: String(initial?.title || ''),
       login: String(initial?.login || ''),
       role,
       password: '',
       active: initial ? Boolean(initial.active) : true,
       permissions: saved.length ? saved : DEFAULT_PERMISSIONS[role] || [],
+      canRemove: Boolean(initial?.can_remove),
     });
   }, [open, initial]);
 
@@ -63,9 +76,12 @@ const PermissionsDialog = ({ open, onOpenChange, initial, onSubmit }: Permission
   const submit = () => {
     const payload: Row = {
       name: v.name,
+      title: v.title,
       role: v.role,
       permissions: v.permissions.join(','),
       active: v.active,
+      can_edit_others: v.canRemove,
+      can_remove: v.canRemove,
     };
     if (!initial?.id) payload.login = v.login.trim().toLowerCase();
     if (v.password) payload.password = v.password;
@@ -91,6 +107,16 @@ const PermissionsDialog = ({ open, onOpenChange, initial, onSubmit }: Permission
               className={input}
               value={v.name}
               onChange={(e) => setV({ ...v, name: e.target.value })}
+            />
+          </label>
+
+          <label className="block">
+            <span className="h-label block mb-1">Должность</span>
+            <input
+              className={input}
+              value={v.title}
+              placeholder="например: Лесной босс"
+              onChange={(e) => setV({ ...v, title: e.target.value })}
             />
           </label>
 
@@ -155,6 +181,18 @@ const PermissionsDialog = ({ open, onOpenChange, initial, onSubmit }: Permission
             </div>
           )}
 
+          {!isOwner && (
+            <label className="flex items-center gap-2 text-[0.72em]">
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-black"
+                checked={v.canRemove}
+                onChange={(e) => setV({ ...v, canRemove: e.target.checked })}
+              />
+              Может править и удалять чужие записи
+            </label>
+          )}
+
           {initial?.id && !isOwner && (
             <label className="flex items-center gap-2 text-[0.72em]">
               <input
@@ -168,13 +206,26 @@ const PermissionsDialog = ({ open, onOpenChange, initial, onSubmit }: Permission
           )}
         </div>
 
-        <DialogFooter className="gap-2">
-          <button className="h-cta-ghost" onClick={() => onOpenChange(false)}>
-            Отмена
-          </button>
-          <button className="h-cta" onClick={submit}>
-            Сохранить
-          </button>
+        <DialogFooter className="gap-2 sm:justify-between">
+          {initial?.id && onDelete ? (
+            <button
+              className="h-label underline text-[#c0392b]"
+              onClick={() => onDelete(initial)}
+            >
+              Удалить сотрудника
+            </button>
+          ) : (
+            <span />
+          )}
+
+          <span className="flex gap-2">
+            <button className="h-cta-ghost" onClick={() => onOpenChange(false)}>
+              Отмена
+            </button>
+            <button className="h-cta" onClick={submit}>
+              Сохранить
+            </button>
+          </span>
         </DialogFooter>
       </DialogContent>
     </Dialog>

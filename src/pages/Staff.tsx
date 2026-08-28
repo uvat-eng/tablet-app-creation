@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import PermissionsDialog from '@/components/app/PermissionsDialog';
-import { Row, listStaff, saveStaff } from '@/lib/api';
+import { Row, listStaff, saveStaff, deleteStaff } from '@/lib/api';
 import { ROLES, SECTIONS, DEFAULT_PERMISSIONS, parsePermissions } from '@/lib/permissions';
 import { toast } from 'sonner';
 
@@ -30,6 +30,21 @@ const Staff = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const remove = async (row: Row) => {
+    if (!window.confirm(`Удалить сотрудника «${row.name}»? Вход для него закроется навсегда.`)) {
+      return;
+    }
+    try {
+      await deleteStaff(Number(row.id));
+      toast.success('Сотрудник удалён');
+      setOpen(false);
+      setEditing(null);
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось удалить');
+    }
+  };
 
   const save = async (values: Row) => {
     try {
@@ -102,6 +117,7 @@ const Staff = () => {
         onOpenChange={setOpen}
         initial={editing}
         onSubmit={save}
+        onDelete={remove}
       />
     </Layout>
   );

@@ -337,6 +337,16 @@ export const listStaff = async (): Promise<Row[]> => {
   return data.items || [];
 };
 
+export const deleteStaff = async (id: number) => {
+  const res = await fetch(`${AUTH_URL}?action=staff&id=${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось удалить');
+  return data;
+};
+
 export const saveStaff = async (body: Row, method: 'POST' | 'PUT') => {
   const res = await fetch(`${AUTH_URL}?action=staff`, {
     method,
