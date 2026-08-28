@@ -42,7 +42,6 @@ const makeFields = (kind: string) => [
 ];
 
 const filterTransport = (r: Row) => r.kind === 'transport';
-const filterHouse = (r: Row) => r.kind === 'house';
 const filterHotel = (r: Row) => r.kind === 'hotel';
 const filterBanya = (r: Row) => r.kind === 'banya';
 
@@ -57,20 +56,6 @@ export const Transport = () => (
     fields={makeFields('transport')}
     filter={filterTransport}
     defaults={{ kind: 'transport' }}
-  />
-);
-
-export const House = () => (
-  <CrudPage
-    table="objects"
-    index="Раздел / Дом"
-    title="Дом"
-    lede="Охотничьи дома: вместимость, суточная стоимость, состояние."
-    addLabel="Добавить дом"
-    columns={columns}
-    fields={makeFields('house')}
-    filter={filterHouse}
-    defaults={{ kind: 'house' }}
   />
 );
 

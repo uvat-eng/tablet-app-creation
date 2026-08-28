@@ -36,6 +36,8 @@ TABLES = {
                  'accepted_from', 'basis', 'amount', 'amount_words', 'attachment',
                  'credit_account', 'debit_account', 'chief_accountant', 'cashier',
                  'note', 'archived'],
+    'house_expenses': ['category', 'name', 'unit_price', 'qty', 'unit', 'total', 'spent_on',
+                       'vendor', 'note', 'archived'],
 }
 
 ORDER = {
@@ -50,10 +52,11 @@ ORDER = {
     'payments': 'paid_on DESC, id DESC',
     'checks': 'date_from DESC NULLS LAST, id DESC',
     'receipts': 'issued_on DESC NULLS LAST, id DESC',
+    'house_expenses': 'spent_on DESC NULLS LAST, id DESC',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
-              'checks', 'receipts'}
+              'checks', 'receipts', 'house_expenses'}
 
 JSON_FIELDS = {'checks': {'items'}}
 
