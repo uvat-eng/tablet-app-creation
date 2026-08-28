@@ -23,6 +23,33 @@ export const listRows = async (
   return data.items || [];
 };
 
+export interface LogEntry {
+  id: number;
+  staff_id: number | null;
+  staff_name: string;
+  action: 'create' | 'update' | 'archive' | 'delete';
+  table_name: string;
+  row_id: number | null;
+  title: string | null;
+  changes: Record<string, { was: unknown; now: unknown }> | null;
+  app: string;
+  ip: string | null;
+  created_at: string;
+}
+
+export const listLog = async (
+  opts: { staffId?: number; table?: string; action?: string; limit?: number } = {},
+): Promise<LogEntry[]> => {
+  const q = new URLSearchParams({ table: 'activity_log' });
+  if (opts.staffId) q.set('staff_id', String(opts.staffId));
+  if (opts.table) q.set('table_name', opts.table);
+  if (opts.action) q.set('action', opts.action);
+  q.set('limit', String(opts.limit || 300));
+  const res = await fetch(`${CRM_URL}?${q}`, { headers: authHeaders() });
+  const data = await res.json();
+  return data.items || [];
+};
+
 export class ConflictError extends Error {
   conflict: Row;
 
@@ -40,6 +67,7 @@ const send = async (table: string, method: string, body: Row): Promise<Row> => {
   });
   const data = await res.json();
   if (res.status === 409) throw new ConflictError(data.conflict);
+  if (res.status === 403) throw new Error(data.error || 'Недостаточно прав');
   return data.item;
 };
 
@@ -48,10 +76,14 @@ export const createRow = (table: string, body: Row) => send(table, 'POST', body)
 export const updateRow = (table: string, body: Row) => send(table, 'PUT', body);
 
 export const removeRow = async (table: string, id: number) => {
-  await fetch(`${CRM_URL}?table=${table}&id=${id}`, {
+  const res = await fetch(`${CRM_URL}?table=${table}&id=${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });
+  if (res.status === 403) {
+    const data = await res.json();
+    throw new Error(data.error || 'Недостаточно прав');
+  }
 };
 
 export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string> => {

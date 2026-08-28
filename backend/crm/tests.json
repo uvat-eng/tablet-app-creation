@@ -17,6 +17,19 @@
       "method": "GET",
       "path": "/?table=nope",
       "expectedStatus": 400
+    },
+    {
+      "name": "Журнал действий читается",
+      "method": "GET",
+      "path": "/?table=activity_log&limit=5",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Журнал нельзя изменить",
+      "method": "POST",
+      "path": "/?table=activity_log",
+      "body": {"action": "hack"},
+      "expectedStatus": 405
     }
   ]
 }

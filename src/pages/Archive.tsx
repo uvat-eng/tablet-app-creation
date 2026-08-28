@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
-import { Row, listRows, updateRow } from '@/lib/api';
+import LogFeed, { TABLE_LABEL } from '@/components/app/LogFeed';
+import Icon from '@/components/ui/icon';
+import { Row, LogEntry, listRows, listLog, listStaff, updateRow } from '@/lib/api';
 import { toast } from 'sonner';
 
 const TABS = [
@@ -14,10 +16,47 @@ const TABS = [
   { table: 'reviews', label: 'Отзывы', title: 'author' },
 ];
 
+const ACTIONS = [
+  { key: '', label: 'Все действия' },
+  { key: 'create', label: 'Создание' },
+  { key: 'update', label: 'Изменения' },
+  { key: 'archive', label: 'В архив' },
+  { key: 'delete', label: 'Удаление' },
+];
+
 const Archive = () => {
+  const [mode, setMode] = useState<'log' | 'hidden'>('log');
+
+  const [log, setLog] = useState<LogEntry[]>([]);
+  const [staff, setStaff] = useState<Row[]>([]);
+  const [who, setWho] = useState('');
+  const [what, setWhat] = useState('');
+  const [act, setAct] = useState('');
+  const [loadingLog, setLoadingLog] = useState(true);
+
   const [tab, setTab] = useState(TABS[0]);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const loadLog = useCallback(async () => {
+    setLoadingLog(true);
+    const items = await listLog({
+      staffId: who ? Number(who) : undefined,
+      table: what || undefined,
+      action: act || undefined,
+      limit: 400,
+    });
+    setLog(items);
+    setLoadingLog(false);
+  }, [who, what, act]);
+
+  useEffect(() => {
+    loadLog();
+  }, [loadLog]);
+
+  useEffect(() => {
+    listStaff().then(setStaff);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -27,56 +66,168 @@ const Archive = () => {
   }, [tab]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (mode === 'hidden') load();
+  }, [load, mode]);
 
   const restore = async (row: Row) => {
-    await updateRow(tab.table, { id: row.id, archived: false });
-    toast.success('Запись возвращена в работу');
-    load();
+    try {
+      await updateRow(tab.table, { id: row.id, archived: false });
+      toast.success('Запись возвращена в работу');
+      load();
+      loadLog();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось вернуть');
+    }
   };
+
+  const stats = useMemo(() => {
+    const byUser = new Map<string, number>();
+    log.forEach((e) => byUser.set(e.staff_name, (byUser.get(e.staff_name) || 0) + 1));
+    return [...byUser.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [log]);
+
+  const tables = useMemo(() => {
+    const set = new Set(log.map((e) => e.table_name));
+    return [...set];
+  }, [log]);
 
   return (
     <Layout
       index="Раздел / Архив"
-      title="Архив"
-      lede="Скрытые записи: их не видно в разделах, но история сохранена."
-    >
-      <div className="flex flex-wrap gap-2 mb-6">
-        {TABS.map((t) => (
+      title="Архив и журнал"
+      lede="Сквозной учёт: кто, что и когда внёс или изменил в базе хозяйства."
+      action={
+        <span className="flex gap-2">
           <button
-            key={t.table}
-            className={tab.table === t.table ? 'h-cta' : 'h-cta-ghost'}
-            onClick={() => setTab(t)}
+            className={mode === 'log' ? 'h-cta' : 'h-cta-ghost'}
+            onClick={() => setMode('log')}
           >
-            {t.label}
+            Журнал действий
           </button>
-        ))}
-      </div>
+          <button
+            className={mode === 'hidden' ? 'h-cta' : 'h-cta-ghost'}
+            onClick={() => setMode('hidden')}
+          >
+            Скрытые записи
+          </button>
+        </span>
+      }
+    >
+      {mode === 'log' ? (
+        <>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="h-label mr-1">Сотрудник</span>
+            <select
+              value={who}
+              onChange={(e) => setWho(e.target.value)}
+              className="h-label px-2 py-1 border bg-white"
+              style={{ borderColor: '#e2e2df' }}
+            >
+              <option value="">Все</option>
+              {staff.map((s) => (
+                <option key={String(s.id)} value={String(s.id)}>
+                  {String(s.name)}
+                </option>
+              ))}
+            </select>
 
-      <DataTable
-        columns={[
-          { key: tab.title, label: 'Запись' },
-          {
-            key: 'restore',
-            label: '',
-            width: '130px',
-            render: (r) => (
+            <span className="h-label ml-3 mr-1">Раздел</span>
+            <select
+              value={what}
+              onChange={(e) => setWhat(e.target.value)}
+              className="h-label px-2 py-1 border bg-white"
+              style={{ borderColor: '#e2e2df' }}
+            >
+              <option value="">Все</option>
+              {tables.map((t) => (
+                <option key={t} value={t}>
+                  {TABLE_LABEL[t] || t}
+                </option>
+              ))}
+            </select>
+
+            <span className="h-label ml-3 mr-1">Действие</span>
+            {ACTIONS.map((a) => (
               <button
-                className="h-label underline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  restore(r);
+                key={a.key}
+                onClick={() => setAct(a.key)}
+                className="h-label px-2 py-1 border"
+                style={{
+                  borderColor: '#e2e2df',
+                  background: act === a.key ? 'var(--hero-accent)' : '#fff',
+                  color: act === a.key ? 'var(--hero-accent-contrast)' : 'inherit',
                 }}
               >
-                Вернуть
+                {a.label}
               </button>
-            ),
-          },
-        ]}
-        rows={rows}
-        empty={loading ? 'Загружаем…' : 'Архив пуст'}
-      />
+            ))}
+
+            <button className="h-cta-ghost ml-auto" onClick={loadLog}>
+              <Icon name="RefreshCw" size={14} /> Обновить
+            </button>
+          </div>
+
+          {stats.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-4 text-sm text-[#6d6d6d]">
+              <span className="h-label">Записей всего: {log.length}</span>
+              {stats.map(([n, c]) => (
+                <span key={n}>
+                  {n} — {c}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <LogFeed
+            items={log}
+            empty={loadingLog ? 'Загружаем журнал…' : 'Пока никаких действий не записано'}
+          />
+        </>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {TABS.map((t) => (
+              <button
+                key={t.table}
+                className={tab.table === t.table ? 'h-cta' : 'h-cta-ghost'}
+                onClick={() => setTab(t)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <DataTable
+            columns={[
+              { key: tab.title, label: 'Запись' },
+              {
+                key: 'created_by_name',
+                label: 'Кто внёс',
+                width: '180px',
+                render: (r) => <span>{String(r.created_by_name || '—')}</span>,
+              },
+              {
+                key: 'restore',
+                label: '',
+                width: '130px',
+                render: (r) => (
+                  <button
+                    className="h-label underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      restore(r);
+                    }}
+                  >
+                    Вернуть
+                  </button>
+                ),
+              },
+            ]}
+            rows={rows}
+            empty={loading ? 'Загружаем…' : 'Архив пуст'}
+          />
+        </>
+      )}
     </Layout>
   );
 };

@@ -69,6 +69,25 @@ ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'location
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
+AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'map_layers',
+            'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
+            'payments'}
+
+TITLE_FIELD = {
+    'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
+    'trophies': 'species', 'locations': 'name', 'map_layers': 'name', 'reviews': 'author',
+    'checks': 'guest_name', 'receipts': 'number', 'house_expenses': 'name',
+    'expenses': 'name', 'booking_services': 'name', 'payments': 'amount',
+}
+
+TABLE_LABEL = {
+    'bookings': 'Бронь', 'objects': 'Объект', 'guests': 'Гость', 'services': 'Услуга',
+    'trophies': 'Трофей', 'locations': 'Локация', 'map_layers': 'Слой карты',
+    'reviews': 'Отзыв', 'checks': 'Расчёт', 'receipts': 'Квитанция',
+    'house_expenses': 'Расход по базе', 'expenses': 'Расход', 'settings': 'Настройки',
+    'booking_services': 'Услуга в брони', 'payments': 'Платёж',
+}
+
 
 def esc(value):
     if value is None:
@@ -125,6 +144,45 @@ def check_conflict(cur, body):
     return {k: jsonable(v) for k, v in dict(found).items()}
 
 
+def current_user(cur, event):
+    headers = event.get('headers') or {}
+    token = headers.get('X-Auth-Token') or headers.get('x-auth-token') or ''
+    if not token:
+        return None
+    cur.execute(
+        "SELECT s.id, s.name, s.role, s.can_edit_others, s.can_remove FROM sessions x "
+        "JOIN staff s ON s.id = x.staff_id "
+        "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
+    )
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+
+def write_log(cur, user, action, table, row_id, title, changes, ip):
+    name = user['name'] if user else 'Неизвестный'
+    uid = str(user['id']) if user else 'NULL'
+    payload = esc(json.dumps(changes, ensure_ascii=False, default=str)) + '::jsonb' \
+        if changes is not None else 'NULL'
+    cur.execute(
+        "INSERT INTO activity_log (staff_id, staff_name, action, table_name, row_id, "
+        "title, changes, app, ip) VALUES (" + uid + ", " + esc(name) + ", " + esc(action) +
+        ", " + esc(table) + ", " + (str(int(row_id)) if row_id else 'NULL') + ", " +
+        esc(str(title)[:290] if title else None) + ", " + payload + ", 'core', " + esc(ip) + ")"
+    )
+
+
+def diff_fields(before, after, fields):
+    out = {}
+    for f in fields:
+        if f not in after:
+            continue
+        old = before.get(f) if before else None
+        new = after.get(f)
+        if str(old) != str(new):
+            out[f] = {'was': jsonable(old), 'now': jsonable(new)}
+    return out
+
+
 def recalc(cur, table, booking_id):
     if table not in ('booking_services', 'payments') or not booking_id:
         return
@@ -158,6 +216,36 @@ def handler(event: dict, context) -> dict:
 
     params = event.get('queryStringParameters') or {}
     table = params.get('table', 'bookings')
+    ip = ((event.get('requestContext') or {}).get('identity') or {}).get('sourceIp', '')
+
+    if table == 'activity_log':
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        conn.autocommit = True
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        if method != 'GET':
+            cur.close()
+            conn.close()
+            return {'statusCode': 405, 'headers': CORS,
+                    'body': json.dumps({'error': 'журнал только для чтения'})}
+        where = []
+        if params.get('staff_id'):
+            where.append('staff_id = ' + str(int(params['staff_id'])))
+        if params.get('table_name'):
+            where.append('table_name = ' + esc(params['table_name']))
+        if params.get('action'):
+            where.append('action = ' + esc(params['action']))
+        if params.get('since'):
+            where.append('created_at >= ' + esc(params['since']))
+        sql = 'SELECT * FROM activity_log'
+        if where:
+            sql += ' WHERE ' + ' AND '.join(where)
+        sql += ' ORDER BY created_at DESC, id DESC LIMIT ' + str(min(
+            int(params.get('limit', 300) or 300), 1000))
+        cur.execute(sql)
+        data = rows_to_list(cur)
+        cur.close()
+        conn.close()
+        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'items': data})}
 
     if table == 'settings':
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
@@ -224,6 +312,7 @@ def handler(event: dict, context) -> dict:
 
     body = json.loads(event.get('body') or '{}')
     fields = TABLES[table]
+    me = current_user(cur, event)
 
     if table == 'bookings' and method in ('POST', 'PUT'):
         conflict = check_conflict(cur, body)
@@ -235,27 +324,61 @@ def handler(event: dict, context) -> dict:
 
     if method == 'POST':
         cols = [f for f in fields if f in body]
+        vals = [field_value(table, c, body[c]) for c in cols]
+        if table in AUTHORED and me:
+            cols += ['created_by', 'created_by_name', 'updated_by', 'updated_at']
+            vals += [str(me['id']), esc(me['name']), str(me['id']), 'NOW()']
         sql = ('INSERT INTO ' + table + ' (' + ', '.join(cols) + ') VALUES (' +
-               ', '.join(field_value(table, c, body[c]) for c in cols) + ') RETURNING *')
+               ', '.join(vals) + ') RETURNING *')
         cur.execute(sql)
         item = rows_to_list(cur)[0]
         recalc(cur, table, item.get('booking_id'))
+        write_log(cur, me, 'create', table, item.get('id'),
+                  item.get(TITLE_FIELD.get(table, 'name')), None, ip)
         cur.close()
         conn.close()
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': item})}
 
     if method == 'PUT':
         item_id = int(body.get('id', 0))
+        if not item_id:
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'id required'})}
+
+        cur.execute('SELECT * FROM ' + table + ' WHERE id = ' + str(item_id))
+        found = cur.fetchone()
+        before = {k: jsonable(v) for k, v in dict(found).items()} if found else {}
+        if not found:
+            cur.close()
+            conn.close()
+            return {'statusCode': 404, 'headers': CORS,
+                    'body': json.dumps({'error': 'Запись не найдена'})}
+
+        if table in AUTHORED and me and not me.get('can_edit_others'):
+            owner_id = before.get('created_by')
+            if owner_id and int(owner_id) != int(me['id']):
+                cur.close()
+                conn.close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Можно изменять только свои записи. Эту внёс ' +
+                             str(before.get('created_by_name') or 'другой сотрудник')})}
+
         sets = [f + ' = ' + field_value(table, f, body[f]) for f in fields if f in body]
-        if not item_id or not sets:
+        if not sets:
             cur.close()
             conn.close()
             return {'statusCode': 400, 'headers': CORS,
                     'body': json.dumps({'error': 'id and fields required'})}
+        if table in AUTHORED and me:
+            sets += ['updated_by = ' + str(me['id']), 'updated_at = NOW()']
         cur.execute('UPDATE ' + table + ' SET ' + ', '.join(sets) +
                     ' WHERE id = ' + str(item_id) + ' RETURNING *')
         item = rows_to_list(cur)[0]
         recalc(cur, table, item.get('booking_id'))
+        changes = diff_fields(before, body, fields)
+        write_log(cur, me, 'update', table, item_id,
+                  item.get(TITLE_FIELD.get(table, 'name')), changes or None, ip)
         cur.close()
         conn.close()
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': item})}
@@ -267,17 +390,28 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'id required'})}
 
+        if me and not me.get('can_remove'):
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Удалять записи могут только Усков Александр и Спиричев Михаил'})}
+
+        cur.execute('SELECT * FROM ' + table + ' WHERE id = ' + str(item_id))
+        found = cur.fetchone()
+        before = {k: jsonable(v) for k, v in dict(found).items()} if found else {}
+        title = before.get(TITLE_FIELD.get(table, 'name'))
+
         if table in ARCHIVABLE:
             cur.execute('UPDATE ' + table + ' SET archived = TRUE WHERE id = ' + str(item_id))
+            write_log(cur, me, 'archive', table, item_id, title, None, ip)
             cur.close()
             conn.close()
             return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'archived': item_id})}
 
-        cur.execute('SELECT booking_id FROM ' + table + ' WHERE id = ' + str(item_id))
-        row = cur.fetchone()
-        booking_id = row['booking_id'] if row else None
+        booking_id = before.get('booking_id')
         cur.execute('DELETE FROM ' + table + ' WHERE id = ' + str(item_id))
         recalc(cur, table, booking_id)
+        write_log(cur, me, 'delete', table, item_id, title, before or None, ip)
         cur.close()
         conn.close()
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'deleted': item_id})}
