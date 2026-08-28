@@ -27,7 +27,8 @@ TABLES = {
     'locations': ['name', 'distance_km', 'area_ha', 'species', 'note', 'archived',
                   'kind', 'coords', 'status', 'qty', 'unit', 'checked_on', 'responsible',
                   'photo_url', 'photo_url2', 'photo_url3', 'seed_type', 'sow_date',
-                  'boars', 'roes'],
+                  'boars', 'roes', 'lat', 'lng'],
+    'map_layers': ['name', 'kind', 'color', 'geojson', 'file_url', 'visible', 'archived'],
     'reviews': ['author', 'city', 'rating', 'text', 'published', 'archived',
                 'photo_url', 'left_on'],
     'booking_services': ['booking_id', 'service_id', 'name', 'price', 'qty'],
@@ -60,12 +61,13 @@ ORDER = {
     'receipts': 'issued_on DESC NULLS LAST, id DESC',
     'house_expenses': 'spent_on DESC NULLS LAST, id DESC',
     'expenses': 'spent_on DESC NULLS LAST, id DESC',
+    'map_layers': 'id',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
-              'checks', 'receipts', 'house_expenses', 'expenses'}
+              'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers'}
 
-JSON_FIELDS = {'checks': {'items'}}
+JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
 
 def esc(value):

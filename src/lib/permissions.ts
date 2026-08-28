@@ -17,7 +17,8 @@ export const SECTIONS: Section[] = [
   { key: 'hotel', to: '/hotel', label: 'Гостиница', icon: 'BedDouble' },
   { key: 'banya', to: '/banya', label: 'Баня', icon: 'Flame' },
   { key: 'trophies', to: '/trophies', label: 'Трофейный зал', icon: 'Award' },
-  { key: 'locations', to: '/locations', label: 'Локации', icon: 'Map' },
+  { key: 'locations', to: '/locations', label: 'Локации', icon: 'MapPin' },
+  { key: 'map', to: '/map', label: 'Карта хозяйства', icon: 'Map' },
   { key: 'reviews', to: '/reviews', label: 'Отзывы', icon: 'MessageSquare' },
   { key: 'club', to: '/club', label: 'Клуб охотников', icon: 'Users' },
   { key: 'finance', to: '/finance', label: 'Финансы', icon: 'Wallet' },
@@ -38,9 +39,9 @@ export const ROLES: Record<string, string> = {
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   manager: [
     'dashboard', 'bookings', 'checks', 'services', 'transport', 'house',
-    'hotel', 'banya', 'trophies', 'locations', 'reviews', 'club',
+    'hotel', 'banya', 'trophies', 'locations', 'map', 'reviews', 'club',
   ],
-  staff: ['dashboard', 'bookings', 'trophies', 'locations'],
+  staff: ['dashboard', 'bookings', 'trophies', 'locations', 'map'],
 };
 
 export const parsePermissions = (raw: unknown): string[] =>

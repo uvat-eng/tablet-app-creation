@@ -22,6 +22,7 @@ import TrophyHall from "./pages/TrophyHall";
 import Trophies from "./pages/Trophies";
 import Locations from "./pages/Locations";
 import LocationCard from "./pages/LocationCard";
+import MapPage from "./pages/MapPage";
 import Reviews from "./pages/Reviews";
 import Club from "./pages/Club";
 import GuestCard from "./pages/GuestCard";
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/locations" element={guard(<Locations />, 'locations')} />
             <Route path="/locations/:kind" element={guard(<Locations />, 'locations')} />
             <Route path="/locations/:kind/:id" element={guard(<LocationCard />, 'locations')} />
+            <Route path="/map" element={guard(<MapPage />, 'map')} />
             <Route path="/reviews" element={guard(<Reviews />, 'reviews')} />
             <Route path="/club" element={guard(<Club />, 'club')} />
             <Route path="/club/:id" element={guard(<GuestCard />, 'club')} />

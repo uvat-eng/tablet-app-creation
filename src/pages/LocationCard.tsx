@@ -90,10 +90,15 @@ const LocationCard = () => {
   );
 
   const saveInfo = async (values: Row) => {
+    const parts = String(values.coords || '').split(',');
+    const lat = Number(parts[0]);
+    const lng = Number(parts[1]);
     await updateRow('locations', {
       ...values,
       id: Number(id),
       kind,
+      lat: Number.isFinite(lat) && lat ? lat : null,
+      lng: Number.isFinite(lng) && lng ? lng : null,
       qty: Number(values.qty || 0),
       area_ha: Number(values.area_ha || 0),
       boars: Number(values.boars || 0),
