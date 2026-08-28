@@ -7,6 +7,10 @@ import { money } from '@/lib/expenses';
 import CollectiveSheetDialog from '@/components/app/CollectiveSheetDialog';
 
 const FEE = 6500;
+const MONTHS_RU = [
+  'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+  'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь',
+];
 const QUARTERS = [
   { key: 1, label: 'I квартал', months: [1, 2, 3] },
   { key: 2, label: 'II квартал', months: [4, 5, 6] },
@@ -141,11 +145,15 @@ const Club = () => {
                   .reduce((s, f) => s + Number(f.amount || 0), 0);
               const planQ = rows.length * FEE * 3;
 
+              const dueMonths = new Date().getMonth() + 1;
+
               const debtors = rows
                 .map((m) => {
-                  const own = yFees.filter((f) => Number(f.guest_id) === Number(m.id));
+                  const own = yFees.filter(
+                    (f) => Number(f.guest_id) === Number(m.id) && Number(f.month) <= dueMonths,
+                  );
                   const paidMonths = own.filter((f) => f.paid).length;
-                  const debtMonths = Math.max(0, 12 - paidMonths);
+                  const debtMonths = Math.max(0, dueMonths - paidMonths);
                   return { name: String(m.name), debtMonths, debt: debtMonths * FEE };
                 })
                 .filter((d) => d.debt > 0)
@@ -205,7 +213,10 @@ const Club = () => {
                   </div>
 
                   <div className="mt-8 h-label mb-3">
-                    Не сдали взносы · {debtors.length} из {rows.length}
+                    Не сдали взносы на сегодня · {debtors.length} из {rows.length}
+                  </div>
+                  <div className="h-mono-cap normal-case mb-3 text-[var(--hero-muted)]">
+                    Учтены месяцы с января по {MONTHS_RU[dueMonths - 1]} {year} включительно.
                   </div>
                   <div className="border border-[#e2e2df] overflow-x-auto bg-white">
                     <table className="w-full min-w-[520px]">
