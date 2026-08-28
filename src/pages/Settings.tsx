@@ -148,6 +148,19 @@ const Settings = () => {
         </div>
       </div>
 
+      <div className="mt-10 pt-8 border-t border-[#e2e2df]">
+        <div className="h-head text-[22px] mb-1">Приложение для планшета</div>
+        <div className="h-mono-cap normal-case mb-5 text-[var(--hero-muted)]">
+          Версия для Android с офлайн-картами. Откройте эту страницу на планшете.
+        </div>
+        <a
+          href="/download"
+          className="inline-block bg-[#1f1f1d] text-white px-5 py-3 text-[0.8em] tracking-wide"
+        >
+          Страница загрузки
+        </a>
+      </div>
+
       <BackupPanel />
     </Layout>
   );
