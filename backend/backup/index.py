@@ -16,11 +16,11 @@ CORS = {
 
 TABLES = ['objects', 'guests', 'services', 'bookings', 'booking_services', 'payments',
           'checks', 'receipts', 'trophies', 'locations', 'map_layers', 'reviews',
-          'house_expenses', 'expenses', 'office_expenses', 'settings']
+          'house_expenses', 'expenses', 'office_expenses', 'biotech_works', 'settings']
 
 RESTORE_ORDER = ['objects', 'guests', 'services', 'locations', 'map_layers', 'trophies',
                  'reviews', 'bookings', 'booking_services', 'payments', 'checks',
-                 'receipts', 'house_expenses', 'expenses', 'office_expenses']
+                 'receipts', 'house_expenses', 'expenses', 'office_expenses', 'biotech_works']
 
 JSON_COLS = {'items', 'geojson'}
 

@@ -22,6 +22,7 @@ export const SECTIONS: Section[] = [
   { key: 'reviews', to: '/reviews', label: 'Отзывы', icon: 'MessageSquare' },
   { key: 'club', to: '/club', label: 'Закрытый клуб охотников', icon: 'ShieldCheck' },
   { key: 'hunters', to: '/hunters', label: 'База охотников', icon: 'Users' },
+  { key: 'biotech', to: '/biotech', label: 'Охотники / биотехния', icon: 'Trees' },
   { key: 'finance', to: '/finance', label: 'Финансы', icon: 'Wallet' },
   { key: 'office', to: '/office', label: 'Финансы ОФИС', icon: 'Landmark' },
   { key: 'archive', to: '/archive', label: 'Архив', icon: 'Archive' },
@@ -41,7 +42,7 @@ export const ROLES: Record<string, string> = {
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   manager: [
     'dashboard', 'bookings', 'checks', 'services', 'transport', 'house',
-    'hotel', 'banya', 'trophies', 'locations', 'map', 'reviews', 'club', 'hunters',
+    'hotel', 'banya', 'trophies', 'locations', 'map', 'reviews', 'club', 'hunters', 'biotech',
   ],
   staff: ['dashboard', 'bookings', 'trophies', 'locations', 'map'],
 };
