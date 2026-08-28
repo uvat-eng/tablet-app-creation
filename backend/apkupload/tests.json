@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Возвращает ссылки",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"cdn_url": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
