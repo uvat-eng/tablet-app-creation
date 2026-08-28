@@ -52,6 +52,16 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
     return map;
   }, [bookings]);
 
+  const yearList = useMemo(() => {
+    const set = new Set<number>([today.getFullYear(), cursor.y]);
+    bookings.forEach((b) => {
+      const y = Number(String(b.date_from || '').slice(0, 4));
+      if (y) set.add(y);
+    });
+    return Array.from(set).sort((a, b) => a - b);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookings, cursor.y]);
+
   const move = (delta: number) => {
     const m = cursor.m + delta;
     setCursor({ y: cursor.y + Math.floor(m / 12), m: ((m % 12) + 12) % 12 });
@@ -91,6 +101,40 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
             Вперёд
           </button>
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-1">
+        {yearList.map((y) => (
+          <button
+            key={y}
+            onClick={() => setCursor((p) => ({ ...p, y }))}
+            className="h-label px-2 py-1 border transition-colors"
+            style={{
+              borderColor: '#e2e2df',
+              background: cursor.y === y ? 'var(--hero-accent)' : '#fff',
+              color: cursor.y === y ? 'var(--hero-accent-contrast)' : 'inherit',
+            }}
+          >
+            {y}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-1">
+        {MONTHS.map((name, i) => (
+          <button
+            key={name}
+            onClick={() => setCursor((p) => ({ ...p, m: i }))}
+            className="h-label px-2 py-1 border transition-colors"
+            style={{
+              borderColor: '#e2e2df',
+              background: cursor.m === i ? 'var(--hero-accent)' : '#fff',
+              color: cursor.m === i ? 'var(--hero-accent-contrast)' : 'inherit',
+            }}
+          >
+            {name.slice(0, 3)}
+          </button>
+        ))}
       </div>
 
       <div className="mt-5 grid grid-cols-7 gap-1">
