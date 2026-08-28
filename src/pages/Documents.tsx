@@ -5,12 +5,14 @@ import DataTable from '@/components/app/DataTable';
 import SearchBar from '@/components/app/SearchBar';
 import { Row, listRows, createRow, removeRow } from '@/lib/api';
 import { money, loadPriceItems } from '@/lib/price';
+import { rublesInWords } from '@/lib/rubles';
 import { toast } from 'sonner';
 
 type SortKey = 'date_from' | 'final_total' | 'created_at';
 
-const Checks = () => {
-  const [rows, setRows] = useState<Row[]>([]);
+const Documents = () => {
+  const [acts, setActs] = useState<Row[]>([]);
+  const [receipts, setReceipts] = useState<Row[]>([]);
   const [bookings, setBookings] = useState<Row[]>([]);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('date_from');
@@ -21,8 +23,13 @@ const Checks = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [c, b] = await Promise.all([listRows('checks'), listRows('bookings')]);
-    setRows(c);
+    const [a, r, b] = await Promise.all([
+      listRows('checks'),
+      listRows('receipts'),
+      listRows('bookings'),
+    ]);
+    setActs(a);
+    setReceipts(r);
     setBookings(b);
     setLoading(false);
   }, []);
@@ -31,7 +38,7 @@ const Checks = () => {
     load();
   }, [load]);
 
-  const createFor = useCallback(
+  const createAct = useCallback(
     async (booking: Row) => {
       const days = Math.max(
         1,
@@ -43,9 +50,7 @@ const Checks = () => {
       );
       const people = Number(booking.people || 1);
       const price = await loadPriceItems();
-      const items = price.map((i) =>
-        i.group === 'stay' ? { ...i, hunters: people, days } : i,
-      );
+      const items = price.map((i) => (i.group === 'stay' ? { ...i, hunters: people, days } : i));
       const stay = items
         .filter((i) => i.group === 'stay')
         .reduce((s, i) => s + i.tariff * i.days * i.hunters, 0);
@@ -70,34 +75,66 @@ const Checks = () => {
         calculated_by: '',
         accepted_by: '',
       });
-      toast.success('Чек создан');
-      navigate(`/checks/${created.id}`);
+      toast.success('Акт создан');
+      navigate(`/documents/act/${created.id}`);
     },
     [navigate],
   );
 
+  const openReceipt = useCallback(
+    async (act: Row) => {
+      const exist = receipts.find((r) => Number(r.check_id) === Number(act.id));
+      if (exist) {
+        navigate(`/documents/receipt/${exist.id}`);
+        return;
+      }
+      const amount = Number(act.final_total || 0);
+      const created = await createRow('receipts', {
+        check_id: Number(act.id),
+        booking_id: act.booking_id ? Number(act.booking_id) : null,
+        number: String(Number(act.id)),
+        issued_on: new Date().toISOString().slice(0, 10),
+        org_name: 'Охотничье хозяйство «Малышенское»',
+        accepted_from: String(act.guest_name || ''),
+        basis: `Оплата услуг по акту № ${act.id} от ${String(act.date_from || '')}`,
+        amount,
+        amount_words: rublesInWords(amount),
+        attachment: `Акт № ${act.id}`,
+        credit_account: '90',
+        debit_account: '50',
+        chief_accountant: String(act.calculated_by || ''),
+        cashier: String(act.accepted_by || ''),
+      });
+      toast.success('Приходный кассовый ордер создан');
+      navigate(`/documents/receipt/${created.id}`);
+    },
+    [receipts, navigate],
+  );
+
   useEffect(() => {
     const bid = params.get('booking');
+    const want = params.get('doc') || 'act';
     if (!bid || loading) return;
-    const exist = rows.find((r) => String(r.booking_id) === bid);
     setParams({}, { replace: true });
+    const exist = acts.find((r) => String(r.booking_id) === bid);
     if (exist) {
-      navigate(`/checks/${exist.id}`);
+      if (want === 'receipt') openReceipt(exist);
+      else navigate(`/documents/act/${exist.id}`);
       return;
     }
     const booking = bookings.find((b) => String(b.id) === bid);
-    if (booking) createFor(booking);
-  }, [params, rows, bookings, loading, navigate, setParams, createFor]);
+    if (booking) createAct(booking);
+  }, [params, acts, bookings, loading, navigate, setParams, createAct, openReceipt]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = q
-      ? rows.filter((r) =>
+      ? acts.filter((r) =>
           ['guest_name', 'hunt_type', 'guest_phone'].some((k) =>
             String(r[k] ?? '').toLowerCase().includes(q),
           ),
         )
-      : [...rows];
+      : [...acts];
     list.sort((a, b) => {
       const x = sort === 'final_total' ? Number(a[sort] || 0) : String(a[sort] || '');
       const y = sort === 'final_total' ? Number(b[sort] || 0) : String(b[sort] || '');
@@ -105,7 +142,7 @@ const Checks = () => {
       return (x > y ? 1 : -1) * (asc ? 1 : -1);
     });
     return list;
-  }, [rows, query, sort, asc]);
+  }, [acts, query, sort, asc]);
 
   const totalSum = visible.reduce((s, r) => s + Number(r.final_total || 0), 0);
 
@@ -126,11 +163,11 @@ const Checks = () => {
   return (
     <Layout
       index="Раздел / Документы"
-      title="Чеки"
-      lede="Расчёт по заезду: размещение, лицензии, дополнительные услуги и итог со скидкой."
+      title="Акты и чеки"
+      lede="Акт — расчёт по заезду. Чек — приходный кассовый ордер на принятую сумму."
       action={
-        <button className="h-cta" onClick={() => navigate('/checks/new')}>
-          Новый чек
+        <button className="h-cta" onClick={() => navigate('/documents/act/new')}>
+          Новый акт
         </button>
       }
     >
@@ -152,45 +189,69 @@ const Checks = () => {
         ))}
       </div>
 
-      <SearchBar value={query} onChange={setQuery} count={visible.length} />
+      <SearchBar value={query} onChange={setQuery} count={visible.length} placeholder="Поиск по актам" />
 
       <div className="mb-4 h-label">Сумма по списку: {money(totalSum)}</div>
 
       <DataTable
         columns={[
-          { key: 'id', label: '№', width: '70px' },
+          { key: 'id', label: 'Акт №', width: '80px' },
           { key: 'date_from', label: 'Заезд', width: '110px' },
           { key: 'date_to', label: 'Выезд', width: '110px' },
           { key: 'guest_name', label: 'Гость' },
-          { key: 'hunt_type', label: 'Вид охоты', width: '150px' },
-          { key: 'people', label: 'Чел.', width: '70px' },
+          { key: 'hunt_type', label: 'Вид охоты', width: '140px' },
+          { key: 'people', label: 'Чел.', width: '60px' },
           {
             key: 'final_total',
-            label: 'Итог',
+            label: 'Итог по акту',
             width: '130px',
             render: (r) => money(r.final_total),
           },
           {
+            key: '__receipt',
+            label: 'Чек (ПКО)',
+            width: '150px',
+            render: (r) => {
+              const rec = receipts.find((x) => Number(x.check_id) === Number(r.id));
+              return rec ? (
+                <span className="text-[0.9em]">
+                  № {String(rec.number)} · {money(rec.amount)}
+                </span>
+              ) : (
+                <span className="text-[var(--hero-muted)] text-[0.9em]">не выписан</span>
+              );
+            },
+          },
+          {
             key: '__act',
             label: '',
-            width: '150px',
+            width: '210px',
             render: (r) => (
               <span className="flex gap-3">
                 <button
                   className="h-label underline"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/checks/${r.id}`);
+                    navigate(`/documents/act/${r.id}`);
                   }}
                 >
-                  Открыть
+                  Акт
+                </button>
+                <button
+                  className="h-label underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openReceipt(r);
+                  }}
+                >
+                  Чек
                 </button>
                 <button
                   className="h-label underline"
                   onClick={async (e) => {
                     e.stopPropagation();
                     await removeRow('checks', Number(r.id));
-                    toast.success('Чек убран в архив');
+                    toast.success('Акт убран в архив');
                     load();
                   }}
                 >
@@ -201,11 +262,11 @@ const Checks = () => {
           },
         ]}
         rows={visible}
-        empty={loading ? 'Загружаем…' : 'Чеков пока нет'}
-        onRowClick={(r) => navigate(`/checks/${r.id}`)}
+        empty={loading ? 'Загружаем…' : 'Актов пока нет'}
+        onRowClick={(r) => navigate(`/documents/act/${r.id}`)}
       />
     </Layout>
   );
 };
 
-export default Checks;
+export default Documents;

@@ -32,6 +32,10 @@ TABLES = {
                'date_from', 'date_to', 'plan_bag', 'items', 'discount_pct', 'total',
                'licenses_total', 'extras_total', 'stay_total', 'final_total',
                'hunted_by', 'calculated_by', 'accepted_by', 'note', 'archived'],
+    'receipts': ['check_id', 'booking_id', 'number', 'issued_on', 'org_name', 'org_okpo',
+                 'accepted_from', 'basis', 'amount', 'amount_words', 'attachment',
+                 'credit_account', 'debit_account', 'chief_accountant', 'cashier',
+                 'note', 'archived'],
 }
 
 ORDER = {
@@ -45,10 +49,11 @@ ORDER = {
     'booking_services': 'id',
     'payments': 'paid_on DESC, id DESC',
     'checks': 'date_from DESC NULLS LAST, id DESC',
+    'receipts': 'issued_on DESC NULLS LAST, id DESC',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
-              'checks'}
+              'checks', 'receipts'}
 
 JSON_FIELDS = {'checks': {'items'}}
 
@@ -183,7 +188,8 @@ def handler(event: dict, context) -> dict:
         where = []
         if table in ARCHIVABLE and not show_archived:
             where.append('archived = FALSE')
-        if params.get('booking_id') and table in ('booking_services', 'payments', 'checks'):
+        if params.get('booking_id') and table in ('booking_services', 'payments', 'checks',
+                                                  'receipts'):
             where.append('booking_id = ' + str(int(params['booking_id'])))
 
         if table == 'bookings':

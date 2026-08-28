@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import { Row, listRows, createRow, updateRow } from '@/lib/api';
 import { PriceItem, loadPriceItems, lineSum, money, GROUP_LABELS } from '@/lib/price';
+import { rublesInWords } from '@/lib/rubles';
 import { toast } from 'sonner';
 
 const dmy = (v: unknown) => {
@@ -12,7 +13,7 @@ const dmy = (v: unknown) => {
   return `${d}.${m}.${y}`;
 };
 
-const CheckCard = () => {
+const ActCard = () => {
   const { id } = useParams();
   const isNew = id === 'new';
   const navigate = useNavigate();
@@ -114,17 +115,44 @@ const CheckCard = () => {
     };
     if (isNew) {
       const created = await createRow('checks', body);
-      toast.success('Чек сохранён');
-      navigate(`/checks/${created.id}`, { replace: true });
+      toast.success('Акт сохранён');
+      navigate(`/documents/act/${created.id}`, { replace: true });
       return;
     }
     await updateRow('checks', { ...body, id: Number(id) });
-    toast.success('Чек сохранён');
+    toast.success('Акт сохранён');
+  };
+
+  const openReceipt = async () => {
+    const list = await listRows('receipts');
+    const exist = list.find((r) => Number(r.check_id) === Number(id));
+    if (exist) {
+      navigate(`/documents/receipt/${exist.id}`);
+      return;
+    }
+    const created = await createRow('receipts', {
+      check_id: Number(id),
+      booking_id: head.booking_id ? Number(head.booking_id) : null,
+      number: String(id),
+      issued_on: new Date().toISOString().slice(0, 10),
+      org_name: 'Охотничье хозяйство «Малышенское»',
+      accepted_from: String(head.guest_name || ''),
+      basis: `Оплата услуг по акту № ${id} от ${String(head.date_from || '')}`,
+      amount: totals.final,
+      amount_words: rublesInWords(totals.final),
+      attachment: `Акт № ${id}`,
+      credit_account: '90',
+      debit_account: '50',
+      chief_accountant: String(head.calculated_by || ''),
+      cashier: String(head.accepted_by || ''),
+    });
+    toast.success('Чек создан');
+    navigate(`/documents/receipt/${created.id}`);
   };
 
   if (loading) {
     return (
-      <Layout index="Раздел / Документы" title="Чек">
+      <Layout index="Раздел / Документы" title="Акт">
         <div className="h-mono-cap">Загружаем…</div>
       </Layout>
     );
@@ -145,13 +173,18 @@ const CheckCard = () => {
   return (
     <Layout
       index="Раздел / Документы"
-      title={isNew ? 'Новый чек' : `Чек № ${id}`}
+      title={isNew ? 'Новый акт' : `Акт № ${id}`}
       lede={`${head.guest_name || 'Без имени'} — ${head.hunt_type || 'вид охоты не указан'}`}
       action={
         <span className="flex gap-2 no-print">
-          <Link className="h-cta-ghost" to="/checks">
+          <Link className="h-cta-ghost" to="/documents">
             К списку
           </Link>
+          {!isNew && (
+            <button className="h-cta-ghost" onClick={openReceipt}>
+              Чек (ПКО)
+            </button>
+          )}
           <button className="h-cta-ghost" onClick={() => window.print()}>
             Скачать PDF
           </button>
@@ -185,6 +218,12 @@ const CheckCard = () => {
       </div>
 
       <div id="check-print" className="border border-[#e2e2df] bg-white p-6">
+        <div className="text-center mb-6">
+          <div className="h-head text-[22px]">
+            Акт выполненных работ {isNew ? '' : `№ ${id}`}
+          </div>
+          <div className="h-label mt-1">Охотничье хозяйство «Малышенское»</div>
+        </div>
         <div className="flex flex-wrap justify-between gap-6">
           <div>
             <div className="h-head text-[20px]">
@@ -323,4 +362,4 @@ const CheckCard = () => {
   );
 };
 
-export default CheckCard;
+export default ActCard;

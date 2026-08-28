@@ -9,8 +9,9 @@ import Protected from "@/components/app/Protected";
 import Index from "./pages/Index";
 import Bookings from "./pages/Bookings";
 import BookingCard from "./pages/BookingCard";
-import Checks from "./pages/Checks";
-import CheckCard from "./pages/CheckCard";
+import Documents from "./pages/Documents";
+import ActCard from "./pages/ActCard";
+import ReceiptCard from "./pages/ReceiptCard";
 import Services from "./pages/Services";
 import { Transport, House, Hotel, Banya } from "./pages/Objects";
 import Trophies from "./pages/Trophies";
@@ -44,8 +45,9 @@ const App = () => (
             <Route path="/" element={guard(<Index />, 'dashboard')} />
             <Route path="/bookings" element={guard(<Bookings />, 'bookings')} />
             <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />
-            <Route path="/checks" element={guard(<Checks />, 'bookings')} />
-            <Route path="/checks/:id" element={guard(<CheckCard />, 'bookings')} />
+            <Route path="/documents" element={guard(<Documents />, 'checks')} />
+            <Route path="/documents/act/:id" element={guard(<ActCard />, 'checks')} />
+            <Route path="/documents/receipt/:id" element={guard(<ReceiptCard />, 'checks')} />
             <Route path="/services" element={guard(<Services />, 'services')} />
             <Route path="/transport" element={guard(<Transport />, 'transport')} />
             <Route path="/house" element={guard(<House />, 'house')} />

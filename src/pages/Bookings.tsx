@@ -287,19 +287,19 @@ const Bookings = () => {
                     className="h-label underline"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/checks?booking=${r.id}`);
+                      navigate(`/documents?booking=${r.id}&doc=act`);
                     }}
                   >
-                    Чек
+                    Акт
                   </button>
                   <button
                     className="h-label underline"
                     onClick={(e) => {
                       e.stopPropagation();
-                      toast('Форма акта — в работе');
+                      navigate(`/documents?booking=${r.id}&doc=receipt`);
                     }}
                   >
-                    Акт
+                    Чек
                   </button>
                 </span>
               ),

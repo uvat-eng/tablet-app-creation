@@ -10,7 +10,7 @@ export interface Section {
 export const SECTIONS: Section[] = [
   { key: 'dashboard', to: '/', label: 'Главная', icon: 'LayoutDashboard' },
   { key: 'bookings', to: '/bookings', label: 'Бронирования', icon: 'CalendarDays' },
-  { key: 'checks', to: '/checks', label: 'Чеки', icon: 'ReceiptText' },
+  { key: 'checks', to: '/documents', label: 'Акты и чеки', icon: 'ReceiptText' },
   { key: 'services', to: '/services', label: 'Услуги', icon: 'ClipboardList' },
   { key: 'transport', to: '/transport', label: 'Транспорт', icon: 'Truck' },
   { key: 'house', to: '/house', label: 'Дом', icon: 'Home' },
