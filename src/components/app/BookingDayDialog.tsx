@@ -24,9 +24,18 @@ interface Props {
   onEdit: (b: Row) => void;
   onCreate: (date: string) => void;
   onOpenCard: (b: Row) => void;
+  onDelete: (b: Row) => void;
 }
 
-const BookingDayDialog = ({ date, bookings, onClose, onEdit, onCreate, onOpenCard }: Props) => (
+const BookingDayDialog = ({
+  date,
+  bookings,
+  onClose,
+  onEdit,
+  onCreate,
+  onOpenCard,
+  onDelete,
+}: Props) => (
   <Dialog open={!!date} onOpenChange={(v) => !v && onClose()}>
     <DialogContent className="max-w-[560px] rounded-none border-black">
       <DialogHeader>
@@ -70,6 +79,13 @@ const BookingDayDialog = ({ date, bookings, onClose, onEdit, onCreate, onOpenCar
                     </button>
                     <button className="h-cta-ghost text-[0.7em]" onClick={() => onOpenCard(b)}>
                       Карточка
+                    </button>
+                    <button
+                      className="h-label underline text-center"
+                      style={{ color: '#c0392b' }}
+                      onClick={() => onDelete(b)}
+                    >
+                      Удалить
                     </button>
                   </div>
                 </div>

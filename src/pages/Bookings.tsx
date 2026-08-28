@@ -6,7 +6,7 @@ import BookingCalendar from '@/components/app/BookingCalendar';
 import BookingDayDialog from '@/components/app/BookingDayDialog';
 import CalendarSync from '@/components/app/CalendarSync';
 import SearchBar from '@/components/app/SearchBar';
-import { Row, listRows, createRow, updateRow, ConflictError } from '@/lib/api';
+import { Row, listRows, createRow, updateRow, removeRow, ConflictError } from '@/lib/api';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -332,6 +332,19 @@ const Bookings = () => {
         onOpenCard={(b) => {
           setDay(null);
           navigate(`/bookings/${b.id}`);
+        }}
+        onDelete={async (b) => {
+          if (!confirm(`Удалить бронь «${b.guest_name || 'без имени'}»?`)) return;
+          try {
+            await removeRow('bookings', Number(b.id));
+            toast.success('Бронь удалена');
+            setDay((d) =>
+              d ? { ...d, list: d.list.filter((x) => Number(x.id) !== Number(b.id)) } : d,
+            );
+            load();
+          } catch {
+            toast.error('Не удалось удалить');
+          }
         }}
         onCreate={(date) => {
           setDay(null);

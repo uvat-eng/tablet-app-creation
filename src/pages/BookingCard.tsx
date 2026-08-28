@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import RecordDialog from '@/components/app/RecordDialog';
@@ -25,6 +25,7 @@ const METHODS: Record<string, string> = {
 const BookingCard = () => {
   const { id } = useParams();
   const bookingId = Number(id);
+  const navigate = useNavigate();
   const [booking, setBooking] = useState<Row | null>(null);
   const [extras, setExtras] = useState<Row[]>([]);
   const [payments, setPayments] = useState<Row[]>([]);
@@ -48,6 +49,17 @@ const BookingCard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const dropBooking = async () => {
+    if (!confirm('Удалить бронь целиком? Услуги и оплаты по ней тоже пропадут.')) return;
+    try {
+      await removeRow('bookings', bookingId);
+      toast.success('Бронь удалена');
+      navigate('/bookings');
+    } catch {
+      toast.error('Не удалось удалить');
+    }
+  };
 
   const addService = async (values: Row) => {
     const picked = catalog.find((c) => Number(c.id) === Number(values.service_id));
@@ -97,9 +109,14 @@ const BookingCard = () => {
       title={`Бронь № ${bookingId}`}
       lede={`${booking.guest_name || 'Без имени'} — ${booking.object_name || 'объект не выбран'}`}
       action={
-        <Link className="h-cta-ghost" to="/bookings">
-          К списку
-        </Link>
+        <span className="flex flex-wrap gap-2">
+          <Link className="h-cta-ghost" to="/bookings">
+            Назад
+          </Link>
+          <button className="h-cta-ghost" onClick={dropBooking}>
+            Удалить бронь
+          </button>
+        </span>
       }
     >
       <div
