@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
@@ -11,6 +11,7 @@ import {
   hoursText,
 } from '@/lib/biotech';
 import { money } from '@/lib/expenses';
+import WorkPhotos from '@/components/app/WorkPhotos';
 import { toast } from 'sonner';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -25,17 +26,29 @@ const Biotech = () => {
   const [who, setWho] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
+  const [openRow, setOpenRow] = useState<number | null>(null);
+  const [docs, setDocs] = useState<Row[]>([]);
+  const [photoCount, setPhotoCount] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [w, g, l] = await Promise.all([
+    const [w, g, l, d, ph] = await Promise.all([
       listRows('biotech_works'),
       listRows('guests'),
       listRows('locations'),
+      listRows('guest_docs'),
+      listRows('work_photos'),
     ]);
     setRows(w);
     setGuests(g);
     setLocations(l);
+    setDocs(d);
+    const cnt: Record<string, number> = {};
+    ph.forEach((x) => {
+      const k = String(x.work_id);
+      cnt[k] = (cnt[k] || 0) + 1;
+    });
+    setPhotoCount(cnt);
     setLoading(false);
   }, []);
 
@@ -328,16 +341,29 @@ const Biotech = () => {
             </tr>
           </thead>
           <tbody>
-            {visible.map((r) => (
+            {visible.map((r) => {
+              const rid = Number(r.id);
+              const expanded = openRow === rid;
+              const nPhoto = photoCount[String(rid)] || 0;
+              const contract = docs.find(
+                (d) => String(d.guest_id) === String(r.guest_id) && !d.archived,
+              );
+              return (
+              <React.Fragment key={String(r.id)}>
               <tr
-                key={String(r.id)}
                 className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
-                onClick={() => {
-                  setEditing(r);
-                  setOpen(true);
-                }}
+                onClick={() => setOpenRow(expanded ? null : rid)}
               >
-                <td className="px-4 py-3 text-[0.68em]">{String(r.work_on || '').slice(0, 10)}</td>
+                <td className="px-4 py-3 text-[0.68em] whitespace-nowrap">
+                  <span className="flex items-center gap-1">
+                    <Icon
+                      name={expanded ? 'ChevronDown' : 'ChevronRight'}
+                      size={13}
+                      className="opacity-50"
+                    />
+                    {String(r.work_on || '').slice(0, 10).split('-').reverse().join('.')}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-[0.72em]">{nameOf(r)}</td>
                 <td className="px-4 py-3 text-[0.68em]">
                   <span className="flex items-center gap-2">
@@ -345,7 +371,14 @@ const Biotech = () => {
                     {BIOTECH_LABEL(String(r.kind))}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[0.72em]">{String(r.note || '—')}</td>
+                <td className="px-4 py-3 text-[0.72em]">
+                  {String(r.note || '—')}
+                  {nPhoto > 0 && (
+                    <span className="h-label ml-2 whitespace-nowrap opacity-70">
+                      <Icon name="Image" size={11} className="inline mb-[2px]" /> {nPhoto}
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-[0.68em]">{placeOf(r)}</td>
                 <td className="px-4 py-3 text-[0.68em] whitespace-nowrap">
                   {Number(r.qty || 0) > 0
@@ -360,14 +393,53 @@ const Biotech = () => {
                     className="h-label underline"
                     onClick={(e) => {
                       e.stopPropagation();
-                      drop(r);
+                      setEditing(r);
+                      setOpen(true);
                     }}
                   >
-                    В архив
+                    Изменить
                   </button>
                 </td>
               </tr>
-            ))}
+
+              {expanded && (
+                <tr className="border-t border-[#e2e2df] bg-[var(--hero-surface)]">
+                  <td colSpan={8} className="px-4 py-5">
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {contract?.file_url && (
+                        <a
+                          className="h-cta-ghost"
+                          href={String(contract.file_url)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Icon name="FileText" size={14} />
+                          Договор {String(contract.doc_no || '')}
+                        </a>
+                      )}
+                      <button
+                        className="h-cta-ghost"
+                        onClick={() => {
+                          setEditing(r);
+                          setOpen(true);
+                        }}
+                      >
+                        <Icon name="Pencil" size={14} /> Изменить запись
+                      </button>
+                      <button className="h-cta-ghost" onClick={() => drop(r)}>
+                        В архив
+                      </button>
+                    </div>
+                    <WorkPhotos
+                      workId={rid}
+                      defaultDate={String(r.work_on || '').slice(0, 10)}
+                    />
+                  </td>
+                </tr>
+              )}
+              </React.Fragment>
+              );
+            })}
             {!visible.length && (
               <tr>
                 <td colSpan={8} className="px-4 py-10 text-center h-mono-cap text-[var(--hero-muted)]">

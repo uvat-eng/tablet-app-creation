@@ -38,18 +38,23 @@ const HunterCard = () => {
   const [guest, setGuest] = useState<Row | null>(null);
   const [bag, setBag] = useState<Row[]>([]);
   const [bookings, setBookings] = useState<Row[]>([]);
+  const [docs, setDocs] = useState<Row[]>([]);
+  const [docOpen, setDocOpen] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<Row | null>(null);
   const [locations, setLocations] = useState<Row[]>([]);
   const [editOpen, setEditOpen] = useState(false);
   const [bagOpen, setBagOpen] = useState(false);
   const [editingBag, setEditingBag] = useState<Row | null>(null);
 
   const load = useCallback(async () => {
-    const [g, b, bk, l] = await Promise.all([
+    const [g, b, bk, l, d] = await Promise.all([
       listRows('guests'),
       listRows('hunter_bag'),
       listRows('bookings'),
       listRows('locations'),
+      listRows('guest_docs'),
     ]);
+    setDocs(d.filter((x) => String(x.guest_id) === String(id) && !x.archived));
     const found = g.find((x) => String(x.id) === String(id)) || null;
     setGuest(found);
     setBag(b.filter((x) => String(x.guest_id) === String(id)));
@@ -100,6 +105,43 @@ const HunterCard = () => {
   }, [bag]);
 
   const total = Object.values(byS).reduce((s, v) => s + v, 0);
+
+  const docFields: Field[] = [
+    {
+      key: 'kind',
+      label: 'Тип документа',
+      type: 'select',
+      options: [
+        { value: 'biotech_contract', label: 'Договор на биотехнию' },
+        { value: 'contract', label: 'Путёвка-договор' },
+        { value: 'permit', label: 'Разрешение на добычу' },
+        { value: 'other', label: 'Другое' },
+      ],
+    },
+    { key: 'title', label: 'Название документа' },
+    { key: 'doc_no', label: 'Номер' },
+    { key: 'signed_on', label: 'Дата подписания', type: 'date' },
+    { key: 'valid_to', label: 'Действует до', type: 'date' },
+    { key: 'file_url', label: 'Файл или скан', type: 'photo', folder: 'docs' },
+    { key: 'note', label: 'Заметка', type: 'textarea' },
+  ];
+
+  const saveDoc = async (values: Row) => {
+    try {
+      if (editingDoc?.id) {
+        await updateRow('guest_docs', { ...values, id: editingDoc.id });
+        toast.success('Документ обновлён');
+      } else {
+        await createRow('guest_docs', { ...values, guest_id: Number(id) });
+        toast.success('Документ добавлен');
+      }
+      setDocOpen(false);
+      setEditingDoc(null);
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось сохранить');
+    }
+  };
 
   const saveProfile = async (values: Row) => {
     try {
@@ -177,6 +219,16 @@ const HunterCard = () => {
           <button className="h-cta-ghost" onClick={() => setEditOpen(true)}>
             <Icon name="Pencil" size={14} /> Изменить
           </button>
+          {docs[0]?.file_url && (
+            <a
+              className="h-cta-ghost"
+              href={String(docs[0].file_url)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Icon name="FileText" size={14} /> Договор
+            </a>
+          )}
           <button
             className="h-cta"
             onClick={() => {
@@ -241,6 +293,62 @@ const HunterCard = () => {
             {field('Оружие', guest.roh_weapon, true)}
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 mb-3">
+        <div className="h-head text-[22px]">Документы</div>
+        <button
+          className="h-cta-ghost"
+          onClick={() => {
+            setEditingDoc(null);
+            setDocOpen(true);
+          }}
+        >
+          <Icon name="Plus" size={14} /> Добавить документ
+        </button>
+      </div>
+      <div className="border border-[#e2e2df] mb-10">
+        {docs.map((d) => (
+          <div
+            key={String(d.id)}
+            className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-[#eeeeec] last:border-0"
+          >
+            <Icon name="FileText" size={15} className="opacity-60" />
+            <span className="text-[0.74em]">{String(d.title || 'Документ')}</span>
+            {d.doc_no && <span className="h-label">№ {String(d.doc_no)}</span>}
+            {d.signed_on && (
+              <span className="h-label">
+                от {String(d.signed_on).slice(0, 10).split('-').reverse().join('.')}
+              </span>
+            )}
+            <span className="flex gap-2 ml-auto">
+              {d.file_url && (
+                <a
+                  className="h-cta-ghost"
+                  href={String(d.file_url)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Icon name="Download" size={13} /> Открыть
+                </a>
+              )}
+              <button
+                className="h-label underline"
+                onClick={() => {
+                  setEditingDoc(d);
+                  setDocOpen(true);
+                }}
+              >
+                Изменить
+              </button>
+            </span>
+          </div>
+        ))}
+        {!docs.length && (
+          <div className="px-4 py-6 text-center h-mono-cap text-[var(--hero-muted)]">
+            Документов пока нет
+          </div>
+        )}
       </div>
 
       <div className="h-head text-[22px] mb-3">Трофеи охотника</div>
@@ -333,6 +441,15 @@ const HunterCard = () => {
           </div>
         </>
       )}
+
+      <RecordDialog
+        open={docOpen}
+        onOpenChange={setDocOpen}
+        title={editingDoc?.id ? 'Документ' : 'Новый документ'}
+        fields={docFields}
+        initial={editingDoc || { kind: 'biotech_contract' }}
+        onSubmit={saveDoc}
+      />
 
       <RecordDialog
         open={editOpen}

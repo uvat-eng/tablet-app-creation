@@ -11,7 +11,12 @@ export const BIOTECH_KINDS: BiotechKind[] = [
   { key: 'grain', label: 'Зерно', icon: 'Wheat', unit: 'кг', material: true },
   { key: 'sowing', label: 'Участие в посевах', icon: 'Sprout', unit: 'га', material: false },
   { key: 'repair', label: 'Ремонты и стройки', icon: 'Hammer', unit: 'шт', material: false },
-  { key: 'biotech', label: 'Биотехния', icon: 'Trees', unit: 'шт', material: false },
+  { key: 'salt', label: 'Солонцы', icon: 'Gem', unit: 'шт', material: false },
+  { key: 'feeder', label: 'Подкормочные площадки', icon: 'Home', unit: 'шт', material: false },
+  { key: 'field', label: 'Кормовые поля', icon: 'Sprout', unit: 'га', material: false },
+  { key: 'gravel', label: 'Галечники', icon: 'Mountain', unit: 'шт', material: false },
+  { key: 'sign', label: 'Аншлаги и указатели', icon: 'Signpost', unit: 'шт', material: false },
+  { key: 'biotech', label: 'Прочая биотехния', icon: 'Trees', unit: 'шт', material: false },
   { key: 'hunt_help', label: 'Проведение охот', icon: 'Target', unit: 'охот', material: false },
 ];
 
