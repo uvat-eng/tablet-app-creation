@@ -9,6 +9,7 @@ import { can } from '@/lib/permissions';
 import { useSettings } from '@/context/SettingsContext';
 
 const money = (v: number) => `${v.toLocaleString('ru-RU')} ₽`;
+const HIDDEN = '—';
 
 const STATUS: Record<string, string> = {
   new: 'Новая',
@@ -28,6 +29,8 @@ const Index = () => {
   const [reviews, setReviews] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const seesMoney = can(user, 'finance');
+  const rub = (v: number) => (seesMoney ? money(v) : HIDDEN);
   const { settings } = useSettings();
 
   useEffect(() => {
@@ -62,7 +65,9 @@ const Index = () => {
 
   const tiles = [
     { label: 'Ближайшие заезды', value: String(upcoming.length), to: '/bookings' },
-    { label: 'Ожидается оплат', value: money(total - paid), to: '/bookings' },
+    ...(seesMoney
+      ? [{ label: 'Ожидается оплат', value: money(total - paid), to: '/bookings' }]
+      : []),
     { label: 'Объектов в работе', value: String(objects.filter((o) => o.status === 'active').length), to: '/house' },
     { label: 'Членов клуба', value: String(members), to: '/club' },
   ];
@@ -81,11 +86,11 @@ const Index = () => {
         {
           label: 'Средний чек услуги',
           value: services.length
-            ? money(Math.round(services.reduce((s, x) => s + Number(x.price || 0), 0) / services.length))
+            ? rub(Math.round(services.reduce((s, x) => s + Number(x.price || 0), 0) / services.length))
             : '—',
         },
       ],
-      preview: services.slice(0, 4).map((s) => `${s.name} — ${money(Number(s.price || 0))}`),
+      preview: services.slice(0, 4).map((s) => `${s.name} — ${rub(Number(s.price || 0))}`),
     },
     {
       to: '/transport',
@@ -97,7 +102,7 @@ const Index = () => {
         { label: 'Единиц техники', value: String(byKind('transport').length) },
         { label: 'В работе', value: String(byKind('transport').filter((o) => o.status === 'active').length) },
       ],
-      preview: byKind('transport').slice(0, 4).map((o) => `${o.name} — ${money(Number(o.price || 0))}/день`),
+      preview: byKind('transport').slice(0, 4).map((o) => `${o.name} — ${rub(Number(o.price || 0))}/день`),
     },
     {
       to: '/house',
@@ -127,7 +132,7 @@ const Index = () => {
           value: String(byKind('hotel').reduce((s, o) => s + Number(o.capacity || 0), 0)),
         },
       ],
-      preview: byKind('hotel').slice(0, 4).map((o) => `${o.name} — ${money(Number(o.price || 0))}`),
+      preview: byKind('hotel').slice(0, 4).map((o) => `${o.name} — ${rub(Number(o.price || 0))}`),
     },
     {
       to: '/banya',
@@ -139,7 +144,7 @@ const Index = () => {
         { label: 'Объектов', value: String(byKind('banya').length) },
         {
           label: 'Цена за час',
-          value: byKind('banya')[0] ? money(Number(byKind('banya')[0].price || 0)) : '—',
+          value: byKind('banya')[0] ? rub(Number(byKind('banya')[0].price || 0)) : '—',
         },
       ],
       preview: byKind('banya').slice(0, 4).map((o) => `${o.name} — ${o.capacity} чел.`),
@@ -246,7 +251,9 @@ const Index = () => {
               width: '140px',
               render: (r) => STATUS[String(r.status)] || String(r.status),
             },
-            { key: 'total', label: 'Сумма', render: (r) => money(Number(r.total || 0)) },
+            ...(seesMoney
+              ? [{ key: 'total', label: 'Сумма', render: (r: Row) => rub(Number(r.total || 0)) }]
+              : []),
           ]}
           rows={upcoming.slice(0, 8)}
           empty={loading ? 'Загружаем…' : 'Заездов пока нет'}

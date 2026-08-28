@@ -236,6 +236,9 @@ export interface StaffUser {
   login: string;
   role: string;
   permissions?: string;
+  title?: string;
+  can_edit_others?: boolean;
+  can_remove?: boolean;
 }
 
 export const login = async (

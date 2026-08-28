@@ -68,12 +68,18 @@ const Staff = () => {
       <DataTable
         columns={[
           { key: 'name', label: 'Имя' },
-          { key: 'login', label: 'Логин', width: '150px' },
           {
-            key: 'role',
-            label: 'Роль',
-            width: '150px',
-            render: (r) => ROLES[String(r.role)] || String(r.role),
+            key: 'title',
+            label: 'Должность',
+            width: '190px',
+            render: (r) => String(r.title || ROLES[String(r.role)] || r.role),
+          },
+          { key: 'login', label: 'Логин', width: '110px' },
+          {
+            key: 'can_remove',
+            label: 'Правка и удаление',
+            width: '160px',
+            render: (r) => (r.can_remove ? 'Полные права' : 'Только своё'),
           },
           { key: 'permissions', label: 'Доступ', render: describe },
           {

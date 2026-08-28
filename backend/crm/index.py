@@ -394,7 +394,7 @@ def handler(event: dict, context) -> dict:
             cur.close()
             conn.close()
             return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
-                'error': 'Удалять записи могут только Усков Александр и Спиричев Михаил'})}
+                'error': 'Удалять записи могут только руководители'})}
 
         cur.execute('SELECT * FROM ' + table + ' WHERE id = ' + str(item_id))
         found = cur.fetchone()

@@ -46,7 +46,7 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
       {user && (
         <div className="mt-8 pt-5 h-rule">
           <div className="h-label">{user.name}</div>
-          <div className="h-label mt-1">{ROLES[user.role] || user.role}</div>
+          <div className="h-label mt-1">{user.title || ROLES[user.role] || user.role}</div>
           <div className="mt-3">
             <SyncBadge />
           </div>
