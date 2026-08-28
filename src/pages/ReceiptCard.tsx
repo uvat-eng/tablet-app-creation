@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
-import { Row, listRows, updateRow, createRow } from '@/lib/api';
+import { Row, listRows, updateRow, createRow, removeRow } from '@/lib/api';
 import { money } from '@/lib/price';
 import { rublesInWords } from '@/lib/rubles';
 import { toast } from 'sonner';
@@ -76,6 +76,17 @@ const ReceiptCard = () => {
     toast.success('Чек сохранён');
   };
 
+  const drop = async () => {
+    if (!confirm('Удалить чек?')) return;
+    try {
+      await removeRow('receipts', Number(id));
+      toast.success('Чек удалён');
+      navigate('/documents');
+    } catch {
+      toast.error('Не удалось удалить');
+    }
+  };
+
   if (loading) {
     return (
       <Layout index="Раздел / Документы" title="Чек">
@@ -114,6 +125,11 @@ const ReceiptCard = () => {
           <button className="h-cta-ghost" onClick={() => window.print()}>
             Скачать PDF
           </button>
+          {!isNew && (
+            <button className="h-cta-ghost" onClick={drop}>
+              Удалить
+            </button>
+          )}
           <button className="h-cta" onClick={save}>
             Сохранить
           </button>

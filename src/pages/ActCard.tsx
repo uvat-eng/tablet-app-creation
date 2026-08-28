@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
-import { Row, listRows, createRow, updateRow } from '@/lib/api';
+import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { PriceItem, loadPriceItems, lineSum, money, GROUP_LABELS } from '@/lib/price';
 import { rublesInWords } from '@/lib/rubles';
 import { toast } from 'sonner';
@@ -123,6 +123,17 @@ const ActCard = () => {
     toast.success('Акт сохранён');
   };
 
+  const drop = async () => {
+    if (!confirm('Удалить акт? Связанный чек останется.')) return;
+    try {
+      await removeRow('checks', Number(id));
+      toast.success('Акт удалён');
+      navigate('/documents');
+    } catch {
+      toast.error('Не удалось удалить');
+    }
+  };
+
   const openReceipt = async () => {
     const list = await listRows('receipts');
     const exist = list.find((r) => Number(r.check_id) === Number(id));
@@ -193,6 +204,11 @@ const ActCard = () => {
           <button className="h-cta-ghost" onClick={() => window.print()}>
             Скачать PDF
           </button>
+          {!isNew && (
+            <button className="h-cta-ghost" onClick={drop}>
+              Удалить
+            </button>
+          )}
           <button className="h-cta" onClick={save}>
             Сохранить
           </button>
