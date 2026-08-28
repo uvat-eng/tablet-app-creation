@@ -9,6 +9,7 @@ import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { LOCATION_KINDS, KIND, STATUSES } from '@/lib/locationKinds';
 import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
 import useGeoLocate from '@/lib/useGeoLocate';
+import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/offlineMap';
 import { toast } from 'sonner';
 
 const BASES = [
@@ -73,7 +74,14 @@ const MapPage = () => {
   const [draft, setDraft] = useState<Row | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const [offline] = useState<OfflineCfg>(readOffline);
+  const [offlineReady, setOfflineReady] = useState(false);
+
   const geo = useGeoLocate(mapRef);
+
+  useEffect(() => {
+    probeOffline(offline).then(setOfflineReady);
+  }, [offline]);
 
   const load = useCallback(async () => {
     const [locs, layers] = await Promise.all([listRows('locations'), listRows('map_layers')]);
@@ -115,6 +123,13 @@ const MapPage = () => {
     const map = mapRef.current;
     if (!map) return;
     if (baseRef.current) map.removeLayer(baseRef.current);
+
+    if (base === 'offline') {
+      baseRef.current = offlineTileLayer(offline).addTo(map);
+      baseRef.current.bringToBack();
+      return;
+    }
+
     const cfg = BASES.find((b) => b.key === base) || BASES[0];
     baseRef.current = L.tileLayer(cfg.url, {
       attribution: cfg.attr,
@@ -122,7 +137,7 @@ const MapPage = () => {
       maxNativeZoom: cfg.max,
     }).addTo(map);
     baseRef.current.bringToBack();
-  }, [base]);
+  }, [base, offline]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -325,7 +340,28 @@ const MapPage = () => {
             {b.label}
           </button>
         ))}
+        {offlineReady && (
+          <button
+            onClick={() => setBase('offline')}
+            className="h-label px-2 py-1 border flex items-center gap-1"
+            style={{
+              borderColor: '#e2e2df',
+              background: base === 'offline' ? 'var(--hero-accent)' : '#fff',
+              color: base === 'offline' ? 'var(--hero-accent-contrast)' : 'inherit',
+            }}
+          >
+            <Icon name="WifiOff" size={13} />
+            {offline.label}
+          </button>
+        )}
       </div>
+
+      {!offlineReady && (
+        <p className="mb-4 text-sm text-[#6d6d6d]">
+          Офлайн-карта не найдена. Положите плитки в папку <code>public/maps/tiles</code> и файл{' '}
+          <code>public/maps/meta.json</code> — кнопка «Офлайн» появится здесь автоматически.
+        </p>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="h-label mr-1">Слои</span>
