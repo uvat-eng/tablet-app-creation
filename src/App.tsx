@@ -26,6 +26,7 @@ import MapPage from "./pages/MapPage";
 import Reviews from "./pages/Reviews";
 import Club from "./pages/Club";
 import Hunters from "./pages/Hunters";
+import HunterCard from "./pages/HunterCard";
 import Biotech from "./pages/Biotech";
 import ClubFees from "./pages/ClubFees";
 import GuestCard from "./pages/GuestCard";
@@ -80,7 +81,7 @@ const App = () => (
             <Route path="/club/fees" element={guard(<ClubFees />, 'club')} />
             <Route path="/club/:id" element={guard(<GuestCard />, 'club')} />
             <Route path="/hunters" element={guard(<Hunters />, 'hunters')} />
-            <Route path="/hunters/:id" element={guard(<GuestCard />, 'hunters')} />
+            <Route path="/hunters/:id" element={guard(<HunterCard />, 'hunters')} />
             <Route path="/biotech" element={guard(<Biotech />, 'biotech')} />
             <Route path="/finance" element={guard(<Finance />, 'finance')} />
             <Route path="/office" element={guard(<OfficeFinance />, 'office')} />

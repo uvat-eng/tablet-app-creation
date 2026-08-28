@@ -21,7 +21,10 @@ TABLES = {
     'objects': ['kind', 'name', 'capacity', 'price', 'note', 'status', 'photo_url', 'archived'],
     'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note', 'archived',
                'born_on', 'passport', 'passport_date', 'address', 'contract_no', 'cert_type',
-               'fee_monthly', 'joined_on'],
+               'fee_monthly', 'joined_on', 'country', 'nationality', 'hunt_ticket',
+               'hunt_ticket_date', 'roh_number', 'roh_date', 'roh_weapon'],
+    'hunter_bag': ['guest_id', 'species', 'qty', 'taken_on', 'season', 'location_id',
+                   'place', 'trophy_note', 'photo_url', 'archived'],
     'club_fees': ['guest_id', 'year', 'month', 'amount', 'paid', 'paid_on', 'method', 'note'],
     'club_bag': ['guest_id', 'season', 'species', 'taken_on', 'mode', 'price', 'debt',
                  'debt_status', 'paid_on', 'hours_credited', 'note', 'archived'],
@@ -76,17 +79,18 @@ ORDER = {
     'biotech_works': 'work_on DESC NULLS LAST, id DESC',
     'club_fees': 'year DESC, month',
     'club_bag': 'taken_on DESC NULLS LAST, id DESC',
+    'hunter_bag': 'taken_on DESC NULLS LAST, id DESC',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
-              'office_expenses', 'biotech_works', 'club_bag'}
+              'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag'}
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
 AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'map_layers',
             'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
-            'payments', 'office_expenses', 'biotech_works', 'club_bag'}
+            'payments', 'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag'}
 
 TITLE_FIELD = {
     'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
@@ -97,6 +101,7 @@ TITLE_FIELD = {
     'biotech_works': 'hunter_name',
     'club_fees': 'note',
     'club_bag': 'species',
+    'hunter_bag': 'species',
 }
 
 TABLE_LABEL = {
@@ -108,6 +113,7 @@ TABLE_LABEL = {
     'biotech_works': 'Биотехния',
     'club_fees': 'Взнос',
     'club_bag': 'Добыча члена клуба',
+    'hunter_bag': 'Трофей охотника',
     'booking_services': 'Услуга в брони', 'payments': 'Платёж',
 }
 
@@ -314,7 +320,8 @@ def handler(event: dict, context) -> dict:
         if params.get('booking_id') and table in ('booking_services', 'payments', 'checks',
                                                   'receipts', 'expenses'):
             where.append('booking_id = ' + str(int(params['booking_id'])))
-        if params.get('guest_id') and table in ('club_fees', 'club_bag', 'biotech_works'):
+        if params.get('guest_id') and table in ('club_fees', 'club_bag', 'biotech_works',
+                                                'hunter_bag'):
             where.append('guest_id = ' + str(int(params['guest_id'])))
         if params.get('year') and table == 'club_fees':
             where.append('year = ' + str(int(params['year'])))

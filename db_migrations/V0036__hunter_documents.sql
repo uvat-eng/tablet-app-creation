@@ -1,0 +1,9 @@
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS country       VARCHAR(80) DEFAULT 'Россия';
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS nationality   VARCHAR(80);
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS hunt_ticket   VARCHAR(80);
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS hunt_ticket_date DATE;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS roh_number    VARCHAR(80);
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS roh_date      DATE;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS roh_weapon    VARCHAR(200);
+
+UPDATE guests SET country = 'Россия' WHERE country IS NULL;
