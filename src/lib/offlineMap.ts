@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import { getTile, readTilesMeta } from '@/lib/tileStore';
 
 const KEY = 'offline-map-cfg';
 
@@ -36,32 +37,40 @@ export const writeOffline = (cfg: OfflineCfg) => {
   }
 };
 
-export const probeOffline = async (cfg: OfflineCfg): Promise<boolean> => {
-  const probe = cfg.url
-    .replace('{z}', String(cfg.minZoom))
-    .replace('{x}', '0')
-    .replace('{y}', '0')
-    .replace('{s}', 'a');
-  const base = probe.split('/').slice(0, -3).join('/') || '/maps';
-  try {
-    const r = await fetch(base + '/meta.json', { cache: 'no-store' });
-    return r.ok;
-  } catch {
-    return false;
-  }
+export const probeOffline = async (): Promise<boolean> => {
+  const meta = readTilesMeta();
+  return !!meta?.done;
 };
 
+const EMPTY =
+  'data:image/svg+xml;base64,' +
+  btoa(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">' +
+      '<rect width="256" height="256" fill="#eceae4"/>' +
+      '<text x="128" y="130" font-size="13" fill="#a8a49a" text-anchor="middle">нет плитки</text></svg>',
+  );
+
+const StoredLayer = L.TileLayer.extend({
+  createTile(coords: { z: number; x: number; y: number }, done: (e?: Error, t?: HTMLElement) => void) {
+    const img = document.createElement('img');
+    getTile(`${coords.z}/${coords.x}/${coords.y}.jpg`)
+      .then((blob) => {
+        img.src = blob ? URL.createObjectURL(blob) : EMPTY;
+        img.onload = () => done(undefined, img);
+        img.onerror = () => done(undefined, img);
+      })
+      .catch(() => {
+        img.src = EMPTY;
+        done(undefined, img);
+      });
+    return img;
+  },
+});
+
 export const offlineTileLayer = (cfg: OfflineCfg) =>
-  L.tileLayer(cfg.url, {
+  new (StoredLayer as unknown as new (url: string, opts: L.TileLayerOptions) => L.TileLayer)('', {
     minZoom: cfg.minZoom,
     maxZoom: cfg.maxZoom,
     maxNativeZoom: cfg.maxZoom,
     attribution: 'Офлайн-карта хозяйства',
-    errorTileUrl:
-      'data:image/svg+xml;base64,' +
-      btoa(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">' +
-          '<rect width="256" height="256" fill="#eceae4"/>' +
-          '<text x="128" y="130" font-size="13" fill="#a8a49a" text-anchor="middle">нет плитки</text></svg>',
-      ),
   });

@@ -10,6 +10,7 @@ import { LOCATION_KINDS, KIND, STATUSES } from '@/lib/locationKinds';
 import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
 import useGeoLocate from '@/lib/useGeoLocate';
 import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/offlineMap';
+import OfflineMapDownload from '@/components/app/OfflineMapDownload';
 import { toast } from 'sonner';
 
 const BASES = [
@@ -80,7 +81,7 @@ const MapPage = () => {
   const geo = useGeoLocate(mapRef);
 
   useEffect(() => {
-    probeOffline(offline).then(setOfflineReady);
+    probeOffline().then(setOfflineReady);
   }, [offline]);
 
   const load = useCallback(async () => {
@@ -356,12 +357,7 @@ const MapPage = () => {
         )}
       </div>
 
-      {!offlineReady && (
-        <p className="mb-4 text-sm text-[#6d6d6d]">
-          Офлайн-карта не найдена. Положите плитки в папку <code>public/maps/tiles</code> и файл{' '}
-          <code>public/maps/meta.json</code> — кнопка «Офлайн» появится здесь автоматически.
-        </p>
-      )}
+      <OfflineMapDownload onReady={() => setOfflineReady(true)} />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="h-label mr-1">Слои</span>

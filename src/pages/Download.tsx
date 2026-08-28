@@ -1,13 +1,14 @@
 import Brand from '@/components/app/Brand';
 import Icon from '@/components/ui/icon';
 
-const APK_URL = '/malyshenskoe.apk';
+const APK_URL =
+  'https://cdn.poehali.dev/projects/980fc694-d631-4b58-8bb8-84299cd838a9/bucket/apk/malyshenskoe.apk';
 
 const steps = [
   'Нажмите кнопку «Скачать приложение» — файл сохранится в «Загрузки».',
   'Откройте скачанный файл и подтвердите установку.',
   'Если Android попросит разрешение на установку из этого источника — разрешите.',
-  'Приложение появится на экране планшета вместе с офлайн-картами.',
+  'Войдите под своим логином. Затем откройте раздел «Карта» и нажмите «Скачать карты» — они загрузятся один раз и дальше работают без интернета.',
 ];
 
 const Download = () => (
@@ -24,14 +25,14 @@ const Download = () => (
 
       <a
         href={APK_URL}
-        download
+
         className="mt-8 flex items-center justify-center gap-2 w-full bg-[#1f1f1d] text-white px-4 py-4 text-[0.85em] tracking-wide"
       >
         <Icon name="Download" size={18} />
         Скачать приложение
       </a>
 
-      <p className="h-mono-cap mt-3 text-center">Размер около 175 МБ</p>
+      <p className="h-mono-cap mt-3 text-center">Размер 4 МБ · карты качаются отдельно</p>
 
       <div className="mt-10 border-t border-[#e2e2df] pt-6">
         <span className="h-label block mb-4">Как установить</span>
