@@ -26,7 +26,7 @@ export const SECTIONS: Section[] = [
   { key: 'finance', to: '/finance', label: 'Финансы', icon: 'Wallet' },
   { key: 'transfers', to: '/transfers', label: 'Финансы переводы', icon: 'ArrowLeftRight' },
   { key: 'office', to: '/office', label: 'Финансы ОФИС', icon: 'Landmark' },
-  { key: 'archive', to: '/archive', label: 'Архив', icon: 'Archive' },
+  { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
 export const OWNER_ONLY: Section[] = [

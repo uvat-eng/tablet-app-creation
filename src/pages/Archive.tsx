@@ -8,11 +8,23 @@ import { toast } from 'sonner';
 
 const TABS = [
   { table: 'bookings', label: 'Брони', title: 'guest_name' },
+  { table: 'checks', label: 'Акты', title: 'guest_name' },
+  { table: 'receipts', label: 'Чеки', title: 'number' },
+  { table: 'expenses', label: 'Расходы на охоту', title: 'name' },
+  { table: 'house_expenses', label: 'Расходы по объектам', title: 'name' },
+  { table: 'office_expenses', label: 'Расходы офиса', title: 'name' },
+  { table: 'transfers', label: 'Переводы', title: 'name' },
+  { table: 'transport_expenses', label: 'Расходы транспорта', title: 'name' },
   { table: 'objects', label: 'Объекты', title: 'name' },
   { table: 'guests', label: 'Гости', title: 'name' },
+  { table: 'guest_docs', label: 'Документы гостей', title: 'title' },
   { table: 'services', label: 'Услуги', title: 'name' },
   { table: 'trophies', label: 'Трофеи', title: 'species' },
+  { table: 'club_bag', label: 'Добыча клуба', title: 'species' },
+  { table: 'hunter_bag', label: 'Добыча охотников', title: 'species' },
+  { table: 'biotech_works', label: 'Биотехния', title: 'hunter_name' },
   { table: 'locations', label: 'Локации', title: 'name' },
+  { table: 'map_layers', label: 'Слои карты', title: 'name' },
   { table: 'reviews', label: 'Отзывы', title: 'author' },
 ];
 
@@ -93,9 +105,9 @@ const Archive = () => {
 
   return (
     <Layout
-      index="Раздел / Архив"
-      title="Архив и журнал"
-      lede="Сквозной учёт: кто, что и когда внёс или изменил в базе хозяйства."
+      index="Раздел / Корзина и журнал"
+      title="Корзина и журнал"
+      lede="Удалённые записи хранятся здесь и возвращаются в работу одной кнопкой. Рядом — журнал: кто, что и когда менял."
       action={
         <span className="flex gap-2">
           <button
@@ -108,7 +120,7 @@ const Archive = () => {
             className={mode === 'hidden' ? 'h-cta' : 'h-cta-ghost'}
             onClick={() => setMode('hidden')}
           >
-            Скрытые записи
+            Корзина
           </button>
         </span>
       }
@@ -199,11 +211,39 @@ const Archive = () => {
 
           <DataTable
             columns={[
-              { key: tab.title, label: 'Запись' },
+              {
+                key: tab.title,
+                label: 'Запись',
+                render: (r) => (
+                  <span>{String(r[tab.title] || r.name || r.guest_name || '—')}</span>
+                ),
+              },
+              {
+                key: '__date',
+                label: 'Дата',
+                width: '120px',
+                render: (r) => (
+                  <span>
+                    {String(r.spent_on || r.date_from || r.taken_on || r.created_at || '').slice(
+                      0,
+                      10,
+                    ) || '—'}
+                  </span>
+                ),
+              },
+              {
+                key: '__sum',
+                label: 'Сумма',
+                width: '130px',
+                render: (r) => {
+                  const v = Number(r.total ?? r.amount ?? r.final_total ?? 0);
+                  return <span>{v ? `${v.toLocaleString('ru-RU')} ₽` : '—'}</span>;
+                },
+              },
               {
                 key: 'created_by_name',
                 label: 'Кто внёс',
-                width: '180px',
+                width: '160px',
                 render: (r) => <span>{String(r.created_by_name || '—')}</span>,
               },
               {
