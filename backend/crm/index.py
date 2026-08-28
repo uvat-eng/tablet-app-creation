@@ -26,7 +26,8 @@ TABLES = {
                  'archived'],
     'locations': ['name', 'distance_km', 'area_ha', 'species', 'note', 'archived',
                   'kind', 'coords', 'status', 'qty', 'unit', 'checked_on', 'responsible',
-                  'photo_url'],
+                  'photo_url', 'photo_url2', 'photo_url3', 'seed_type', 'sow_date',
+                  'boars', 'roes'],
     'reviews': ['author', 'city', 'rating', 'text', 'published', 'archived',
                 'photo_url', 'left_on'],
     'booking_services': ['booking_id', 'service_id', 'name', 'price', 'qty'],
@@ -41,8 +42,8 @@ TABLES = {
                  'note', 'archived'],
     'house_expenses': ['facility', 'category', 'name', 'unit_price', 'qty', 'unit', 'total',
                        'spent_on', 'vendor', 'note', 'archived'],
-    'expenses': ['kind', 'category', 'check_id', 'booking_id', 'name', 'unit_price', 'qty',
-                 'unit', 'total', 'spent_on', 'vendor', 'note', 'archived'],
+    'expenses': ['kind', 'category', 'check_id', 'booking_id', 'location_id', 'name',
+                 'unit_price', 'qty', 'unit', 'total', 'spent_on', 'vendor', 'note', 'archived'],
 }
 
 ORDER = {

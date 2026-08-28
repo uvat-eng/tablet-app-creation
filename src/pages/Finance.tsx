@@ -13,6 +13,7 @@ import {
   money,
 } from '@/lib/expenses';
 import { FACILITIES } from '@/lib/houseCategories';
+import { LOCATION_KINDS } from '@/lib/locationKinds';
 import { toast } from 'sonner';
 
 const OTHER_KINDS = EXPENSE_KINDS.filter((k) => k.key !== 'hunt');
@@ -39,6 +40,7 @@ const Finance = () => {
   const [acts, setActs] = useState<Row[]>([]);
   const [expenses, setExpenses] = useState<Row[]>([]);
   const [facilityRows, setFacilityRows] = useState<Row[]>([]);
+  const [locations, setLocations] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [season, setSeason] = useState<number | 'all'>('all');
   const [open, setOpen] = useState(false);
@@ -46,14 +48,16 @@ const Finance = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [a, e, h] = await Promise.all([
+    const [a, e, h, l] = await Promise.all([
       listRows('checks'),
       listRows('expenses'),
       listRows('house_expenses'),
+      listRows('locations'),
     ]);
     setActs(a);
     setExpenses(e);
     setFacilityRows(h);
+    setLocations(l);
     setLoading(false);
   }, []);
 
@@ -131,7 +135,7 @@ const Finance = () => {
     });
     seasonExpenses.forEach((e) => {
       const k = String(e.kind || 'hunt');
-      if (k === 'hunt' || SPLIT_KEYS.includes(k)) return;
+      if (k === 'hunt' || k === 'location' || SPLIT_KEYS.includes(k)) return;
       if (!map[k]) map[k] = { sum: 0, rows: [] };
       map[k].sum += Number(e.total || 0);
       map[k].rows.push(e);
@@ -154,7 +158,30 @@ const Finance = () => {
   }, [seasonFacility]);
 
   const facilityTotal = Object.values(facilityTotals).reduce((s, v) => s + v, 0);
-  const expenseTotal = huntTotal + otherTotal + facilityTotal;
+
+  const locationKindOf = useMemo(() => {
+    const map: Record<string, string> = {};
+    locations.forEach((l) => {
+      map[String(l.id)] = String(l.kind || 'ground');
+    });
+    return map;
+  }, [locations]);
+
+  const locationTotals = useMemo(() => {
+    const map: Record<string, number> = {};
+    LOCATION_KINDS.forEach((k) => {
+      map[k.key] = 0;
+    });
+    seasonExpenses.forEach((e) => {
+      if (String(e.kind) !== 'location' || !e.location_id) return;
+      const k = locationKindOf[String(e.location_id)] || 'ground';
+      map[k] = (map[k] || 0) + Number(e.total || 0);
+    });
+    return map;
+  }, [seasonExpenses, locationKindOf]);
+
+  const locationTotal = Object.values(locationTotals).reduce((s, v) => s + v, 0);
+  const expenseTotal = huntTotal + otherTotal + facilityTotal + locationTotal;
   const profit = income.total - expenseTotal;
 
   const splitRows = useMemo(
@@ -301,7 +328,7 @@ const Finance = () => {
               label: 'Потрачено',
               icon: 'Receipt',
               value: expenseTotal,
-              hint: 'Охота, прочие расходы, объекты',
+              hint: 'Охота, прочие, объекты, локации',
               clickable: false,
             },
             {
@@ -577,6 +604,36 @@ const Finance = () => {
         <div className="bg-white p-5">
           <div className="h-label">Итого по объектам</div>
           <div className="h-head text-[20px] mt-2 whitespace-nowrap">{money(facilityTotal)}</div>
+        </div>
+      </div>
+
+      <div className="h-head text-[22px] mt-10 mb-3">Биотехния и локации</div>
+      <div
+        className="grid gap-px"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          background: '#e2e2df',
+          border: '1px solid #e2e2df',
+        }}
+      >
+        {LOCATION_KINDS.map((k) => (
+          <button
+            key={k.key}
+            onClick={() => navigate(`/locations/${k.key}`)}
+            className="bg-white p-5 text-left hover:bg-[var(--hero-surface)] transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Icon name={k.icon} size={15} fallback="MapPin" />
+              <span className="h-label">{k.label}</span>
+            </span>
+            <div className="h-head text-[19px] mt-2 whitespace-nowrap">
+              {money(locationTotals[k.key] || 0)}
+            </div>
+          </button>
+        ))}
+        <div className="bg-white p-5">
+          <div className="h-label">Итого по локациям</div>
+          <div className="h-head text-[19px] mt-2 whitespace-nowrap">{money(locationTotal)}</div>
         </div>
       </div>
 

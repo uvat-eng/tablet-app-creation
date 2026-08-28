@@ -5,7 +5,7 @@ import Icon from '@/components/ui/icon';
 import SearchBar from '@/components/app/SearchBar';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { LOCATION_KINDS, KIND, STATUSES, STATUS_LABEL } from '@/lib/locationKinds';
+import { LOCATION_KINDS, KIND, STATUSES, STATUS_LABEL, money } from '@/lib/locationKinds';
 import { toast } from 'sonner';
 
 const makeFields = (kindKey?: string): Field[] => {
@@ -41,31 +41,46 @@ const Locations = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
 
+  const [expenses, setExpenses] = useState<Row[]>([]);
+
   const load = useCallback(async () => {
     setLoading(true);
-    setRows(await listRows('locations'));
+    const [locs, exp] = await Promise.all([listRows('locations'), listRows('expenses')]);
+    setRows(locs);
+    setExpenses(exp.filter((e) => e.location_id));
     setLoading(false);
   }, []);
+
+  const costByLocation = useMemo(() => {
+    const map: Record<string, number> = {};
+    expenses.forEach((e) => {
+      const k = String(e.location_id);
+      map[k] = (map[k] || 0) + Number(e.total || 0);
+    });
+    return map;
+  }, [expenses]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const byKind = useMemo(() => {
-    const map: Record<string, { count: number; qty: number; area: number; repair: number }> = {};
+    const empty = () => ({ count: 0, qty: 0, area: 0, repair: 0, cost: 0 });
+    const map: Record<string, ReturnType<typeof empty>> = {};
     LOCATION_KINDS.forEach((k) => {
-      map[k.key] = { count: 0, qty: 0, area: 0, repair: 0 };
+      map[k.key] = empty();
     });
     rows.forEach((r) => {
       const k = String(r.kind || 'ground');
-      if (!map[k]) map[k] = { count: 0, qty: 0, area: 0, repair: 0 };
+      if (!map[k]) map[k] = empty();
       map[k].count += 1;
       map[k].qty += Number(r.qty || 0);
       map[k].area += Number(r.area_ha || 0);
+      map[k].cost += costByLocation[String(r.id)] || 0;
       if (r.status === 'repair') map[k].repair += 1;
     });
     return map;
-  }, [rows]);
+  }, [rows, costByLocation]);
 
   const listForKind = useMemo(() => {
     if (!kind) return [];
@@ -158,7 +173,7 @@ const Locations = () => {
                 {k.showArea && (
                   <th className="h-label text-left px-4 py-3 font-normal w-[100px]">Площадь, га</th>
                 )}
-                <th className="h-label text-left px-4 py-3 font-normal w-[100px]">Км</th>
+                <th className="h-label text-left px-4 py-3 font-normal w-[130px]">Затраты</th>
                 <th className="h-label text-left px-4 py-3 font-normal w-[140px]">Состояние</th>
                 <th className="h-label text-left px-4 py-3 font-normal w-[110px]">Проверено</th>
                 <th className="h-label text-left px-4 py-3 font-normal w-[100px] no-print" />
@@ -169,10 +184,7 @@ const Locations = () => {
                 <tr
                   key={String(r.id)}
                   className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
-                  onClick={() => {
-                    setEditing(r);
-                    setOpen(true);
-                  }}
+                  onClick={() => navigate(`/locations/${kind}/${r.id}`)}
                 >
                   <td className="px-4 py-3 text-[0.7em]">{i + 1}</td>
                   <td className="px-4 py-3 text-[0.72em]">
@@ -192,7 +204,9 @@ const Locations = () => {
                       {Number(r.area_ha || 0).toLocaleString('ru-RU')}
                     </td>
                   )}
-                  <td className="px-4 py-3 text-[0.7em]">{Number(r.distance_km || 0)}</td>
+                  <td className="px-4 py-3 text-[0.72em] font-bold whitespace-nowrap">
+                    {money(costByLocation[String(r.id)] || 0)}
+                  </td>
                   <td className="px-4 py-3 text-[0.65em]">
                     <span
                       className="px-2 py-1"
@@ -213,17 +227,29 @@ const Locations = () => {
                     {String(r.checked_on || '').slice(0, 10) || '—'}
                   </td>
                   <td className="px-4 py-3 no-print">
-                    <button
-                      className="h-label underline"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        await removeRow('locations', Number(r.id));
-                        toast.success('Запись убрана в архив');
-                        load();
-                      }}
-                    >
-                      В архив
-                    </button>
+                    <span className="flex gap-3">
+                      <button
+                        className="h-label underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditing(r);
+                          setOpen(true);
+                        }}
+                      >
+                        Правка
+                      </button>
+                      <button
+                        className="h-label underline"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await removeRow('locations', Number(r.id));
+                          toast.success('Запись убрана в архив');
+                          load();
+                        }}
+                      >
+                        Архив
+                      </button>
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -249,7 +275,12 @@ const Locations = () => {
                     {totalArea.toLocaleString('ru-RU')}
                   </td>
                 )}
-                <td colSpan={4} />
+                <td className="px-4 py-3 text-[0.75em] font-bold whitespace-nowrap">
+                  {money(
+                    listForKind.reduce((s, r) => s + (costByLocation[String(r.id)] || 0), 0),
+                  )}
+                </td>
+                <td colSpan={3} />
               </tr>
             </tbody>
           </table>
@@ -342,6 +373,7 @@ const Locations = () => {
                   : `${d.qty.toLocaleString('ru-RU')} ${k.unit}`}
                 {d.repair > 0 && ` · ${d.repair} на ремонт`}
               </div>
+              <div className="h-label mt-2">Затраты: {money(d.cost)}</div>
             </button>
           );
         })}
