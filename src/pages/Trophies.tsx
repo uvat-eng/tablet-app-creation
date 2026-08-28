@@ -4,9 +4,11 @@ const Trophies = () => (
   <CrudPage
     table="trophies"
     index="Раздел / Трофейный зал"
-    title="Трофейный зал"
+    title="Каталог трофеев"
     lede="Учёт добытых трофеев: вид, дата, охотник, угодье."
     addLabel="Записать трофей"
+    backTo="/trophies"
+    backLabel="К затратам"
     searchKeys={['species', 'hunter', 'location', 'note']}
     columns={[
       {

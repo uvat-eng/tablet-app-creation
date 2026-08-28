@@ -42,7 +42,6 @@ const makeFields = (kind: string) => [
 ];
 
 const filterTransport = (r: Row) => r.kind === 'transport';
-const filterBanya = (r: Row) => r.kind === 'banya';
 
 export const Transport = () => (
   <CrudPage
@@ -55,19 +54,5 @@ export const Transport = () => (
     fields={makeFields('transport')}
     filter={filterTransport}
     defaults={{ kind: 'transport' }}
-  />
-);
-
-export const Banya = () => (
-  <CrudPage
-    table="objects"
-    index="Раздел / Баня"
-    title="Баня"
-    lede="Парные и комнаты отдыха: почасовая стоимость и загрузка."
-    addLabel="Добавить баню"
-    columns={columns}
-    fields={makeFields('banya')}
-    filter={filterBanya}
-    defaults={{ kind: 'banya' }}
   />
 );

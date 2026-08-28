@@ -20,6 +20,8 @@ interface CrudPageProps {
   extra?: (rows: Row[]) => React.ReactNode;
   searchKeys?: string[];
   rowLink?: (row: Row) => string;
+  backTo?: string;
+  backLabel?: string;
 }
 
 const CrudPage = ({
@@ -35,6 +37,8 @@ const CrudPage = ({
   extra,
   searchKeys,
   rowLink,
+  backTo,
+  backLabel,
 }: CrudPageProps) => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,15 +111,22 @@ const CrudPage = ({
       title={title}
       lede={lede}
       action={
-        <button
-          className="h-cta"
-          onClick={() => {
-            setEditing(null);
-            setOpen(true);
-          }}
-        >
-          {addLabel}
-        </button>
+        <span className="flex gap-2">
+          {backTo && (
+            <button className="h-cta-ghost" onClick={() => navigate(backTo)}>
+              {backLabel || 'Назад'}
+            </button>
+          )}
+          <button
+            className="h-cta"
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+          >
+            {addLabel}
+          </button>
+        </span>
       }
     >
       {extra?.(rows)}

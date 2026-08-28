@@ -13,9 +13,11 @@ import Documents from "./pages/Documents";
 import ActCard from "./pages/ActCard";
 import ReceiptCard from "./pages/ReceiptCard";
 import Services from "./pages/Services";
-import { Transport, Banya } from "./pages/Objects";
+import { Transport } from "./pages/Objects";
 import House from "./pages/House";
 import Hotel from "./pages/Hotel";
+import Banya from "./pages/Banya";
+import TrophyHall from "./pages/TrophyHall";
 import Trophies from "./pages/Trophies";
 import Locations from "./pages/Locations";
 import Reviews from "./pages/Reviews";
@@ -57,7 +59,10 @@ const App = () => (
             <Route path="/hotel" element={guard(<Hotel />, 'hotel')} />
             <Route path="/hotel/:category" element={guard(<Hotel />, 'hotel')} />
             <Route path="/banya" element={guard(<Banya />, 'banya')} />
-            <Route path="/trophies" element={guard(<Trophies />, 'trophies')} />
+            <Route path="/banya/:category" element={guard(<Banya />, 'banya')} />
+            <Route path="/trophies" element={guard(<TrophyHall />, 'trophies')} />
+            <Route path="/trophies/catalog" element={guard(<Trophies />, 'trophies')} />
+            <Route path="/trophies/:category" element={guard(<TrophyHall />, 'trophies')} />
             <Route path="/locations" element={guard(<Locations />, 'locations')} />
             <Route path="/reviews" element={guard(<Reviews />, 'reviews')} />
             <Route path="/club" element={guard(<Club />, 'club')} />

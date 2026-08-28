@@ -5,10 +5,10 @@ import Icon from '@/components/ui/icon';
 import SearchBar from '@/components/app/SearchBar';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { HOUSE_CATEGORIES, CATEGORY_LABEL, money, Facility } from '@/lib/houseCategories';
+import { CATEGORY_LABEL, money, Facility, HouseCategory } from '@/lib/houseCategories';
 import { toast } from 'sonner';
 
-const FIELDS: Field[] = [
+const makeFields = (cats: HouseCategory[]): Field[] => [
   { key: 'name', label: 'Наименование' },
   { key: 'unit_price', label: 'Сумма за ед., ₽', type: 'number' },
   { key: 'qty', label: 'Количество', type: 'number' },
@@ -19,12 +19,14 @@ const FIELDS: Field[] = [
     key: 'category',
     label: 'Ветка',
     type: 'select',
-    options: HOUSE_CATEGORIES.map((c) => ({ value: c.key, label: c.label })),
+    options: cats.map((c) => ({ value: c.key, label: c.label })),
   },
   { key: 'note', label: 'Примечание', type: 'textarea' },
 ];
 
 const FacilityExpenses = ({ facility }: { facility: Facility }) => {
+  const CATS = facility.categories;
+  const FIELDS = useMemo(() => makeFields(CATS), [CATS]);
   const { category } = useParams();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
@@ -62,7 +64,7 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
 
   const byCategory = useMemo(() => {
     const map: Record<string, { count: number; sum: number }> = {};
-    HOUSE_CATEGORIES.forEach((c) => {
+    CATS.forEach((c) => {
       map[c.key] = { count: 0, sum: 0 };
     });
     scoped.forEach((r) => {
@@ -72,7 +74,7 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
       map[k].sum += Number(r.total || 0);
     });
     return map;
-  }, [scoped]);
+  }, [scoped, CATS]);
 
   const grandTotal = Object.values(byCategory).reduce((s, v) => s + v.sum, 0);
 
@@ -141,7 +143,7 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
   );
 
   if (category) {
-    const cat = HOUSE_CATEGORIES.find((c) => c.key === category);
+    const cat = CATS.find((c) => c.key === category);
     return (
       <Layout
         index={facility.index}
@@ -276,20 +278,27 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
       title={facility.title}
       lede={facility.lede}
       action={
-        <button
-          className="h-cta no-print"
-          onClick={() => {
-            setEditing({
-              category: 'repair',
-              qty: 1,
-              unit: 'шт',
-              spent_on: new Date().toISOString().slice(0, 10),
-            } as Row);
-            setOpen(true);
-          }}
-        >
-          Добавить затрату
-        </button>
+        <span className="flex gap-2 no-print">
+          {facility.extraPath && (
+            <button className="h-cta-ghost" onClick={() => navigate(facility.extraPath!)}>
+              {facility.extraLabel}
+            </button>
+          )}
+          <button
+            className="h-cta"
+            onClick={() => {
+              setEditing({
+                category: CATS[0]?.key || 'other',
+                qty: 1,
+                unit: 'шт',
+                spent_on: new Date().toISOString().slice(0, 10),
+              } as Row);
+              setOpen(true);
+            }}
+          >
+            Добавить затрату
+          </button>
+        </span>
       }
     >
       {periodBar}
@@ -298,7 +307,7 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
         <div className="h-label">Всего затрат: {facility.title.toLowerCase()}</div>
         <div className="h-head text-[34px] mt-2">{money(grandTotal)}</div>
         <div className="h-mono-cap mt-2 text-[var(--hero-muted)]">
-          {scoped.length} записей в {HOUSE_CATEGORIES.length} ветках
+          {scoped.length} записей в {CATS.length} ветках
         </div>
       </div>
 
@@ -307,7 +316,7 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
           className="grid gap-px"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', background: '#e2e2df' }}
         >
-          {HOUSE_CATEGORIES.map((c) => {
+          {CATS.map((c) => {
             const data = byCategory[c.key] || { count: 0, sum: 0 };
             const share = grandTotal ? Math.round((data.sum / grandTotal) * 100) : 0;
             return (
