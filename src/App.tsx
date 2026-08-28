@@ -14,7 +14,8 @@ import ActCard from "./pages/ActCard";
 import ReceiptCard from "./pages/ReceiptCard";
 import ExpenseAct from "./pages/ExpenseAct";
 import Services from "./pages/Services";
-import { Transport } from "./pages/Objects";
+import Transport from "./pages/Transport";
+import TransportCard from "./pages/TransportCard";
 import House from "./pages/House";
 import Hotel from "./pages/Hotel";
 import Banya from "./pages/Banya";
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/documents/expenses/:id" element={guard(<ExpenseAct />, 'checks')} />
             <Route path="/services" element={guard(<Services />, 'services')} />
             <Route path="/transport" element={guard(<Transport />, 'transport')} />
+            <Route path="/transport/:id" element={guard(<TransportCard />, 'transport')} />
             <Route path="/house" element={guard(<House />, 'house')} />
             <Route path="/house/:category" element={guard(<House />, 'house')} />
             <Route path="/hotel" element={guard(<Hotel />, 'hotel')} />
