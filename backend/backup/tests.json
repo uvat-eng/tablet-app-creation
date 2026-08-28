@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "Без входа выгрузка закрыта",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    },
+    {
+      "name": "Без входа загрузка закрыта",
+      "method": "POST",
+      "path": "/",
+      "body": {"format": "malyshenskoe-backup-v1", "data": {}},
+      "expectedStatus": 401
+    }
+  ]
+}

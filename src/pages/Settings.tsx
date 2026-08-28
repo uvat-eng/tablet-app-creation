@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import { useSettings } from '@/context/SettingsContext';
 import { uploadPhoto } from '@/lib/api';
+import BackupPanel from '@/components/app/BackupPanel';
 import { toast } from 'sonner';
 
 const Settings = () => {
@@ -73,6 +74,8 @@ const Settings = () => {
           </button>
         )}
       </div>
+
+      <BackupPanel />
     </Layout>
   );
 };

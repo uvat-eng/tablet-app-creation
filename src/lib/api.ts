@@ -200,6 +200,47 @@ export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string
   return data.url;
 };
 
+const BACKUP_URL = 'https://functions.poehali.dev/e0b27be6-062c-438f-bc29-caf5515dfba9';
+
+export interface BackupFile {
+  format: string;
+  created_at: string;
+  created_by: string;
+  counts: Record<string, number>;
+  total: number;
+  data: Record<string, unknown>;
+}
+
+export const downloadBackup = async (): Promise<BackupFile> => {
+  const res = await fetch(BACKUP_URL, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось выгрузить базу');
+  return data;
+};
+
+export const checkBackup = async (file: BackupFile) => {
+  const res = await fetch(BACKUP_URL, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ ...file, mode: 'check' }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Файл не подходит');
+  return data as { total: number; counts: Record<string, number>; created_at: string;
+    created_by: string };
+};
+
+export const restoreBackup = async (file: BackupFile) => {
+  const res = await fetch(BACKUP_URL, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ ...file, mode: 'restore' }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось восстановить');
+  return data as { total: number; restored: Record<string, number>; skipped: string[] };
+};
+
 export interface FarmSettings {
   farm_name: string;
   logo_url: string | null;
