@@ -4,11 +4,19 @@ import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { EXPENSE_KINDS, HUNT_CATEGORIES, HUNT_CATEGORY_LABEL, money } from '@/lib/expenses';
+import {
+  EXPENSE_KINDS,
+  SPLIT_KINDS,
+  HUNT_CATEGORIES,
+  HUNT_CATEGORY_LABEL,
+  KIND_LABEL,
+  money,
+} from '@/lib/expenses';
 import { FACILITIES } from '@/lib/houseCategories';
 import { toast } from 'sonner';
 
 const OTHER_KINDS = EXPENSE_KINDS.filter((k) => k.key !== 'hunt');
+const SPLIT_KEYS = SPLIT_KINDS.map((k) => k.key);
 
 const FIELDS: Field[] = [
   { key: 'name', label: 'Наименование' },
@@ -16,7 +24,7 @@ const FIELDS: Field[] = [
     key: 'kind',
     label: 'Раздел расходов',
     type: 'select',
-    options: OTHER_KINDS.map((k) => ({ value: k.key, label: k.label })),
+    options: [...OTHER_KINDS, ...SPLIT_KINDS].map((k) => ({ value: k.key, label: k.label })),
   },
   { key: 'unit_price', label: 'Сумма за ед., ₽', type: 'number' },
   { key: 'qty', label: 'Количество', type: 'number' },
@@ -123,7 +131,7 @@ const Finance = () => {
     });
     seasonExpenses.forEach((e) => {
       const k = String(e.kind || 'hunt');
-      if (k === 'hunt') return;
+      if (k === 'hunt' || SPLIT_KEYS.includes(k)) return;
       if (!map[k]) map[k] = { sum: 0, rows: [] };
       map[k].sum += Number(e.total || 0);
       map[k].rows.push(e);
@@ -148,6 +156,27 @@ const Finance = () => {
   const facilityTotal = Object.values(facilityTotals).reduce((s, v) => s + v, 0);
   const expenseTotal = huntTotal + otherTotal + facilityTotal;
   const profit = income.total - expenseTotal;
+
+  const splitRows = useMemo(
+    () => seasonExpenses.filter((e) => SPLIT_KEYS.includes(String(e.kind))),
+    [seasonExpenses],
+  );
+
+  const split = useMemo(() => {
+    const map: Record<string, { sum: number; rows: Row[] }> = {};
+    SPLIT_KINDS.forEach((k) => {
+      map[k.key] = { sum: 0, rows: [] };
+    });
+    splitRows.forEach((r) => {
+      const k = String(r.kind);
+      map[k].sum += Number(r.total || 0);
+      map[k].rows.push(r);
+    });
+    return map;
+  }, [splitRows]);
+
+  const distributed = SPLIT_KINDS.reduce((s, k) => s + split[k.key].sum, 0);
+  const undistributed = profit - distributed;
 
   const save = async (values: Row) => {
     const unitPrice = Number(values.unit_price || 0);
@@ -245,6 +274,105 @@ const Finance = () => {
         {block('Расходы', money(expenseTotal), true)}
         {block(profit >= 0 ? 'Прибыль' : 'Убыток', money(Math.abs(profit)), true)}
       </div>
+
+      <div className="h-head text-[22px] mb-3">Распределение прибыли</div>
+      <div
+        className="grid gap-px mb-3"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          background: '#e2e2df',
+          border: '1px solid #e2e2df',
+        }}
+      >
+        {SPLIT_KINDS.map((k) => {
+          const sum = split[k.key].sum;
+          const share = profit > 0 ? Math.round((sum / profit) * 100) : 0;
+          return (
+            <button
+              key={k.key}
+              className="bg-white p-5 text-left hover:bg-[var(--hero-surface)] transition-colors"
+              onClick={() => {
+                setEditing({
+                  kind: k.key,
+                  qty: 1,
+                  unit: 'шт',
+                  name: k.label,
+                  spent_on: new Date().toISOString().slice(0, 10),
+                } as Row);
+                setOpen(true);
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <Icon name={k.icon} size={15} fallback="Circle" />
+                <span className="h-label">{k.label}</span>
+              </span>
+              <div className="h-head text-[24px] mt-2 whitespace-nowrap">{money(sum)}</div>
+              <div className="h-mono-cap mt-2 text-[var(--hero-muted)]">
+                {share}% от прибыли · {split[k.key].rows.length} записей
+              </div>
+              <div className="mt-3 h-[4px] bg-[#e2e2df]">
+                <div
+                  className="h-full"
+                  style={{ width: `${Math.min(share, 100)}%`, background: 'var(--hero-accent)' }}
+                />
+              </div>
+            </button>
+          );
+        })}
+        <div className="bg-white p-5">
+          <div className="h-label">Не распределено</div>
+          <div className="h-head text-[24px] mt-2 whitespace-nowrap">{money(undistributed)}</div>
+          <div className="h-mono-cap mt-2 text-[var(--hero-muted)]">
+            Прибыль минус распределённое
+          </div>
+        </div>
+      </div>
+
+      {splitRows.length > 0 && (
+        <div className="border border-[#e2e2df] overflow-x-auto mb-10">
+          <table className="w-full min-w-[620px]">
+            <thead>
+              <tr className="bg-[var(--hero-surface)]">
+                <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Дата</th>
+                <th className="h-label text-left px-4 py-2 font-normal w-[230px]">Направление</th>
+                <th className="h-label text-left px-4 py-2 font-normal">Назначение</th>
+                <th className="h-label text-left px-4 py-2 font-normal w-[130px]">Сумма</th>
+                <th className="h-label text-left px-4 py-2 font-normal w-[100px]" />
+              </tr>
+            </thead>
+            <tbody>
+              {splitRows.map((r) => (
+                <tr
+                  key={String(r.id)}
+                  className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
+                  onClick={() => {
+                    setEditing(r);
+                    setOpen(true);
+                  }}
+                >
+                  <td className="px-4 py-2 text-[0.68em]">{String(r.spent_on || '').slice(0, 10)}</td>
+                  <td className="px-4 py-2 text-[0.68em]">{KIND_LABEL(String(r.kind))}</td>
+                  <td className="px-4 py-2 text-[0.72em]">{String(r.name)}</td>
+                  <td className="px-4 py-2 text-[0.72em] whitespace-nowrap">{money(r.total)}</td>
+                  <td className="px-4 py-2">
+                    <button
+                      className="h-label underline"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await removeRow('expenses', Number(r.id));
+                        toast.success('Запись убрана в архив');
+                        load();
+                      }}
+                    >
+                      В архив
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="h-head text-[22px] mb-3">Поступления</div>
       <div
