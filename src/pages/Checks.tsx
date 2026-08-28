@@ -4,7 +4,7 @@ import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import SearchBar from '@/components/app/SearchBar';
 import { Row, listRows, createRow, removeRow } from '@/lib/api';
-import { money, emptyItems } from '@/lib/checkTariffs';
+import { money, loadPriceItems } from '@/lib/price';
 import { toast } from 'sonner';
 
 type SortKey = 'date_from' | 'final_total' | 'created_at';
@@ -42,7 +42,8 @@ const Checks = () => {
         ),
       );
       const people = Number(booking.people || 1);
-      const items = emptyItems().map((i) =>
+      const price = await loadPriceItems();
+      const items = price.map((i) =>
         i.group === 'stay' ? { ...i, hunters: people, days } : i,
       );
       const stay = items

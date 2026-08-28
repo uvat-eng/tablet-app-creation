@@ -326,6 +326,9 @@
   #check-print .hide-empty {
     display: none;
   }
+  #check-print input:disabled {
+    color: inherit;
+  }
   @page {
     size: A4;
     margin: 14mm;
