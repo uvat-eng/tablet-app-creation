@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { StaffUser, fetchMe, login as apiLogin, logout as apiLogout } from '@/lib/api';
+import {
+  StaffUser,
+  fetchMe,
+  login as apiLogin,
+  logout as apiLogout,
+  preloadAll,
+  syncQueue,
+} from '@/lib/api';
 
 interface AuthValue {
   user: StaffUser | null;
@@ -21,17 +28,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchMe()
-      .then(setUser)
+      .then((u) => {
+        setUser(u);
+        if (u) {
+          syncQueue().then(() => preloadAll());
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const signIn = async (login: string, password: string, role?: string) => {
     const u = await apiLogin(login, password, role);
     setUser(u);
+    preloadAll();
   };
 
   const signOut = async () => {
     await apiLogout();
+    localStorage.removeItem('hb_me');
     setUser(null);
   };
 

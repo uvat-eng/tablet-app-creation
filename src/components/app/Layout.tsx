@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import { useAuth } from '@/context/AuthContext';
 import { allowedSections, ROLES } from '@/lib/permissions';
 import Brand from '@/components/app/Brand';
+import SyncBadge from '@/components/app/SyncBadge';
 
 interface LayoutProps {
   title: string;
@@ -46,6 +47,9 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
         <div className="mt-8 pt-5 h-rule">
           <div className="h-label">{user.name}</div>
           <div className="h-label mt-1">{ROLES[user.role] || user.role}</div>
+          <div className="mt-3">
+            <SyncBadge />
+          </div>
           <button className="h-label underline mt-2" onClick={signOut}>
             Выйти
           </button>
@@ -54,6 +58,10 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
     </aside>
 
     <main className="flex-1 min-w-0">
+      <div className="lg:hidden border-b border-[#e2e2df] px-4 py-2 flex justify-end">
+        <SyncBadge />
+      </div>
+
       <div className="lg:hidden border-b border-[#e2e2df] px-4 py-3 flex gap-4 overflow-x-auto">
         {items.map((n) => (
           <NavLink
