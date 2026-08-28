@@ -59,16 +59,19 @@ const Index = () => {
     .filter((b) => String(b.date_to) >= today && b.status !== 'cancelled')
     .sort((a, b) => String(a.date_from).localeCompare(String(b.date_from)));
 
-  const total = bookings.reduce((s, b) => s + Number(b.total || 0), 0);
-  const paid = bookings.reduce((s, b) => s + Number(b.paid || 0), 0);
   const members = guests.filter((g) => g.club_member).length;
 
+  const horizon = new Date();
+  horizon.setMonth(horizon.getMonth() + 2);
+  const horizonIso = horizon.toISOString().slice(0, 10);
+
+  const soon = upcoming.filter((b) => String(b.date_from) <= horizonIso);
+  const soonPeople = soon.reduce((s, b) => s + Number(b.people || 1), 0);
+
   const tiles = [
-    { label: 'Ближайшие заезды', value: String(upcoming.length), to: '/bookings' },
-    ...(seesMoney
-      ? [{ label: 'Ожидается оплат', value: money(total - paid), to: '/bookings' }]
-      : []),
-    { label: 'Объектов в работе', value: String(objects.filter((o) => o.status === 'active').length), to: '/house' },
+    { label: 'Ждём охотников · 2 месяца', value: String(soonPeople), to: '/bookings' },
+    { label: 'Заездов за 2 месяца', value: String(soon.length), to: '/bookings' },
+    { label: 'Домов и номеров', value: String(objects.filter((o) => o.kind === 'house' || o.kind === 'hotel').length), to: '/house' },
     { label: 'Членов клуба', value: String(members), to: '/club' },
   ];
 
