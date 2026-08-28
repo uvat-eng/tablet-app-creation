@@ -27,6 +27,10 @@ const Index = () => {
   const [trophies, setTrophies] = useState<Row[]>([]);
   const [locations, setLocations] = useState<Row[]>([]);
   const [reviews, setReviews] = useState<Row[]>([]);
+  const [acts, setActs] = useState<Row[]>([]);
+  const [expenses, setExpenses] = useState<Row[]>([]);
+  const [houseExpenses, setHouseExpenses] = useState<Row[]>([]);
+  const [officeExpenses, setOfficeExpenses] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const seesMoney = can(user, 'finance');
@@ -42,7 +46,11 @@ const Index = () => {
       listRows('trophies'),
       listRows('locations'),
       listRows('reviews'),
-    ]).then(([b, g, o, s, t, l, r]) => {
+      listRows('checks').catch(() => []),
+      listRows('expenses').catch(() => []),
+      listRows('house_expenses').catch(() => []),
+      listRows('office_expenses').catch(() => []),
+    ]).then(([b, g, o, s, t, l, r, ch, ex, he, oe]) => {
       setBookings(b);
       setGuests(g);
       setObjects(o);
@@ -50,6 +58,10 @@ const Index = () => {
       setTrophies(t);
       setLocations(l);
       setReviews(r);
+      setActs(ch);
+      setExpenses(ex);
+      setHouseExpenses(he);
+      setOfficeExpenses(oe);
       setLoading(false);
     });
   }, []);
@@ -68,11 +80,42 @@ const Index = () => {
   const soon = upcoming.filter((b) => String(b.date_from) <= horizonIso);
   const soonPeople = soon.reduce((s, b) => s + Number(b.people || 1), 0);
 
+  const now = new Date();
+  const seasonStart = `${now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1}-08-01`;
+
+  const arrivedPeople = bookings
+    .filter(
+      (b) =>
+        b.status !== 'cancelled' &&
+        String(b.date_from) >= seasonStart &&
+        String(b.date_from) <= today,
+    )
+    .reduce((s, b) => s + Number(b.people || 1), 0);
+
+  const inSeason = (d: unknown) => String(d || '') >= seasonStart;
+
+  const earned = acts
+    .filter((a) => inSeason(a.date_from))
+    .reduce((s, a) => s + Number(a.final_total || 0), 0);
+
+  const spent = [...expenses, ...houseExpenses, ...officeExpenses]
+    .filter((e) => inSeason(e.spent_on))
+    .reduce((s, e) => s + Number(e.amount || e.total || 0), 0);
+
   const tiles = [
     { label: 'Ждём охотников · 2 месяца', value: String(soonPeople), to: '/bookings' },
-    { label: 'Заездов за 2 месяца', value: String(soon.length), to: '/bookings' },
-    { label: 'Домов и номеров', value: String(objects.filter((o) => o.kind === 'house' || o.kind === 'hotel').length), to: '/house' },
-    { label: 'Членов клуба', value: String(members), to: '/club' },
+    { label: 'Заехало с 1 августа', value: String(arrivedPeople), to: '/bookings' },
+    ...(seesMoney
+      ? [
+          { label: 'Заработано за сезон', value: money(earned), to: '/finance' },
+          { label: 'Потрачено за сезон', value: money(spent), to: '/finance' },
+          {
+            label: earned - spent >= 0 ? 'Дельта' : 'Дельта · минус',
+            value: money(earned - spent),
+            to: '/finance',
+          },
+        ]
+      : [{ label: 'Членов клуба', value: String(members), to: '/club' }]),
   ];
 
   const byKind = (kind: string) => objects.filter((o) => o.kind === kind);
