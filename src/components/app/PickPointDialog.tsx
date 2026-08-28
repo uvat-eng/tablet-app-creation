@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import Icon from '@/components/ui/icon';
 import { readOffline, offlineTileLayer, probeOffline } from '@/lib/offlineMap';
 import { BASE_DEFS, makeBaseLayer } from '@/lib/basemaps';
+import { HOME_CENTER, HOME_ZOOM } from '@/lib/homeArea';
+import { listRows } from '@/lib/api';
 
 interface Props {
   open: boolean;
@@ -37,6 +39,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
   const markRef = useRef<L.Marker | null>(null);
   const baseRef = useRef<L.TileLayer | null>(null);
   const roRef = useRef<ResizeObserver | null>(null);
+  const refsRef = useRef<L.LayerGroup | null>(null);
   const [base, setBase] = useState('bing');
   const [point, setPoint] = useState<[number, number] | null>(null);
   const [hasOffline, setHasOffline] = useState(false);
@@ -60,8 +63,8 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
       }
       const start = parse(value);
       const map = L.map(box, {
-        center: start || [56.55, 68.65],
-        zoom: start ? 15 : 10,
+        center: start || HOME_CENTER,
+        zoom: start ? 15 : HOME_ZOOM,
         zoomControl: true,
         maxZoom: 18,
         zoomAnimation: false,
@@ -93,6 +96,27 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
           });
         }
       });
+      listRows('locations')
+        .then((rows) => {
+          const layer = L.layerGroup().addTo(map);
+          refsRef.current = layer;
+          rows.forEach((r) => {
+            const la = Number(r.lat);
+            const ln = Number(r.lng);
+            if (!la || !ln) return;
+            L.circleMarker([la, ln], {
+              radius: 4,
+              color: '#fff',
+              weight: 1,
+              fillColor: '#1f9d55',
+              fillOpacity: 0.9,
+            })
+              .bindTooltip(String(r.name || ''), { direction: 'top', opacity: 0.9 })
+              .addTo(layer);
+          });
+        })
+        .catch(() => undefined);
+
       setTimeout(() => map.invalidateSize(), 60);
 
       const ro = new ResizeObserver(() => map.invalidateSize());
@@ -106,6 +130,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
       cancelAnimationFrame(raf);
       roRef.current?.disconnect();
       roRef.current = null;
+      refsRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
       markRef.current = null;
@@ -181,7 +206,13 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
               Офлайн
             </button>
           )}
-          <button className="h-cta-ghost ml-auto text-[0.7em]" onClick={locate}>
+          <button
+            className="h-cta-ghost ml-auto text-[0.7em]"
+            onClick={() => mapRef.current?.setView(HOME_CENTER, HOME_ZOOM)}
+          >
+            <Icon name="Home" size={14} /> К хозяйству
+          </button>
+          <button className="h-cta-ghost text-[0.7em]" onClick={locate}>
             <Icon name="LocateFixed" size={14} /> Я здесь
           </button>
         </div>

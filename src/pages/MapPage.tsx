@@ -11,6 +11,7 @@ import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
 import useGeoLocate from '@/lib/useGeoLocate';
 import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/offlineMap';
 import { BASE_DEFS, makeBaseLayer } from '@/lib/basemaps';
+import { HOME_CENTER, HOME_ZOOM } from '@/lib/homeArea';
 import OfflineMapDownload from '@/components/app/OfflineMapDownload';
 import { toast } from 'sonner';
 
@@ -82,8 +83,8 @@ const MapPage = () => {
   useEffect(() => {
     if (mapRef.current || !boxRef.current) return;
     const map = L.map(boxRef.current, {
-      center: [56.55, 68.65],
-      zoom: 10,
+      center: HOME_CENTER,
+      zoom: HOME_ZOOM,
       zoomControl: true,
       scrollWheelZoom: true,
     });
@@ -375,6 +376,25 @@ const MapPage = () => {
           className="border border-[#e2e2df]"
           style={{ height: '620px', width: '100%' }}
         />
+
+        <button
+          onClick={() => mapRef.current?.setView(HOME_CENTER, HOME_ZOOM)}
+          title="Показать угодья хозяйства"
+          className="absolute flex items-center justify-center border shadow-md"
+          style={{
+            right: 12,
+            bottom: 82,
+            zIndex: 1000,
+            width: 46,
+            height: 46,
+            borderColor: '#e2e2df',
+            borderRadius: '50%',
+            background: '#fff',
+            color: '#3b3b38',
+          }}
+        >
+          <Icon name="Home" size={20} />
+        </button>
 
         <button
           onClick={geo.tracking ? geo.center : geo.start}
