@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
+import TrophyGallery from '@/components/app/TrophyGallery';
 import Icon from '@/components/ui/icon';
 import SearchBar from '@/components/app/SearchBar';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
@@ -385,6 +386,8 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
           </table>
         </div>
       </div>
+
+      {facility.key === 'trophies' && <TrophyGallery />}
 
       <RecordDialog
         open={open}
