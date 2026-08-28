@@ -65,7 +65,7 @@ const Transport = () => {
     const map: Record<string, Record<string, number>> = {};
     scoped.forEach((r) => {
       const u = String(r.object_id ?? 0);
-      const c = String(r.category || 'other');
+      const c = String(r.category || 'parts');
       if (!map[u]) map[u] = {};
       map[u][c] = (map[u][c] || 0) + Number(r.total || 0);
       map[u].__all = (map[u].__all || 0) + Number(r.total || 0);
@@ -76,7 +76,7 @@ const Transport = () => {
   const totals = useMemo(() => {
     const map: Record<string, number> = { __all: 0 };
     scoped.forEach((r) => {
-      const c = String(r.category || 'other');
+      const c = String(r.category || 'parts');
       map[c] = (map[c] || 0) + Number(r.total || 0);
       map.__all += Number(r.total || 0);
     });

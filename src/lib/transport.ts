@@ -8,12 +8,10 @@ export const TRANSPORT_CATEGORIES: TransportCategory[] = [
   { key: 'oil', label: 'Масла и жидкости', icon: 'Droplet' },
   { key: 'parts', label: 'Запчасти', icon: 'Cog' },
   { key: 'service', label: 'Ремонт на стороне', icon: 'Wrench' },
-  { key: 'tires', label: 'Резина и гусеницы', icon: 'CircleDot' },
-  { key: 'other', label: 'Прочее содержание', icon: 'Package' },
 ];
 
 export const TRANSPORT_CATEGORY_LABEL = (key: string) =>
-  TRANSPORT_CATEGORIES.find((c) => c.key === key)?.label || 'Прочее содержание';
+  TRANSPORT_CATEGORIES.find((c) => c.key === key)?.label || 'Запчасти';
 
 export const TRANSPORT_STATUS: Record<string, string> = {
   active: 'В работе',

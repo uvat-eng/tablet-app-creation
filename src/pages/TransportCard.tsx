@@ -78,7 +78,7 @@ const TransportCard = () => {
     const map: Record<string, Record<string, number>> = {};
     costs.forEach((r) => {
       const y = String(r.spent_on || '').slice(0, 4) || '—';
-      const c = String(r.category || 'other');
+      const c = String(r.category || 'parts');
       if (!map[y]) map[y] = {};
       map[y][c] = (map[y][c] || 0) + Number(r.total || 0);
       map[y].__all = (map[y].__all || 0) + Number(r.total || 0);
@@ -94,7 +94,7 @@ const TransportCard = () => {
     const payload: Row = {
       ...values,
       object_id: Number(id),
-      category: String(values.category || 'other'),
+      category: String(values.category || 'parts'),
       unit_price: unitPrice,
       qty,
       total: Math.round(unitPrice * qty * 100) / 100,
