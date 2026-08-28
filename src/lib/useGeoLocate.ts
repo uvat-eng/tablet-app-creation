@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { GeoSample, watchLocation, GeoHandle, FAIL_TEXT } from '@/lib/geoProvider';
 
-export interface GeoFix {
-  lat: number;
-  lng: number;
-  accuracy: number;
-  heading: number | null;
-  speed: number | null;
-  at: number;
-}
+export type GeoFix = GeoSample;
 
 const markerHtml = (heading: number | null) => {
   const arrow =
@@ -27,7 +21,7 @@ const markerHtml = (heading: number | null) => {
 };
 
 export const useGeoLocate = (mapRef: React.MutableRefObject<L.Map | null>) => {
-  const watchRef = useRef<number | null>(null);
+  const handleRef = useRef<GeoHandle | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const circleRef = useRef<L.Circle | null>(null);
   const followRef = useRef(true);
@@ -41,18 +35,20 @@ export const useGeoLocate = (mapRef: React.MutableRefObject<L.Map | null>) => {
       const map = mapRef.current;
       if (!map) return;
       const pos: L.LatLngExpression = [p.lat, p.lng];
+      const icon = L.divIcon({
+        className: '',
+        html: markerHtml(p.heading),
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+      });
 
       if (!markerRef.current) {
-        markerRef.current = L.marker(pos, {
-          icon: L.divIcon({ className: '', html: markerHtml(p.heading), iconSize: [22, 22], iconAnchor: [11, 11] }),
-          zIndexOffset: 1000,
-          interactive: false,
-        }).addTo(map);
+        markerRef.current = L.marker(pos, { icon, zIndexOffset: 1000, interactive: false }).addTo(
+          map,
+        );
       } else {
         markerRef.current.setLatLng(pos);
-        markerRef.current.setIcon(
-          L.divIcon({ className: '', html: markerHtml(p.heading), iconSize: [22, 22], iconAnchor: [11, 11] }),
-        );
+        markerRef.current.setIcon(icon);
       }
 
       if (!circleRef.current) {
@@ -75,8 +71,8 @@ export const useGeoLocate = (mapRef: React.MutableRefObject<L.Map | null>) => {
   );
 
   const stop = useCallback(() => {
-    if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
-    watchRef.current = null;
+    handleRef.current?.stop();
+    handleRef.current = null;
     const map = mapRef.current;
     if (map) {
       if (markerRef.current) map.removeLayer(markerRef.current);
@@ -89,47 +85,28 @@ export const useGeoLocate = (mapRef: React.MutableRefObject<L.Map | null>) => {
   }, [mapRef]);
 
   const start = useCallback(() => {
-    if (!navigator.geolocation) {
-      setError('Устройство не умеет определять местоположение');
-      return;
-    }
     setError('');
     followRef.current = true;
 
-    if (watchRef.current !== null) {
+    if (handleRef.current) {
       if (fix) draw(fix, true);
       return;
     }
 
     setTracking(true);
-    watchRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const next: GeoFix = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy || 0,
-          heading: Number.isFinite(pos.coords.heading) ? Number(pos.coords.heading) : null,
-          speed: Number.isFinite(pos.coords.speed) ? Number(pos.coords.speed) : null,
-          at: Date.now(),
-        };
+    handleRef.current = watchLocation(
+      (s) => {
         setError('');
-        setFix(next);
-        draw(next, followRef.current);
+        setFix(s);
+        draw(s, followRef.current);
         followRef.current = false;
       },
-      (err) => {
-        const text =
-          err.code === err.PERMISSION_DENIED
-            ? 'Доступ к геолокации запрещён. Разрешите его в настройках браузера'
-            : err.code === err.POSITION_UNAVAILABLE
-              ? 'Сигнал GPS не найден. Выйдите на открытое место'
-              : 'Не удалось определить местоположение';
-        setError(text);
+      (f) => {
+        setError(FAIL_TEXT[f.kind]);
         setTracking(false);
-        if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
-        watchRef.current = null;
+        handleRef.current?.stop();
+        handleRef.current = null;
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 3000 },
     );
   }, [draw, fix]);
 
@@ -140,7 +117,8 @@ export const useGeoLocate = (mapRef: React.MutableRefObject<L.Map | null>) => {
 
   useEffect(() => {
     return () => {
-      if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
+      handleRef.current?.stop();
+      handleRef.current = null;
     };
   }, []);
 
