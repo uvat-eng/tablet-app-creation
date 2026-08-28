@@ -14,9 +14,10 @@ interface BookingCalendarProps {
   bookings: Row[];
   year?: number;
   onPick?: (from: string, to: string) => void;
+  onDay?: (date: string, list: Row[]) => void;
 }
 
-const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
+const BookingCalendar = ({ bookings, year, onPick, onDay }: BookingCalendarProps) => {
   const today = new Date();
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
@@ -29,6 +30,7 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
   }, [year]);
   const [from, setFrom] = useState<string | null>(null);
   const [to, setTo] = useState<string | null>(null);
+  const [rangeMode, setRangeMode] = useState(false);
 
   const cells = useMemo(() => {
     const shift = (new Date(cursor.y, cursor.m, 1).getDay() + 6) % 7;
@@ -70,6 +72,10 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
 
   const pick = (d: number) => {
     const k = iso(cursor.y, cursor.m, d);
+    if (!rangeMode) {
+      onDay?.(k, busyMap[k] || []);
+      return;
+    }
     if (!from || (from && to)) {
       setFrom(k);
       setTo(null);
@@ -87,14 +93,29 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
           {MONTHS[cursor.m]} {cursor.y}
         </div>
         <div className="flex gap-2 items-center">
-          {from && (
+          {rangeMode && from && (
             <button
               className="h-cta"
-              onClick={() => onPick?.(from, to || from)}
+              onClick={() => {
+                onPick?.(from, to || from);
+                setRangeMode(false);
+                setFrom(null);
+                setTo(null);
+              }}
             >
               Создать бронь {from.slice(8)}–{(to || from).slice(8)}
             </button>
           )}
+          <button
+            className={rangeMode ? 'h-cta' : 'h-cta-ghost'}
+            onClick={() => {
+              setRangeMode((v) => !v);
+              setFrom(null);
+              setTo(null);
+            }}
+          >
+            {rangeMode ? 'Отменить выбор' : 'Выбрать даты'}
+          </button>
           <button className="h-chip h-chip-grey text-[0.6em]" onClick={() => move(-1)}>
             Назад
           </button>
@@ -196,7 +217,11 @@ const BookingCalendar = ({ bookings, year, onPick }: BookingCalendarProps) => {
       <div className="mt-5 flex flex-wrap gap-5 h-label">
         <span>Оранжевый — новая заявка</span>
         <span>Зелёный — завершено</span>
-        <span>Клик по дням — создать бронь</span>
+        <span>
+          {rangeMode
+            ? 'Отметьте день заезда и выезда'
+            : 'Клик по дню — брони этого дня'}
+        </span>
       </div>
     </div>
   );

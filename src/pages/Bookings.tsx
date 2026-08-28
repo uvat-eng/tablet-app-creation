@@ -3,6 +3,7 @@ import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import BookingCalendar from '@/components/app/BookingCalendar';
+import BookingDayDialog from '@/components/app/BookingDayDialog';
 import CalendarSync from '@/components/app/CalendarSync';
 import SearchBar from '@/components/app/SearchBar';
 import { Row, listRows, createRow, updateRow, ConflictError } from '@/lib/api';
@@ -36,6 +37,7 @@ const Bookings = () => {
   const [editing, setEditing] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [day, setDay] = useState<{ date: string; list: Row[] } | null>(null);
   const [season, setSeason] = useState(new Date().getFullYear());
   const navigate = useNavigate();
 
@@ -232,6 +234,7 @@ const Bookings = () => {
       <BookingCalendar
         bookings={rows}
         year={season}
+        onDay={(date, list) => setDay({ date, list })}
         onPick={(from, to) => {
           setEditing({
             date_from: from,
@@ -281,11 +284,10 @@ const Bookings = () => {
                     className="h-label underline"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setEditing(r);
-                      setOpen(true);
+                      navigate(`/bookings/${r.id}`);
                     }}
                   >
-                    Править
+                    Карточка
                   </button>
                   <button
                     className="h-label underline"
@@ -311,9 +313,39 @@ const Bookings = () => {
           ]}
           rows={visible}
           empty={loading ? 'Загружаем…' : 'Броней пока нет'}
-          onRowClick={(r) => navigate(`/bookings/${r.id}`)}
+          onRowClick={(r) => {
+            setEditing(r);
+            setOpen(true);
+          }}
         />
       </div>
+
+      <BookingDayDialog
+        date={day?.date || null}
+        bookings={day?.list || []}
+        onClose={() => setDay(null)}
+        onEdit={(b) => {
+          setDay(null);
+          setEditing(b);
+          setOpen(true);
+        }}
+        onOpenCard={(b) => {
+          setDay(null);
+          navigate(`/bookings/${b.id}`);
+        }}
+        onCreate={(date) => {
+          setDay(null);
+          setEditing({
+            date_from: date,
+            date_to: date,
+            status: 'new',
+            people: 1,
+            country: 'Россия',
+            payment_type: 'cash',
+          } as Row);
+          setOpen(true);
+        }}
+      />
 
       <RecordDialog
         open={open}
