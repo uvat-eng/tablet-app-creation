@@ -130,8 +130,16 @@ export const STATUSES = [
   { value: 'off', label: 'Не используется' },
 ];
 
+export const CROP_STATUSES = [
+  { value: 'sown', label: 'Посеяно' },
+  { value: 'fallow', label: 'Под паром' },
+];
+
+export const STATUSES_FOR = (kindKey: string) =>
+  kindKey === 'crops' ? CROP_STATUSES : STATUSES;
+
 export const STATUS_LABEL = (key: string) =>
-  STATUSES.find((s) => s.value === key)?.label || 'В порядке';
+  [...STATUSES, ...CROP_STATUSES].find((s) => s.value === key)?.label || 'В порядке';
 
 export const COST_LABEL = (kindKey: string, costKey: string) =>
   KIND(kindKey).costs.find((c) => c.key === costKey)?.label || 'Иное';

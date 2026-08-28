@@ -6,7 +6,7 @@ import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { LOCATION_KINDS, KIND, STATUSES } from '@/lib/locationKinds';
+import { LOCATION_KINDS, KIND, STATUSES, CROP_STATUSES } from '@/lib/locationKinds';
 import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
 import useGeoLocate from '@/lib/useGeoLocate';
 import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/offlineMap';
@@ -203,7 +203,12 @@ const MapPage = () => {
     },
     { key: 'coords', label: 'GPS координаты' },
     { key: 'note', label: 'Краткое описание', type: 'textarea' },
-    { key: 'status', label: 'Состояние', type: 'select', options: STATUSES },
+    {
+      key: 'status',
+      label: 'Состояние',
+      type: 'select',
+      options: [...STATUSES, ...CROP_STATUSES],
+    },
   ];
 
   const save = async (values: Row) => {

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { KIND, STATUSES, STATUS_LABEL, COST_LABEL, money } from '@/lib/locationKinds';
+import { KIND, STATUSES_FOR, STATUS_LABEL, COST_LABEL, money } from '@/lib/locationKinds';
 import { toast } from 'sonner';
 
 const LocationCard = () => {
@@ -48,7 +48,7 @@ const LocationCard = () => {
       { key: 'name', label: 'Название' },
       { key: 'coords', label: 'GPS координаты', placeholder: '57.12345, 68.45678' },
       { key: 'note', label: 'Краткое описание', type: 'textarea' },
-      { key: 'status', label: 'Состояние', type: 'select', options: STATUSES },
+      { key: 'status', label: 'Состояние', type: 'select', options: STATUSES_FOR(k.key) },
       { key: 'checked_on', label: 'Дата проверки', type: 'date' },
       { key: 'responsible', label: 'Ответственный' },
     ];

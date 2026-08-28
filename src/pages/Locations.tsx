@@ -5,7 +5,7 @@ import Icon from '@/components/ui/icon';
 import SearchBar from '@/components/app/SearchBar';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { LOCATION_KINDS, KIND, STATUSES, STATUS_LABEL, money } from '@/lib/locationKinds';
+import { LOCATION_KINDS, KIND, STATUSES_FOR, STATUS_LABEL, money } from '@/lib/locationKinds';
 import { toast } from 'sonner';
 
 const makeFields = (kindKey?: string): Field[] => {
@@ -24,7 +24,7 @@ const makeFields = (kindKey?: string): Field[] => {
     { key: 'unit', label: 'Единица', placeholder: k?.unit || 'шт' },
     { key: 'area_ha', label: 'Площадь, га', type: 'number' },
     { key: 'species', label: 'Виды зверя', placeholder: 'Лось, кабан, косуля' },
-    { key: 'status', label: 'Состояние', type: 'select', options: STATUSES },
+    { key: 'status', label: 'Состояние', type: 'select', options: STATUSES_FOR(kindKey || '') },
     { key: 'checked_on', label: 'Дата проверки', type: 'date' },
     { key: 'responsible', label: 'Ответственный' },
     { key: 'note', label: 'Заметка', type: 'textarea' },
