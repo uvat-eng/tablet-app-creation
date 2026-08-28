@@ -10,32 +10,9 @@ import { LOCATION_KINDS, KIND, STATUSES } from '@/lib/locationKinds';
 import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
 import useGeoLocate from '@/lib/useGeoLocate';
 import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/offlineMap';
+import { BASE_DEFS, makeBaseLayer } from '@/lib/basemaps';
 import OfflineMapDownload from '@/components/app/OfflineMapDownload';
 import { toast } from 'sonner';
-
-const BASES = [
-  {
-    key: 'sat',
-    label: 'Спутник',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attr: 'Esri',
-    max: 19,
-  },
-  {
-    key: 'topo',
-    label: 'Топо',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attr: 'OpenTopoMap',
-    max: 17,
-  },
-  {
-    key: 'osm',
-    label: 'Схема',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: 'OpenStreetMap',
-    max: 19,
-  },
-];
 
 const COLORS: Record<string, string> = {
   tower: '#ff5a1f',
@@ -68,7 +45,7 @@ const MapPage = () => {
 
   const [rows, setRows] = useState<Row[]>([]);
   const [tracks, setTracks] = useState<Row[]>([]);
-  const [base, setBase] = useState('sat');
+  const [base, setBase] = useState('bing');
   const [active, setActive] = useState<string[]>(LOCATION_KINDS.map((k) => k.key));
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState(false);
@@ -131,12 +108,7 @@ const MapPage = () => {
       return;
     }
 
-    const cfg = BASES.find((b) => b.key === base) || BASES[0];
-    baseRef.current = L.tileLayer(cfg.url, {
-      attribution: cfg.attr,
-      maxZoom: cfg.max,
-      maxNativeZoom: cfg.max,
-    }).addTo(map);
+    baseRef.current = makeBaseLayer(base).addTo(map);
     baseRef.current.bringToBack();
   }, [base, offline]);
 
@@ -327,7 +299,7 @@ const MapPage = () => {
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="h-label mr-1">Подложка</span>
-        {BASES.map((b) => (
+        {BASE_DEFS.map((b) => (
           <button
             key={b.key}
             onClick={() => setBase(b.key)}

@@ -4,23 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { readOffline, offlineTileLayer, probeOffline } from '@/lib/offlineMap';
-
-const BASES = [
-  {
-    key: 'sat',
-    label: 'Спутник',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attr: 'Esri',
-    max: 19,
-  },
-  {
-    key: 'osm',
-    label: 'Схема',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: 'OpenStreetMap',
-    max: 19,
-  },
-];
+import { BASE_DEFS, makeBaseLayer } from '@/lib/basemaps';
 
 interface Props {
   open: boolean;
@@ -53,7 +37,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
   const markRef = useRef<L.Marker | null>(null);
   const baseRef = useRef<L.TileLayer | null>(null);
   const roRef = useRef<ResizeObserver | null>(null);
-  const [base, setBase] = useState('sat');
+  const [base, setBase] = useState('bing');
   const [point, setPoint] = useState<[number, number] | null>(null);
   const [hasOffline, setHasOffline] = useState(false);
   const hasPoint = point !== null;
@@ -137,11 +121,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
     if (base === 'offline') {
       baseRef.current = offlineTileLayer(readOffline()).addTo(map);
     } else {
-      const cfg = BASES.find((b) => b.key === base) || BASES[0];
-      baseRef.current = L.tileLayer(cfg.url, {
-        attribution: cfg.attr,
-        maxZoom: 18,
-        maxNativeZoom: cfg.max,
+      baseRef.current = makeBaseLayer(base, {
         keepBuffer: 4,
         updateWhenZooming: false,
       }).addTo(map);
@@ -173,7 +153,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2">
-          {BASES.map((b) => (
+          {BASE_DEFS.map((b) => (
             <button
               key={b.key}
               onClick={() => setBase(b.key)}
