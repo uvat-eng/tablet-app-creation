@@ -52,6 +52,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
   const mapRef = useRef<L.Map | null>(null);
   const markRef = useRef<L.Marker | null>(null);
   const baseRef = useRef<L.TileLayer | null>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
   const [base, setBase] = useState('sat');
   const [point, setPoint] = useState<[number, number] | null>(null);
   const [hasOffline, setHasOffline] = useState(false);
@@ -74,10 +75,14 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
         return;
       }
       const start = parse(value);
-      const map = L.map(boxRef.current, {
+      const map = L.map(box, {
         center: start || [56.55, 68.65],
         zoom: start ? 15 : 10,
         zoomControl: true,
+        maxZoom: 18,
+        zoomAnimation: false,
+        fadeAnimation: false,
+        markerZoomAnimation: false,
       });
       mapRef.current = map;
       L.control.scale({ imperial: false }).addTo(map);
@@ -105,12 +110,18 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
         }
       });
       setTimeout(() => map.invalidateSize(), 60);
+
+      const ro = new ResizeObserver(() => map.invalidateSize());
+      ro.observe(box);
+      roRef.current = ro;
     };
 
     raf = requestAnimationFrame(build);
 
     return () => {
       cancelAnimationFrame(raf);
+      roRef.current?.disconnect();
+      roRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
       markRef.current = null;
@@ -129,10 +140,13 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
       const cfg = BASES.find((b) => b.key === base) || BASES[0];
       baseRef.current = L.tileLayer(cfg.url, {
         attribution: cfg.attr,
-        maxZoom: cfg.max,
+        maxZoom: 18,
         maxNativeZoom: cfg.max,
+        keepBuffer: 4,
+        updateWhenZooming: false,
       }).addTo(map);
     }
+    setTimeout(() => map.invalidateSize(), 60);
     baseRef.current.bringToBack();
   }, [base, open, hasPoint]);
 
