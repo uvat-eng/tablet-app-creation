@@ -136,7 +136,19 @@ const Index = () => {
             : '—',
         },
       ],
-      preview: services.slice(0, 4).map((s) => `${s.name} — ${rub(Number(s.price || 0))}`),
+      preview: (() => {
+        const pick = (q: string) =>
+          services.find((s) => String(s.name || '').toLowerCase().includes(q));
+        return [
+          pick('комплекс'),
+          pick('косуля все половые'),
+          pick('лось все половые'),
+          pick('кабан вес до 100'),
+          pick('медведь'),
+        ]
+          .filter(Boolean)
+          .map((s) => `${s!.name} — ${rub(Number(s!.price || 0))}`);
+      })(),
     },
     {
       to: '/transport',
