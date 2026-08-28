@@ -3,6 +3,7 @@ import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import BookingCalendar from '@/components/app/BookingCalendar';
+import CalendarSync from '@/components/app/CalendarSync';
 import SearchBar from '@/components/app/SearchBar';
 import { Row, listRows, createRow, updateRow, ConflictError } from '@/lib/api';
 import { toast } from 'sonner';
@@ -163,15 +164,18 @@ const Bookings = () => {
       index="Раздел / Бронирования"
       title="Бронирования"
       action={
-        <button
-          className="h-cta"
-          onClick={() => {
-            setEditing(null);
-            setOpen(true);
-          }}
-        >
-          Новая бронь
-        </button>
+        <span className="flex flex-wrap gap-2">
+          <CalendarSync />
+          <button
+            className="h-cta"
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+          >
+            Новая бронь
+          </button>
+        </span>
       }
     >
       <div className="mb-6 flex flex-wrap items-center gap-2">

@@ -1,0 +1,16 @@
+{
+  "tests": [
+    {
+      "name": "Без входа ссылку не выдаём",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    },
+    {
+      "name": "Неизвестная подписка отдаёт пустой календарь",
+      "method": "GET",
+      "path": "/?feed=nosuchfeed",
+      "expectedStatus": 404
+    }
+  ]
+}

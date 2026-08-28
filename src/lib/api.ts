@@ -241,6 +241,25 @@ export const restoreBackup = async (file: BackupFile) => {
   return data as { total: number; restored: Record<string, number>; skipped: string[] };
 };
 
+const CALENDAR_URL = 'https://functions.poehali.dev/df783c40-9b19-4153-8aa3-7d77ca512ecf';
+
+export interface CalendarFeed {
+  token: string;
+  url: string;
+  last_read: string | null;
+  reads: number;
+}
+
+export const getCalendarFeed = async (reset = false): Promise<CalendarFeed> => {
+  const res = await fetch(`${CALENDAR_URL}${reset ? '?action=reset' : ''}`, {
+    method: reset ? 'POST' : 'GET',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось получить ссылку');
+  return data;
+};
+
 export interface FarmSettings {
   farm_name: string;
   logo_url: string | null;
