@@ -7,6 +7,8 @@ import {
   FACILITIES,
   SUPPLY_COLOR,
   SUPPLY_STATUS,
+  SupplyTemplate,
+  TEMPLATES,
   UNITS,
   URGENCY,
   money,
@@ -73,6 +75,24 @@ const SupplyNew = () => {
     setForm(false);
   };
 
+  const applyTemplate = (t: SupplyTemplate) => {
+    setTitle(t.title);
+    setCategory(t.category);
+    setLines(
+      t.lines.map((l) => ({
+        key: Date.now() + Math.random(),
+        name: l.name,
+        qty: l.qty,
+        unit: l.unit,
+        facility: l.facility,
+        est_price: l.est_price,
+        note: '',
+      })),
+    );
+    setForm(true);
+    toast.success(`Шаблон «${t.title}» подставлен — поправьте под себя`);
+  };
+
   const submit = async () => {
     const filled = lines.filter((l) => l.name.trim());
     if (!filled.length) {
@@ -137,6 +157,36 @@ const SupplyNew = () => {
         </button>
       }
     >
+      <div className="mb-8">
+        <div className="h-label mb-2">Готовые списки — нажмите и поправьте под себя</div>
+        <div
+          className="grid gap-px"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            background: '#e2e2df',
+            border: '1px solid #e2e2df',
+          }}
+        >
+          {TEMPLATES.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => applyTemplate(t)}
+              className="bg-white p-4 text-left hover:bg-[var(--hero-surface)] transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <Icon name={t.icon} size={16} fallback="Package" />
+                <span className="h-head text-[16px]">{t.title}</span>
+              </span>
+              <div className="h-label mt-2">{t.hint}</div>
+              <div className="h-mono-cap mt-1 text-[var(--hero-muted)]">
+                {t.lines.length} позиций ·{' '}
+                {money(t.lines.reduce((s, l) => s + l.est_price * l.qty, 0))}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {form && (
         <div className="border border-[#e2e2df] p-5 mb-8">
           <div className="grid gap-4 sm:grid-cols-3 mb-5">
