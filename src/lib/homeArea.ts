@@ -1,3 +1,6 @@
+export const BASE_POINT: [number, number] = [56.776427, 69.059178];
+export const BASE_LABEL = 'База хозяйства';
+
 export const HOME_CENTER: [number, number] = [56.8, 69.09];
 export const HOME_ZOOM = 12;
 

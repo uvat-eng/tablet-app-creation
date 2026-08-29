@@ -19,6 +19,7 @@ import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/o
 import { BASE_DEFS, makeBaseLayer } from '@/lib/basemaps';
 import { HOME_CENTER, HOME_ZOOM } from '@/lib/homeArea';
 import OfflineMapDownload from '@/components/app/OfflineMapDownload';
+import Navigator from '@/components/app/Navigator';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { canEditMap } from '@/lib/permissions';
@@ -65,6 +66,7 @@ const MapPage = () => {
 
   const [offline] = useState<OfflineCfg>(readOffline);
   const [offlineReady, setOfflineReady] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const geo = useGeoLocate(mapRef);
 
@@ -384,6 +386,15 @@ const MapPage = () => {
         })}
       </div>
 
+      <button
+        onClick={() => setNavOpen(true)}
+        className="w-full mb-4 flex items-center justify-center gap-3 py-4"
+        style={{ background: '#1f1f1d', color: '#fff' }}
+      >
+        <Icon name="Compass" size={22} fallback="Navigation" />
+        <span className="text-[0.8em] uppercase tracking-[0.1em]">Открыть навигатор</span>
+      </button>
+
       <div className="relative">
         <div
           ref={boxRef}
@@ -589,6 +600,14 @@ const MapPage = () => {
           спутниковый слой, а точки и треки экспортируйте из того же приложения в GPX или KML.
         </div>
       </div>
+
+      {navOpen && (
+        <Navigator
+          points={rows}
+          offlineReady={offlineReady}
+          onClose={() => setNavOpen(false)}
+        />
+      )}
 
       <RecordDialog
         open={open}
