@@ -39,6 +39,7 @@ export const HUNTER_SECTIONS: Section[] = [
   { key: 'my-bag', to: '/my/bag', label: 'Моя добыча', icon: 'Target' },
   { key: 'my-profile', to: '/my/profile', label: 'Мои данные', icon: 'IdCard' },
   { key: 'my-docs', to: '/my/docs', label: 'Мои документы', icon: 'FolderOpen' },
+  { key: 'my-settings', to: '/my/settings', label: 'Настройки', icon: 'Settings' },
 ];
 
 export const OWNER_ONLY: Section[] = [

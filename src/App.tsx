@@ -46,6 +46,7 @@ import MyClub from "./pages/my/MyClub";
 import MyBag from "./pages/my/MyBag";
 import MyProfile from "./pages/my/MyProfile";
 import MyDocs from "./pages/my/MyDocs";
+import MySettings from "./pages/my/MySettings";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/my/bag" element={guard(<MyBag />, 'my-bag')} />
             <Route path="/my/profile" element={guard(<MyProfile />, 'my-profile')} />
             <Route path="/my/docs" element={guard(<MyDocs />, 'my-docs')} />
+            <Route path="/my/settings" element={guard(<MySettings />, 'my-settings')} />
             <Route path="/bookings" element={guard(<Bookings />, 'bookings')} />
             <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />
             <Route path="/documents" element={guard(<Documents />, 'checks')} />
