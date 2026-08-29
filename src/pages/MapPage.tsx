@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Layout from '@/components/app/Layout';
-import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
-import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
+import { Row, listRows, createRow, updateRow } from '@/lib/api';
 import {
   LOCATION_KINDS,
   KIND,
@@ -16,33 +15,16 @@ import {
 import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
 import useGeoLocate from '@/lib/useGeoLocate';
 import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/offlineMap';
-import { BASE_DEFS, makeBaseLayer } from '@/lib/basemaps';
+import { makeBaseLayer } from '@/lib/basemaps';
 import { HOME_CENTER, HOME_ZOOM } from '@/lib/homeArea';
-import OfflineMapDownload from '@/components/app/OfflineMapDownload';
 import Navigator from '@/components/app/Navigator';
+import MapControls from '@/components/map/MapControls';
+import MapCanvas from '@/components/map/MapCanvas';
+import TracksTable from '@/components/map/TracksTable';
+import { pinIcon } from '@/components/map/mapStyles';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { canEditMap } from '@/lib/permissions';
-
-const COLORS: Record<string, string> = {
-  tower: '#ff5a1f',
-  feeder: '#f4c20d',
-  salt: '#8e6bd4',
-  clearing: '#00b8d4',
-  crops: '#00c853',
-  enclosure: '#e91e63',
-  ground: '#607d8b',
-};
-
-const pinIcon = (kind: string) =>
-  L.divIcon({
-    className: '',
-    html: `<div style="width:16px;height:16px;border-radius:50%;background:${
-      COLORS[kind] || '#607d8b'
-    };border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-  });
 
 const MapPage = () => {
   const { user } = useAuth();
@@ -319,287 +301,30 @@ const MapPage = () => {
         </span>
       }
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="h-label mr-1">Подложка</span>
-        {BASE_DEFS.map((b) => (
-          <button
-            key={b.key}
-            onClick={() => setBase(b.key)}
-            className="h-label px-2 py-1 border"
-            style={{
-              borderColor: '#e2e2df',
-              background: base === b.key ? 'var(--hero-accent)' : '#fff',
-              color: base === b.key ? 'var(--hero-accent-contrast)' : 'inherit',
-            }}
-          >
-            {b.label}
-          </button>
-        ))}
-        {offlineReady && (
-          <button
-            onClick={() => setBase('offline')}
-            className="h-label px-2 py-1 border flex items-center gap-1"
-            style={{
-              borderColor: '#e2e2df',
-              background: base === 'offline' ? 'var(--hero-accent)' : '#fff',
-              color: base === 'offline' ? 'var(--hero-accent-contrast)' : 'inherit',
-            }}
-          >
-            <Icon name="WifiOff" size={13} />
-            {offline.label}
-          </button>
-        )}
-      </div>
+      <MapControls
+        base={base}
+        setBase={setBase}
+        offline={offline}
+        offlineReady={offlineReady}
+        setOfflineReady={setOfflineReady}
+        rows={rows}
+        active={active}
+        toggleKind={toggleKind}
+        onOpenNav={() => setNavOpen(true)}
+      />
 
-      <OfflineMapDownload onReady={() => setOfflineReady(true)} />
+      <MapCanvas
+        boxRef={boxRef}
+        mapRef={mapRef}
+        geo={geo}
+        mayEdit={mayEdit}
+        setDraft={setDraft}
+        setOpen={setOpen}
+        pointsCount={points.length}
+        noCoords={noCoords}
+      />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="h-label mr-1">Слои</span>
-        {LOCATION_KINDS.map((k) => {
-          const on = active.includes(k.key);
-          const count = rows.filter(
-            (r) => String(r.kind || 'ground') === k.key && Number(r.lat) && Number(r.lng),
-          ).length;
-          return (
-            <button
-              key={k.key}
-              onClick={() => toggleKind(k.key)}
-              className="h-label px-2 py-1 border flex items-center gap-2"
-              style={{
-                borderColor: '#e2e2df',
-                background: on ? '#fff' : '#f2f2f0',
-                opacity: on ? 1 : 0.5,
-              }}
-            >
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: COLORS[k.key],
-                  display: 'inline-block',
-                }}
-              />
-              {k.label} {count > 0 && `(${count})`}
-            </button>
-          );
-        })}
-      </div>
-
-      <button
-        onClick={() => setNavOpen(true)}
-        className="w-full mb-4 flex items-center justify-center gap-3 py-4"
-        style={{ background: '#1f1f1d', color: '#fff' }}
-      >
-        <Icon name="Compass" size={22} fallback="Navigation" />
-        <span className="text-[0.8em] uppercase tracking-[0.1em]">Открыть навигатор</span>
-      </button>
-
-      <div className="relative">
-        <div
-          ref={boxRef}
-          className="border border-[#e2e2df]"
-          style={{ height: '620px', width: '100%' }}
-        />
-
-        <button
-          onClick={() => mapRef.current?.setView(HOME_CENTER, HOME_ZOOM)}
-          title="Показать угодья хозяйства"
-          className="absolute flex items-center justify-center border shadow-md"
-          style={{
-            right: 12,
-            bottom: 82,
-            zIndex: 1000,
-            width: 46,
-            height: 46,
-            borderColor: '#e2e2df',
-            borderRadius: '50%',
-            background: '#fff',
-            color: '#3b3b38',
-          }}
-        >
-          <Icon name="Home" size={20} />
-        </button>
-
-        <button
-          onClick={geo.tracking ? geo.center : geo.start}
-          title={geo.tracking ? 'Показать себя на карте' : 'Определить моё местоположение'}
-          className="absolute flex items-center justify-center border shadow-md"
-          style={{
-            right: 12,
-            bottom: 28,
-            zIndex: 1000,
-            width: 46,
-            height: 46,
-            borderColor: '#e2e2df',
-            borderRadius: '50%',
-            background: '#fff',
-            color: geo.tracking ? '#1a73e8' : '#3b3b38',
-          }}
-        >
-          <Icon name={geo.tracking ? 'LocateFixed' : 'Locate'} size={22} />
-        </button>
-
-        {geo.tracking && (
-          <button
-            onClick={geo.stop}
-            title="Выключить слежение"
-            className="absolute flex items-center justify-center border shadow-md"
-            style={{
-              right: 12,
-              bottom: 82,
-              zIndex: 1000,
-              width: 46,
-              height: 46,
-              borderColor: '#e2e2df',
-              borderRadius: '50%',
-              background: '#fff',
-              color: '#3b3b38',
-            }}
-          >
-            <Icon name="X" size={20} />
-          </button>
-        )}
-      </div>
-
-      {(geo.fix || geo.error) && (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          {geo.fix && (
-            <>
-              <span className="h-label">Вы здесь</span>
-              <span className="text-sm">
-                {geo.fix.lat.toFixed(6)}, {geo.fix.lng.toFixed(6)}
-              </span>
-              <span className="text-sm text-[#6d6d6d]">
-                точность ±{Math.round(geo.fix.accuracy)} м
-              </span>
-              {mayEdit && (
-              <button
-                className="h-cta-ghost"
-                onClick={() => {
-                  const f = geo.fix!;
-                  setDraft({
-                    kind: 'tower',
-                    name: '',
-                    lat: Number(f.lat.toFixed(6)),
-                    lng: Number(f.lng.toFixed(6)),
-                    coords: `${f.lat.toFixed(6)}, ${f.lng.toFixed(6)}`,
-                    qty: 1,
-                    unit: 'шт',
-                    status: 'ok',
-                  } as Row);
-                  setOpen(true);
-                }}
-              >
-                Добавить точку здесь
-              </button>
-              )}
-              <button
-                className="h-cta-ghost"
-                onClick={() => {
-                  const f = geo.fix!;
-                  navigator.clipboard?.writeText(`${f.lat.toFixed(6)}, ${f.lng.toFixed(6)}`);
-                  toast.success('Координаты скопированы');
-                }}
-              >
-                Скопировать координаты
-              </button>
-            </>
-          )}
-          {geo.error && <span className="text-sm text-[#c0392b]">{geo.error}</span>}
-        </div>
-      )}
-
-      <div className="mt-3 h-label">
-        Точек на карте: {points.length}
-        {noCoords > 0 && ` · без координат: ${noCoords}`} · двойной клик по метке открывает карточку
-      </div>
-
-      {tracks.length > 0 && (
-        <div className="mt-8">
-          <div className="h-label mb-3">Загруженные треки и границы</div>
-          <div className="border border-[#e2e2df] overflow-x-auto">
-            <table className="w-full min-w-[560px]">
-              <thead>
-                <tr className="bg-[var(--hero-surface)]">
-                  <th className="h-label text-left px-4 py-2 font-normal">Название</th>
-                  <th className="h-label text-left px-4 py-2 font-normal w-[120px]">Тип</th>
-                  <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Цвет</th>
-                  <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Показать</th>
-                  <th className="h-label text-left px-4 py-2 font-normal w-[100px]" />
-                </tr>
-              </thead>
-              <tbody>
-                {tracks.map((t) => (
-                  <tr key={String(t.id)} className="border-t border-[#e2e2df]">
-                    <td className="px-4 py-2 text-[0.72em]">{String(t.name)}</td>
-                    <td className="px-4 py-2 text-[0.68em]">
-                      {t.kind === 'track' ? 'Трек / граница' : 'Точки'}
-                    </td>
-                    <td className="px-4 py-2">
-                      {mayEdit ? (
-                        <input
-                          type="color"
-                          value={String(t.color || '#ff5a1f')}
-                          className="w-10 h-6 border border-[#e2e2df] bg-white"
-                          onChange={async (e) => {
-                            await updateRow('map_layers', { id: t.id, color: e.target.value });
-                            load();
-                          }}
-                        />
-                      ) : (
-                        <span
-                          className="inline-block w-10 h-6 border border-[#e2e2df]"
-                          style={{ background: String(t.color || '#ff5a1f') }}
-                        />
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-black"
-                        checked={t.visible !== false}
-                        onChange={async (e) => {
-                          await updateRow('map_layers', { id: t.id, visible: e.target.checked });
-                          load();
-                        }}
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      {mayEdit && (
-                        <button
-                          className="h-label underline"
-                          onClick={async () => {
-                            await removeRow('map_layers', Number(t.id));
-                            toast.success('Слой убран');
-                            load();
-                          }}
-                        >
-                          Убрать
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-8 border border-[#e2e2df] p-5">
-        <div className="flex items-center gap-2 mb-2">
-          <Icon name="Info" size={15} fallback="Circle" />
-          <span className="h-label">Как загрузить свои данные</span>
-        </div>
-        <div className="h-mono-cap normal-case text-[var(--hero-muted)] leading-relaxed">
-          Кнопка «Загрузить треки» принимает файлы GPX, KML и GeoJSON — это форматы, которые
-          отдают все навигаторы и приложения вроде Locus Map, OsmAnd, Garmin. Границы хозяйства,
-          маршруты и путевые точки лягут поверх спутника. Файлы SQLITEDB — это офлайн-кэш
-          спутниковых тайлов, картинки без координат объектов; их место занимает встроенный
-          спутниковый слой, а точки и треки экспортируйте из того же приложения в GPX или KML.
-        </div>
-      </div>
+      <TracksTable tracks={tracks} mayEdit={mayEdit} load={load} />
 
       {navOpen && (
         <Navigator
