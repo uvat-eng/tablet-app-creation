@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import Icon from '@/components/ui/icon';
 import Brand from '@/components/app/Brand';
 
-type Mode = '' | 'staff' | 'hunter' | 'signup';
+type Mode = '' | 'login' | 'signup';
 
 const Login = () => {
   const { signIn, signUp } = useAuth();
@@ -13,6 +13,7 @@ const Login = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
+  const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -24,7 +25,7 @@ const Login = () => {
       if (mode === 'signup') {
         await signUp({ name, phone, city, login, password });
       } else {
-        await signIn(login, password, mode === 'hunter' ? 'hunter' : 'staff');
+        await signIn(login.trim(), password);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка входа');
@@ -54,26 +55,28 @@ const Login = () => {
           </div>
 
           <h1 className="h-head text-[34px]">Вход</h1>
-          <p className="h-mono-cap mt-3">Выберите, кто вы — откроем нужный раздел.</p>
+          <p className="h-mono-cap mt-3">
+            Один вход для всех — система сама откроет нужный раздел.
+          </p>
 
           <button
             type="button"
-            onClick={() => pick('hunter')}
-            className="w-full border border-[#e2e2df] bg-white p-5 mt-7 text-left hover:bg-[var(--hero-surface)] transition-colors"
+            onClick={() => pick('login')}
+            className="w-full border border-black bg-white p-5 mt-7 text-left hover:bg-[var(--hero-surface)] transition-colors"
           >
             <span className="flex items-center gap-2">
-              <Icon name="Target" size={16} fallback="Circle" />
-              <span className="h-head text-[19px]">Охотник</span>
+              <Icon name="LogIn" size={16} fallback="Circle" />
+              <span className="h-head text-[19px]">У меня есть логин</span>
             </span>
             <span className="h-mono-cap block mt-2 text-[var(--hero-muted)]">
-              Заявка на охоту, цены, карта, ваши трофеи
+              Сотрудник, член клуба или охотник
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => pick('signup')}
-            className="w-full border border-black bg-white p-5 mt-3 text-left hover:bg-[var(--hero-surface)] transition-colors"
+            className="w-full border border-[#e2e2df] bg-white p-5 mt-3 text-left hover:bg-[var(--hero-surface)] transition-colors"
           >
             <span className="flex items-center gap-2">
               <Icon name="UserPlus" size={16} fallback="Circle" />
@@ -84,29 +87,14 @@ const Login = () => {
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => pick('staff')}
-            className="w-full border border-[#e2e2df] bg-white p-5 mt-3 text-left hover:bg-[var(--hero-surface)] transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <Icon name="Briefcase" size={16} fallback="Circle" />
-              <span className="h-head text-[19px]">Сотрудник хозяйства</span>
-            </span>
-            <span className="h-mono-cap block mt-2 text-[var(--hero-muted)]">
-              Брони, финансы, документы, полный учёт
-            </span>
-          </button>
-
           <p className="h-label mt-6 leading-relaxed">
-            Член закрытого клуба входит здесь же — как охотник, логин выдаёт хозяйство.
+            Логин для сотрудников и членов клуба выдаёт хозяйство.
           </p>
         </div>
       </div>
     );
   }
 
-  const hunter = mode === 'hunter';
   const reg = mode === 'signup';
 
   return (
@@ -124,15 +112,11 @@ const Login = () => {
           <Icon name="ChevronLeft" size={13} /> назад
         </button>
 
-        <h1 className="h-head text-[34px]">
-          {reg ? 'Регистрация' : hunter ? 'Кабинет охотника' : 'Вход в базу'}
-        </h1>
+        <h1 className="h-head text-[34px]">{reg ? 'Регистрация' : 'Вход'}</h1>
         <p className="h-mono-cap mt-3">
           {reg
             ? 'Пара минут — и можно подавать заявку на охоту.'
-            : hunter
-              ? 'Заявки на охоту, цены, карта и ваши документы.'
-              : 'Учётная система хозяйства. Доступ только для сотрудников.'}
+            : 'Введите логин и пароль — откроем ваш раздел.'}
         </p>
 
         {reg && (
@@ -168,6 +152,9 @@ const Login = () => {
             className={input}
             value={login}
             autoFocus={!reg}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder={reg ? 'латиницей, например ivanov' : ''}
             onChange={(e) => setLogin(e.target.value)}
           />
@@ -177,12 +164,23 @@ const Login = () => {
           <span className="h-label block mb-1">Пароль</span>
           <input
             className={input}
-            type="password"
+            type={show ? 'text' : 'password'}
             value={password}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder={reg ? 'не короче 5 символов' : ''}
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
+
+        <button
+          type="button"
+          className="h-label underline mt-2"
+          onClick={() => setShow((v) => !v)}
+        >
+          {show ? 'Скрыть пароль' : 'Показать пароль'}
+        </button>
 
         {error && (
           <div
@@ -197,7 +195,7 @@ const Login = () => {
           {busy ? 'Проверяем…' : reg ? 'Зарегистрироваться' : 'Войти'}
         </button>
 
-        {hunter && (
+        {!reg && (
           <button
             type="button"
             className="h-label underline mt-4 block mx-auto"
