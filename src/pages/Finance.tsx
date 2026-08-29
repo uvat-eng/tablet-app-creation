@@ -1,22 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
-import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import {
-  EXPENSE_KINDS,
-  SPLIT_KINDS,
-  HUNT_CATEGORIES,
-  HUNT_CATEGORY_LABEL,
-  OFFICE_CATEGORIES,
-  OFFICE_CATEGORY_LABEL,
-  KIND_LABEL,
-  money,
-} from '@/lib/expenses';
+import { EXPENSE_KINDS, SPLIT_KINDS, HUNT_CATEGORIES, OFFICE_CATEGORIES } from '@/lib/expenses';
 import { FACILITIES } from '@/lib/houseCategories';
-import { SECTION_LABEL, SOURCE_LABEL } from '@/lib/transfers';
 import { LOCATION_KINDS } from '@/lib/locationKinds';
+import FinanceSummary from '@/components/app/FinanceSummary';
+import FinanceHuntOffice from '@/components/app/FinanceHuntOffice';
+import FinanceOther from '@/components/app/FinanceOther';
+import FinanceFacilities from '@/components/app/FinanceFacilities';
 import { toast } from 'sonner';
 
 const OTHER_KINDS = EXPENSE_KINDS.filter((k) => k.key !== 'hunt');
@@ -269,14 +262,16 @@ const Finance = () => {
     load();
   };
 
-  const block = (label: string, value: string, big = false) => (
-    <div key={label} className="bg-white p-5">
-      <div className="h-label">{label}</div>
-      <div className={`h-head mt-2 whitespace-nowrap ${big ? 'text-[28px]' : 'text-[20px]'}`}>
-        {value}
-      </div>
-    </div>
-  );
+  const openEditor = (row: Row) => {
+    setEditing(row);
+    setOpen(true);
+  };
+
+  const archive = async (id: number) => {
+    await removeRow('expenses', id);
+    toast.success('Запись убрана в архив');
+    load();
+  };
 
   return (
     <Layout
@@ -286,503 +281,62 @@ const Finance = () => {
       action={
         <button
           className="h-cta"
-          onClick={() => {
-            setEditing({
+          onClick={() =>
+            openEditor({
               kind: 'transfer',
               qty: 1,
               unit: 'шт',
               spent_on: new Date().toISOString().slice(0, 10),
-            } as Row);
-            setOpen(true);
-          }}
+            } as Row)
+          }
         >
           Добавить расход
         </button>
       }
     >
-      <div className="mb-8 flex flex-wrap items-center gap-2">
-        <span className="h-label mr-1">Сезон</span>
-        <button
-          onClick={() => setSeason('all')}
-          className="h-label px-2 py-1 border"
-          style={{
-            borderColor: '#e2e2df',
-            background: season === 'all' ? 'var(--hero-accent)' : '#fff',
-            color: season === 'all' ? 'var(--hero-accent-contrast)' : 'inherit',
-          }}
-        >
-          За всё время
-        </button>
-        {years.map((y) => (
-          <button
-            key={y}
-            onClick={() => setSeason(y)}
-            className="h-label px-2 py-1 border"
-            style={{
-              borderColor: '#e2e2df',
-              background: season === y ? 'var(--hero-accent)' : '#fff',
-              color: season === y ? 'var(--hero-accent-contrast)' : 'inherit',
-            }}
-          >
-            {y}
-          </button>
-        ))}
-      </div>
+      <FinanceSummary
+        years={years}
+        season={season}
+        setSeason={setSeason}
+        income={income}
+        expenseTotal={expenseTotal}
+        profit={profit}
+        toAccount={toAccount}
+        leftOnFarm={leftOnFarm}
+        splitRows={splitRows}
+        splitAccountCount={split.to_account?.rows.length || 0}
+        loading={loading}
+        onEdit={openEditor}
+        onArchive={archive}
+      />
 
-      <div
-        className="grid gap-px mb-10"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
-        }}
-      >
-        {block('Поступления', money(income.total), true)}
-        {block('Расходы', money(expenseTotal), true)}
-        {block(profit >= 0 ? 'Прибыль' : 'Убыток', money(Math.abs(profit)), true)}
-      </div>
+      <FinanceHuntOffice
+        huntByCategory={huntByCategory}
+        huntTotal={huntTotal}
+        huntExpenses={huntExpenses}
+        officeByCategory={officeByCategory}
+        officeTotal={officeTotal}
+        seasonOffice={seasonOffice}
+        navigate={navigate}
+      />
 
-      <div className="h-head text-[22px] mb-3">Распределение поступлений</div>
-      <div
-        className="grid gap-px mb-3"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
-        }}
-      >
-        {(() => {
-          const base = income.total || 0;
-          const cards = [
-            {
-              key: 'to_account',
-              label: 'Отправлено на расчётный счёт',
-              icon: 'Landmark',
-              value: toAccount,
-              hint: `${split.to_account?.rows.length || 0} записей`,
-              clickable: true,
-            },
-            {
-              key: 'spent',
-              label: 'Потрачено',
-              icon: 'Receipt',
-              value: expenseTotal,
-              hint: 'Охота, безнал, прочие, объекты, локации',
-              clickable: false,
-            },
-            {
-              key: 'left',
-              label: 'Оставлено на хозяйстве',
-              icon: 'Home',
-              value: leftOnFarm,
-              hint: 'Поступления минус траты и перевод',
-              clickable: false,
-            },
-          ];
-          return cards.map((c) => {
-            const share = base > 0 ? Math.round((c.value / base) * 100) : 0;
-            const body = (
-              <>
-                <span className="flex items-center gap-2">
-                  <Icon name={c.icon} size={15} fallback="Circle" />
-                  <span className="h-label">{c.label}</span>
-                </span>
-                <div className="h-head text-[24px] mt-2 whitespace-nowrap">{money(c.value)}</div>
-                <div className="h-mono-cap mt-2 text-[var(--hero-muted)]">
-                  {share}% от поступлений · {c.hint}
-                </div>
-                <div className="mt-3 h-[4px] bg-[#e2e2df]">
-                  <div
-                    className="h-full"
-                    style={{
-                      width: `${Math.max(0, Math.min(share, 100))}%`,
-                      background: 'var(--hero-accent)',
-                    }}
-                  />
-                </div>
-              </>
-            );
-            return c.clickable ? (
-              <button
-                key={c.key}
-                className="bg-white p-5 text-left hover:bg-[var(--hero-surface)] transition-colors"
-                onClick={() => {
-                  setEditing({
-                    kind: 'to_account',
-                    qty: 1,
-                    unit: 'шт',
-                    name: 'Перевод на расчётный счёт',
-                    spent_on: new Date().toISOString().slice(0, 10),
-                  } as Row);
-                  setOpen(true);
-                }}
-              >
-                {body}
-              </button>
-            ) : (
-              <div key={c.key} className="bg-white p-5">
-                {body}
-              </div>
-            );
-          });
-        })()}
-      </div>
+      <FinanceOther
+        transfersTotal={transfersTotal}
+        seasonTransfers={seasonTransfers}
+        otherKinds={OTHER_KINDS}
+        otherByKind={otherByKind}
+        navigate={navigate}
+        onEdit={openEditor}
+        onArchive={archive}
+      />
 
-      {splitRows.length > 0 && (
-        <div className="border border-[#e2e2df] overflow-x-auto mb-10">
-          <table className="w-full min-w-[620px]">
-            <thead>
-              <tr className="bg-[var(--hero-surface)]">
-                <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Дата</th>
-                <th className="h-label text-left px-4 py-2 font-normal w-[230px]">Направление</th>
-                <th className="h-label text-left px-4 py-2 font-normal">Назначение</th>
-                <th className="h-label text-left px-4 py-2 font-normal w-[130px]">Сумма</th>
-                <th className="h-label text-left px-4 py-2 font-normal w-[100px]" />
-              </tr>
-            </thead>
-            <tbody>
-              {splitRows.map((r) => (
-                <tr
-                  key={String(r.id)}
-                  className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
-                  onClick={() => {
-                    setEditing(r);
-                    setOpen(true);
-                  }}
-                >
-                  <td className="px-4 py-2 text-[0.68em]">{String(r.spent_on || '').slice(0, 10)}</td>
-                  <td className="px-4 py-2 text-[0.68em]">{KIND_LABEL(String(r.kind))}</td>
-                  <td className="px-4 py-2 text-[0.72em]">{String(r.name)}</td>
-                  <td className="px-4 py-2 text-[0.72em] whitespace-nowrap">{money(r.total)}</td>
-                  <td className="px-4 py-2">
-                    <button
-                      className="h-label underline"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        await removeRow('expenses', Number(r.id));
-                        toast.success('Запись убрана в архив');
-                        load();
-                      }}
-                    >
-                      В архив
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div className="h-head text-[22px] mb-3">Поступления</div>
-      <div
-        className="grid gap-px mb-3"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
-        }}
-      >
-        {block('Итого по актам', money(income.total))}
-        {block('в т.ч. лицензии', money(income.licenses))}
-        {block('в т.ч. размещение', money(income.stay))}
-        {block('в т.ч. доп. услуги', money(income.extras))}
-        {block('Скидки', money(income.discount))}
-      </div>
-      <div className="h-label mb-8">
-        {loading ? 'Загружаем…' : `${income.count} актов в выбранном периоде`}
-      </div>
-
-      <div className="h-head text-[22px] mb-3">Расходы на проведение охоты</div>
-      <div
-        className="grid gap-px mb-3"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
-        }}
-      >
-        {HUNT_CATEGORIES.map((c) => block(c.label, money(huntByCategory[c.key] || 0)))}
-        {block('Итого', money(huntTotal))}
-      </div>
-
-      <div className="border border-[#e2e2df] overflow-x-auto mb-10">
-        <table className="w-full min-w-[720px]">
-          <thead>
-            <tr className="bg-[var(--hero-surface)]">
-              <th className="h-label text-left px-4 py-3 font-normal w-[110px]">Дата</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[150px]">Статья</th>
-              <th className="h-label text-left px-4 py-3 font-normal">Наименование</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[110px]">Акт</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[130px]">Сумма</th>
-            </tr>
-          </thead>
-          <tbody>
-            {huntExpenses.slice(0, 15).map((e) => (
-              <tr
-                key={String(e.id)}
-                className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
-                onClick={() => navigate(`/documents/expenses/${e.check_id}`)}
-              >
-                <td className="px-4 py-3 text-[0.68em]">{String(e.spent_on || '').slice(0, 10)}</td>
-                <td className="px-4 py-3 text-[0.68em]">
-                  {HUNT_CATEGORY_LABEL(String(e.category))}
-                </td>
-                <td className="px-4 py-3 text-[0.72em]">{String(e.name)}</td>
-                <td className="px-4 py-3 text-[0.68em]">№ {String(e.check_id || '—')}</td>
-                <td className="px-4 py-3 text-[0.72em] whitespace-nowrap">{money(e.total)}</td>
-              </tr>
-            ))}
-            {!huntExpenses.length && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center h-mono-cap text-[var(--hero-muted)]">
-                  Расходы вносятся в акте о расходах после каждой охоты
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="flex items-end justify-between mb-3 gap-4 flex-wrap">
-        <span className="h-head text-[22px]">Расходы безнал</span>
-        <button className="h-cta-ghost" onClick={() => navigate('/office')}>
-          <Icon name="Landmark" size={14} /> Вести в разделе «Финансы ОФИС»
-        </button>
-      </div>
-      <div
-        className="grid gap-px mb-3"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
-        }}
-      >
-        {OFFICE_CATEGORIES.map((c) => block(c.label, money(officeByCategory[c.key] || 0)))}
-        {block('Итого', money(officeTotal))}
-      </div>
-
-      <div className="border border-[#e2e2df] overflow-x-auto mb-10">
-        <table className="w-full min-w-[760px]">
-          <thead>
-            <tr className="bg-[var(--hero-surface)]">
-              <th className="h-label text-left px-4 py-3 font-normal w-[110px]">Дата</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[160px]">Статья</th>
-              <th className="h-label text-left px-4 py-3 font-normal">Наименование</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[140px]">Период</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[130px]">Сумма</th>
-            </tr>
-          </thead>
-          <tbody>
-            {seasonOffice.slice(0, 15).map((r) => (
-              <tr
-                key={String(r.id)}
-                className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
-                onClick={() => navigate('/office')}
-              >
-                <td className="px-4 py-3 text-[0.68em]">{String(r.spent_on || '').slice(0, 10)}</td>
-                <td className="px-4 py-3 text-[0.68em]">
-                  {OFFICE_CATEGORY_LABEL(String(r.category))}
-                </td>
-                <td className="px-4 py-3 text-[0.72em]">{String(r.name || '—')}</td>
-                <td className="px-4 py-3 text-[0.68em]">{String(r.period || '—')}</td>
-                <td className="px-4 py-3 text-[0.72em] whitespace-nowrap">{money(r.amount)}</td>
-              </tr>
-            ))}
-            {!seasonOffice.length && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center h-mono-cap text-[var(--hero-muted)]">
-                  Зарплата, налоги, свет и аренда вносятся в разделе «Финансы ОФИС»
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="h-head text-[22px] mb-3">Прочие расходы</div>
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <span className="flex items-center gap-2">
-            <Icon name="ArrowLeftRight" size={15} fallback="Circle" />
-            <span className="h-label">Переводы и траты с личных карт</span>
-          </span>
-          <span className="h-head text-[18px]">{money(transfersTotal)}</span>
-        </div>
-        <div className="border border-[#e2e2df] overflow-x-auto">
-          <table className="w-full min-w-[760px]">
-            <thead>
-              <tr className="bg-[var(--hero-surface)]">
-                <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Дата</th>
-                <th className="h-label text-left px-4 py-2 font-normal">Назначение</th>
-                <th className="h-label text-left px-4 py-2 font-normal w-[150px]">Источник</th>
-                <th className="h-label text-left px-4 py-2 font-normal w-[160px]">Раздел</th>
-                <th className="h-label text-left px-4 py-2 font-normal w-[130px]">Сумма</th>
-              </tr>
-            </thead>
-            <tbody>
-              {seasonTransfers.map((r) => (
-                <tr
-                  key={String(r.id)}
-                  className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
-                  onClick={() => navigate('/transfers')}
-                >
-                  <td className="px-4 py-2 text-[0.68em]">
-                    {String(r.spent_on || '').slice(0, 10)}
-                  </td>
-                  <td className="px-4 py-2 text-[0.72em]">{String(r.name || '')}</td>
-                  <td className="px-4 py-2 text-[0.68em]">{SOURCE_LABEL(String(r.source))}</td>
-                  <td className="px-4 py-2 text-[0.68em]">
-                    {r.section ? SECTION_LABEL(String(r.section)) : 'без привязки'}
-                  </td>
-                  <td className="px-4 py-2 text-[0.72em] whitespace-nowrap">{money(r.amount)}</td>
-                </tr>
-              ))}
-              {!seasonTransfers.length && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-6 text-center h-mono-cap text-[var(--hero-muted)]"
-                  >
-                    Переводы вносятся в разделе «Финансы переводы»
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid gap-6 mb-10">
-        {OTHER_KINDS.map((k) => {
-          const data = otherByKind[k.key] || { sum: 0, rows: [] };
-          return (
-            <div key={k.key}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="flex items-center gap-2">
-                  <Icon name={k.icon} size={15} fallback="Circle" />
-                  <span className="h-label">{k.label}</span>
-                </span>
-                <span className="h-head text-[18px]">{money(data.sum)}</span>
-              </div>
-              <div className="border border-[#e2e2df] overflow-x-auto">
-                <table className="w-full min-w-[620px]">
-                  <thead>
-                    <tr className="bg-[var(--hero-surface)]">
-                      <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Дата</th>
-                      <th className="h-label text-left px-4 py-2 font-normal">Наименование</th>
-                      <th className="h-label text-left px-4 py-2 font-normal w-[150px]">Кому / где</th>
-                      <th className="h-label text-left px-4 py-2 font-normal w-[130px]">Сумма</th>
-                      <th className="h-label text-left px-4 py-2 font-normal w-[100px]" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.rows.map((r) => (
-                      <tr
-                        key={String(r.id)}
-                        className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
-                        onClick={() => {
-                          setEditing(r);
-                          setOpen(true);
-                        }}
-                      >
-                        <td className="px-4 py-2 text-[0.68em]">
-                          {String(r.spent_on || '').slice(0, 10)}
-                        </td>
-                        <td className="px-4 py-2 text-[0.72em]">{String(r.name)}</td>
-                        <td className="px-4 py-2 text-[0.68em]">{String(r.vendor || '—')}</td>
-                        <td className="px-4 py-2 text-[0.72em] whitespace-nowrap">
-                          {money(r.total)}
-                        </td>
-                        <td className="px-4 py-2">
-                          <button
-                            className="h-label underline"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              await removeRow('expenses', Number(r.id));
-                              toast.success('Запись убрана в архив');
-                              load();
-                            }}
-                          >
-                            В архив
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {!data.rows.length && (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="px-4 py-6 text-center h-mono-cap text-[var(--hero-muted)]"
-                        >
-                          Записей нет
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="h-head text-[22px] mb-3">Содержание объектов</div>
-      <div
-        className="grid gap-px"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
-        }}
-      >
-        {Object.values(FACILITIES).map((f) => (
-          <button
-            key={f.key}
-            onClick={() => navigate(f.base)}
-            className="bg-white p-5 text-left hover:bg-[var(--hero-surface)] transition-colors"
-          >
-            <div className="h-label">{f.title}</div>
-            <div className="h-head text-[20px] mt-2 whitespace-nowrap">
-              {money(facilityTotals[f.key] || 0)}
-            </div>
-          </button>
-        ))}
-        <div className="bg-white p-5">
-          <div className="h-label">Итого по объектам</div>
-          <div className="h-head text-[20px] mt-2 whitespace-nowrap">{money(facilityTotal)}</div>
-        </div>
-      </div>
-
-      <div className="h-head text-[22px] mt-10 mb-3">Биотехния и локации</div>
-      <div
-        className="grid gap-px"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
-        }}
-      >
-        {LOCATION_KINDS.map((k) => (
-          <button
-            key={k.key}
-            onClick={() => navigate(`/locations/${k.key}`)}
-            className="bg-white p-5 text-left hover:bg-[var(--hero-surface)] transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <Icon name={k.icon} size={15} fallback="MapPin" />
-              <span className="h-label">{k.label}</span>
-            </span>
-            <div className="h-head text-[19px] mt-2 whitespace-nowrap">
-              {money(locationTotals[k.key] || 0)}
-            </div>
-          </button>
-        ))}
-        <div className="bg-white p-5">
-          <div className="h-label">Итого по локациям</div>
-          <div className="h-head text-[19px] mt-2 whitespace-nowrap">{money(locationTotal)}</div>
-        </div>
-      </div>
+      <FinanceFacilities
+        facilityTotals={facilityTotals}
+        facilityTotal={facilityTotal}
+        locationTotals={locationTotals}
+        locationTotal={locationTotal}
+        navigate={navigate}
+      />
 
       <RecordDialog
         open={open}
