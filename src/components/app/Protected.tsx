@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { can, isHunter } from '@/lib/permissions';
+import { can, isHunter, allowedSections } from '@/lib/permissions';
 import { useSettings } from '@/context/SettingsContext';
 import Login from '@/pages/Login';
 import Setup from '@/pages/Setup';
@@ -43,6 +43,10 @@ const Protected = ({ children, ownerOnly = false, section }: ProtectedProps) => 
   }
 
   if (denied) {
+    const home = allowedSections(user)[0];
+    if (home && home.to !== location.pathname) {
+      return <Navigate to={home.to} replace />;
+    }
     return (
       <div className="h-shell min-h-screen flex items-center justify-center h-mono-cap px-6 text-center">
         Раздел закрыт. Доступ выдаёт владелец хозяйства.
