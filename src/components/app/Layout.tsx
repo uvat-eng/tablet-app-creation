@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { allowedSections, ROLES } from '@/lib/permissions';
 import Brand from '@/components/app/Brand';
 import SyncBadge from '@/components/app/SyncBadge';
+import usePendingCounts from '@/hooks/usePendingCounts';
 
 interface LayoutProps {
   title: string;
@@ -19,6 +20,9 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
   const items = allowedSections(user);
   const location = useLocation();
   const [menu, setMenu] = useState(false);
+  const counts = usePendingCounts(user);
+  const badge = (key: string) => counts[key] || 0;
+  const totalNew = Object.values(counts).reduce((a, b) => a + b, 0);
 
   useEffect(() => {
     setMenu(false);
@@ -55,7 +59,15 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
             }
           >
             <Icon name={n.icon} size={15} fallback="Circle" />
-            {n.label}
+            <span className="flex-1">{n.label}</span>
+            {badge(n.key) > 0 && (
+              <span
+                className="min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] rounded-full"
+                style={{ background: '#c0392b', color: '#fff' }}
+              >
+                {badge(n.key)}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -103,11 +115,20 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
         >
           <Icon name="Menu" size={17} />
           <span className="text-[0.66em] uppercase tracking-[0.06em]">Меню</span>
-          {user && !user.password_changed && (
+          {totalNew > 0 ? (
             <span
-              className="w-[6px] h-[6px] rounded-full inline-block"
-              style={{ background: '#c0392b' }}
-            />
+              className="min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] rounded-full"
+              style={{ background: '#c0392b', color: '#fff' }}
+            >
+              {totalNew}
+            </span>
+          ) : (
+            user && !user.password_changed && (
+              <span
+                className="w-[6px] h-[6px] rounded-full inline-block"
+                style={{ background: '#c0392b' }}
+              />
+            )
           )}
         </button>
 
@@ -155,7 +176,15 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
                   }
                 >
                   <Icon name={n.icon} size={17} fallback="Circle" />
-                  {n.label}
+                  <span className="flex-1">{n.label}</span>
+                  {badge(n.key) > 0 && (
+                    <span
+                      className="min-w-[20px] h-[20px] px-1 flex items-center justify-center text-[11px] rounded-full"
+                      style={{ background: '#c0392b', color: '#fff' }}
+                    >
+                      {badge(n.key)}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </nav>
