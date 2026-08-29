@@ -50,6 +50,21 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
           <div className="mt-3">
             <SyncBadge />
           </div>
+          {user.role !== 'hunter' && (
+            <NavLink
+              to="/account"
+              className="h-label underline mt-2 flex items-center gap-1"
+            >
+              <Icon name="KeyRound" size={12} fallback="Lock" />
+              Профиль и пароль
+              {!user.password_changed && (
+                <span
+                  className="w-[6px] h-[6px] rounded-full inline-block"
+                  style={{ background: '#c0392b' }}
+                />
+              )}
+            </NavLink>
+          )}
           <button className="h-label underline mt-2" onClick={signOut}>
             Выйти
           </button>
@@ -58,7 +73,17 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
     </aside>
 
     <main className="flex-1 min-w-0">
-      <div className="lg:hidden border-b border-[#e2e2df] px-4 py-2 flex justify-end">
+      <div className="lg:hidden border-b border-[#e2e2df] px-4 py-2 flex justify-between items-center">
+        <NavLink to={user?.role === 'hunter' ? '/my/settings' : '/account'} className="h-label underline flex items-center gap-1">
+          <Icon name="KeyRound" size={12} fallback="Lock" />
+          Профиль
+          {user && !user.password_changed && (
+            <span
+              className="w-[6px] h-[6px] rounded-full inline-block"
+              style={{ background: '#c0392b' }}
+            />
+          )}
+        </NavLink>
         <SyncBadge />
       </div>
 

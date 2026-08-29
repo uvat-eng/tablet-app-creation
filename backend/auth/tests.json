@@ -31,6 +31,16 @@
         "login": ""
       },
       "expectedStatus": 400
+    },
+    {
+      "name": "Смена пароля без входа",
+      "method": "POST",
+      "path": "/?action=change_password",
+      "body": {
+        "old_password": "x",
+        "new_password": "yyyyy"
+      },
+      "expectedStatus": 401
     }
   ]
 }

@@ -406,6 +406,7 @@ export interface StaffUser {
   guest_id?: number | null;
   can_approve_hunts?: boolean;
   can_supply?: boolean;
+  password_changed?: boolean;
 }
 
 export const signup = async (body: {
@@ -468,6 +469,23 @@ export const fetchMe = async (): Promise<StaffUser | null> => {
       return null;
     }
   }
+};
+
+export const changePassword = async (oldPassword: string, newPassword: string) => {
+  const res = await fetch(`${AUTH_URL}?action=change_password`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось сменить пароль');
+  const raw = localStorage.getItem('hb_me');
+  if (raw) {
+    const me = JSON.parse(raw);
+    me.password_changed = true;
+    localStorage.setItem('hb_me', JSON.stringify(me));
+  }
+  return true;
 };
 
 export const logout = async () => {

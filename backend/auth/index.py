@@ -57,7 +57,7 @@ def handler(event: dict, context) -> dict:
             return None
         cur.execute(
             "SELECT s.id, s.name, s.login, s.role, s.permissions, s.title, "
-            "s.can_edit_others, s.can_remove, s.guest_id, s.can_approve_hunts, s.can_supply FROM sessions x "
+            "s.can_edit_others, s.can_remove, s.guest_id, s.can_approve_hunts, s.can_supply, s.password_changed FROM sessions x "
             "JOIN staff s ON s.id = x.staff_id "
             "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
         )
@@ -70,7 +70,7 @@ def handler(event: dict, context) -> dict:
         role_claim = str(body.get('role', '')).strip()
         cur.execute(
             "SELECT id, name, login, role, permissions, title, can_edit_others, can_remove, "
-            "guest_id, can_approve_hunts, can_supply, password_hash FROM staff "
+            "guest_id, can_approve_hunts, can_supply, password_changed, password_hash FROM staff "
             "WHERE lower(login) = " + esc(login) + " AND active = TRUE"
         )
         row = cur.fetchone()
@@ -97,7 +97,8 @@ def handler(event: dict, context) -> dict:
                 'can_remove': bool(row.get('can_remove')),
                 'guest_id': row.get('guest_id'),
                 'can_approve_hunts': bool(row.get('can_approve_hunts')),
-                'can_supply': bool(row.get('can_supply'))}
+                'can_supply': bool(row.get('can_supply')),
+                'password_changed': bool(row.get('password_changed'))}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}
@@ -144,7 +145,7 @@ def handler(event: dict, context) -> dict:
         user = {'id': row['id'], 'name': row['name'], 'login': row['login'],
                 'role': 'hunter', 'permissions': 'hunter', 'title': 'Охотник',
                 'can_edit_others': False, 'can_remove': False,
-                'guest_id': guest_id, 'can_approve_hunts': False, 'can_supply': False}
+                'guest_id': guest_id, 'can_approve_hunts': False, 'can_supply': False, 'password_changed': True}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}
@@ -163,6 +164,42 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
 
     me = current_staff()
+
+    if action == 'change_password':
+        if not me:
+            close()
+            return {'statusCode': 401, 'headers': CORS,
+                    'body': json.dumps({'error': 'Сначала войдите в приложение'})}
+
+        old = str(body.get('old_password', ''))
+        new = str(body.get('new_password', ''))
+
+        if len(new) < 5:
+            close()
+            return {'statusCode': 400, 'headers': CORS,
+                    'body': json.dumps({'error': 'Новый пароль — не короче 5 символов'})}
+
+        cur.execute("SELECT password_hash FROM staff WHERE id = " + str(int(me['id'])))
+        row = cur.fetchone()
+        if not row or row['password_hash'] != hash_password(old):
+            close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Текущий пароль введён неверно'})}
+
+        if hash_password(new) == row['password_hash']:
+            close()
+            return {'statusCode': 400, 'headers': CORS,
+                    'body': json.dumps({'error': 'Новый пароль совпадает со старым'})}
+
+        cur.execute(
+            "UPDATE staff SET password_hash = " + esc(hash_password(new)) +
+            ", password_changed = TRUE, password_changed_at = NOW() WHERE id = " +
+            str(int(me['id']))
+        )
+        cur.execute("DELETE FROM sessions WHERE staff_id = " + str(int(me['id'])) +
+                    " AND token <> " + esc(token))
+        close()
+        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
 
     if action == 'hunter_access':
         if not me or me['role'] not in ('owner', 'manager'):

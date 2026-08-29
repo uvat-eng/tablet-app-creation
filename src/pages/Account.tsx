@@ -1,0 +1,70 @@
+import Layout from '@/components/app/Layout';
+import Icon from '@/components/ui/icon';
+import PasswordCard from '@/components/app/PasswordCard';
+import { useAuth } from '@/context/AuthContext';
+import { ROLES } from '@/lib/permissions';
+
+const APK_URL =
+  'https://cdn.poehali.dev/projects/980fc694-d631-4b58-8bb8-84299cd838a9/bucket/apk/malyshenskoe.apk';
+
+const Account = () => {
+  const { user, signOut } = useAuth();
+
+  const rows = [
+    { label: 'Имя', value: String(user?.name || '—') },
+    { label: 'Логин', value: String(user?.login || '—') },
+    { label: 'Должность', value: String(user?.title || ROLES[String(user?.role)] || '—') },
+    { label: 'Роль в системе', value: ROLES[String(user?.role)] || String(user?.role || '—') },
+  ];
+
+  return (
+    <Layout
+      index="Профиль"
+      title="Мой профиль"
+      lede="Ваш пароль, учётная запись и обновление приложения."
+    >
+      <div className="h-head text-[22px] mb-3">Безопасность</div>
+      <PasswordCard />
+
+      <div className="h-head text-[22px] mt-10 mb-3">Учётная запись</div>
+      <div className="border border-[#e2e2df]">
+        {rows.map((r, i) => (
+          <div
+            key={r.label}
+            className="flex flex-wrap gap-2 justify-between px-4 py-3"
+            style={{ borderTop: i ? '1px solid #e2e2df' : 'none' }}
+          >
+            <span className="h-label">{r.label}</span>
+            <span className="text-[0.75em]">{r.value}</span>
+          </div>
+        ))}
+      </div>
+
+      <button className="h-cta-ghost mt-4" onClick={signOut}>
+        <Icon name="LogOut" size={14} /> Выйти из системы
+      </button>
+
+      <div className="h-head text-[22px] mt-10 mb-3">Приложение</div>
+      <a
+        href={APK_URL}
+        className="flex items-center justify-center gap-2 w-full bg-[#1f1f1d] text-white px-4 py-4 text-[0.85em] tracking-wide"
+      >
+        <Icon name="Download" size={18} />
+        Скачать обновление для Android
+      </a>
+      <p className="h-mono-cap mt-3 text-center">
+        Откройте файл после загрузки и подтвердите установку — данные сохранятся
+      </p>
+
+      <div className="mt-8 border border-[#e2e2df] px-4 py-3 flex gap-3">
+        <Icon name="Info" size={16} className="shrink-0 mt-[2px]" />
+        <p className="text-[0.78em] leading-relaxed">
+          Забыли пароль — обратитесь к владельцу хозяйства, он выдаст новый.
+          Права доступа к разделам тоже настраивает владелец.
+        </p>
+      </div>
+    </Layout>
+  );
+};
+
+export default Account;

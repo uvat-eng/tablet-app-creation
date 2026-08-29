@@ -5,6 +5,7 @@ import Icon from '@/components/ui/icon';
 import { Row, listRows } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import PasswordCard from '@/components/app/PasswordCard';
 
 const APK_URL =
   'https://cdn.poehali.dev/projects/980fc694-d631-4b58-8bb8-84299cd838a9/bucket/apk/malyshenskoe.apk';
@@ -102,6 +103,9 @@ const MySettings = () => {
           </ol>
         </div>
       )}
+
+      <div className="h-head text-[22px] mt-10 mb-3">Безопасность</div>
+      <PasswordCard />
 
       <div className="h-head text-[22px] mt-10 mb-3">Моя учётная запись</div>
       <div className="border border-[#e2e2df]">
