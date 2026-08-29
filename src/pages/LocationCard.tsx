@@ -13,8 +13,12 @@ import {
 } from '@/lib/locationKinds';
 import { RECEIPT_FIELD } from '@/lib/expenses';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { canEditMap } from '@/lib/permissions';
 
 const LocationCard = () => {
+  const { user } = useAuth();
+  const mayEdit = canEditMap(user);
   const { kind = 'tower', id } = useParams();
   const navigate = useNavigate();
   const k = KIND(kind);
@@ -197,6 +201,8 @@ const LocationCard = () => {
           <button className="h-cta-ghost" onClick={() => navigate(`/locations/${kind}`)}>
             К списку
           </button>
+          {mayEdit && (
+            <>
           <button className="h-cta-ghost" onClick={() => setEditOpen(true)}>
             Редактировать
           </button>
@@ -214,6 +220,8 @@ const LocationCard = () => {
           >
             Добавить затрату
           </button>
+            </>
+          )}
         </span>
       }
     >

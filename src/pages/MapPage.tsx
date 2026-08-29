@@ -20,6 +20,8 @@ import { BASE_DEFS, makeBaseLayer } from '@/lib/basemaps';
 import { HOME_CENTER, HOME_ZOOM } from '@/lib/homeArea';
 import OfflineMapDownload from '@/components/app/OfflineMapDownload';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { canEditMap } from '@/lib/permissions';
 
 const COLORS: Record<string, string> = {
   tower: '#ff5a1f',
@@ -42,6 +44,8 @@ const pinIcon = (kind: string) =>
   });
 
 const MapPage = () => {
+  const { user } = useAuth();
+  const mayEdit = canEditMap(user);
   const navigate = useNavigate();
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -179,7 +183,7 @@ const MapPage = () => {
     const map = mapRef.current;
     if (!map) return;
     const onClick = (e: L.LeafletMouseEvent) => {
-      if (!adding) return;
+      if (!adding || !mayEdit) return;
       setDraft({
         kind: 'tower',
         name: '',
@@ -194,11 +198,11 @@ const MapPage = () => {
       setAdding(false);
     };
     map.on('click', onClick);
-    map.getContainer().style.cursor = adding ? 'crosshair' : '';
+    map.getContainer().style.cursor = adding && mayEdit ? 'crosshair' : '';
     return () => {
       map.off('click', onClick);
     };
-  }, [adding]);
+  }, [adding, mayEdit]);
 
   const fields: Field[] = [
     { key: 'name', label: 'Название' },
@@ -293,19 +297,23 @@ const MapPage = () => {
             className="hidden"
             onChange={(e) => importFile(e.target.files)}
           />
-          <button
-            className="h-cta-ghost"
-            disabled={uploading}
-            onClick={() => fileRef.current?.click()}
-          >
-            {uploading ? 'Читаем…' : 'Загрузить треки'}
-          </button>
-          <button
-            className={adding ? 'h-cta' : 'h-cta-ghost'}
-            onClick={() => setAdding((v) => !v)}
-          >
-            {adding ? 'Кликните по карте' : 'Добавить точку'}
-          </button>
+          {mayEdit && (
+            <>
+              <button
+                className="h-cta-ghost"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+              >
+                {uploading ? 'Читаем…' : 'Загрузить треки'}
+              </button>
+              <button
+                className={adding ? 'h-cta' : 'h-cta-ghost'}
+                onClick={() => setAdding((v) => !v)}
+              >
+                {adding ? 'Кликните по карте' : 'Добавить точку'}
+              </button>
+            </>
+          )}
         </span>
       }
     >
@@ -454,6 +462,7 @@ const MapPage = () => {
               <span className="text-sm text-[#6d6d6d]">
                 точность ±{Math.round(geo.fix.accuracy)} м
               </span>
+              {mayEdit && (
               <button
                 className="h-cta-ghost"
                 onClick={() => {
@@ -473,6 +482,7 @@ const MapPage = () => {
               >
                 Добавить точку здесь
               </button>
+              )}
               <button
                 className="h-cta-ghost"
                 onClick={() => {
@@ -516,15 +526,22 @@ const MapPage = () => {
                       {t.kind === 'track' ? 'Трек / граница' : 'Точки'}
                     </td>
                     <td className="px-4 py-2">
-                      <input
-                        type="color"
-                        value={String(t.color || '#ff5a1f')}
-                        className="w-10 h-6 border border-[#e2e2df] bg-white"
-                        onChange={async (e) => {
-                          await updateRow('map_layers', { id: t.id, color: e.target.value });
-                          load();
-                        }}
-                      />
+                      {mayEdit ? (
+                        <input
+                          type="color"
+                          value={String(t.color || '#ff5a1f')}
+                          className="w-10 h-6 border border-[#e2e2df] bg-white"
+                          onChange={async (e) => {
+                            await updateRow('map_layers', { id: t.id, color: e.target.value });
+                            load();
+                          }}
+                        />
+                      ) : (
+                        <span
+                          className="inline-block w-10 h-6 border border-[#e2e2df]"
+                          style={{ background: String(t.color || '#ff5a1f') }}
+                        />
+                      )}
                     </td>
                     <td className="px-4 py-2">
                       <input
@@ -538,16 +555,18 @@ const MapPage = () => {
                       />
                     </td>
                     <td className="px-4 py-2">
-                      <button
-                        className="h-label underline"
-                        onClick={async () => {
-                          await removeRow('map_layers', Number(t.id));
-                          toast.success('Слой убран');
-                          load();
-                        }}
-                      >
-                        Убрать
-                      </button>
+                      {mayEdit && (
+                        <button
+                          className="h-label underline"
+                          onClick={async () => {
+                            await removeRow('map_layers', Number(t.id));
+                            toast.success('Слой убран');
+                            load();
+                          }}
+                        >
+                          Убрать
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

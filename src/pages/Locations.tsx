@@ -14,6 +14,8 @@ import {
   parseCoords,
 } from '@/lib/locationKinds';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { canEditMap } from '@/lib/permissions';
 
 const makeFields = (kindKey?: string): Field[] => {
   const k = kindKey ? KIND(kindKey) : null;
@@ -40,6 +42,8 @@ const makeFields = (kindKey?: string): Field[] => {
 };
 
 const Locations = () => {
+  const { user } = useAuth();
+  const mayEdit = canEditMap(user);
   const { kind } = useParams();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
@@ -158,21 +162,23 @@ const Locations = () => {
             <button className="h-cta-ghost" onClick={() => window.print()}>
               Печать
             </button>
-            <button
-              className="h-cta"
-              onClick={() => {
-                setEditing({
-                  kind,
-                  qty: 1,
-                  unit: k.unit,
-                  status: 'ok',
-                  checked_on: new Date().toISOString().slice(0, 10),
-                } as Row);
-                setOpen(true);
-              }}
-            >
-              Добавить {k.single.toLowerCase()}
-            </button>
+            {mayEdit && (
+              <button
+                className="h-cta"
+                onClick={() => {
+                  setEditing({
+                    kind,
+                    qty: 1,
+                    unit: k.unit,
+                    status: 'ok',
+                    checked_on: new Date().toISOString().slice(0, 10),
+                  } as Row);
+                  setOpen(true);
+                }}
+              >
+                Добавить {k.single.toLowerCase()}
+              </button>
+            )}
           </span>
         }
       >
@@ -257,27 +263,31 @@ const Locations = () => {
                   </td>
                   <td className="px-4 py-3 no-print">
                     <span className="flex gap-3">
-                      <button
-                        className="h-label underline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditing(r);
-                          setOpen(true);
-                        }}
-                      >
-                        Правка
-                      </button>
-                      <button
-                        className="h-label underline"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          await removeRow('locations', Number(r.id));
-                          toast.success('Запись убрана в архив');
-                          load();
-                        }}
-                      >
-                        Архив
-                      </button>
+                      {mayEdit && (
+                        <>
+                          <button
+                            className="h-label underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditing(r);
+                              setOpen(true);
+                            }}
+                          >
+                            Правка
+                          </button>
+                          <button
+                            className="h-label underline"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await removeRow('locations', Number(r.id));
+                              toast.success('Запись убрана в архив');
+                              load();
+                            }}
+                          >
+                            Архив
+                          </button>
+                        </>
+                      )}
                     </span>
                   </td>
                 </tr>
@@ -336,21 +346,23 @@ const Locations = () => {
       title="Локации"
       lede="Биотехния и инфраструктура угодий: вышки, кормушки, солонцы, просеки, посевы, вольер."
       action={
-        <button
-          className="h-cta"
-          onClick={() => {
-            setEditing({
-              kind: 'tower',
-              qty: 1,
-              unit: 'шт',
-              status: 'ok',
-              checked_on: new Date().toISOString().slice(0, 10),
-            } as Row);
-            setOpen(true);
-          }}
-        >
-          Добавить объект
-        </button>
+        mayEdit ? (
+          <button
+            className="h-cta"
+            onClick={() => {
+              setEditing({
+                kind: 'tower',
+                qty: 1,
+                unit: 'шт',
+                status: 'ok',
+                checked_on: new Date().toISOString().slice(0, 10),
+              } as Row);
+              setOpen(true);
+            }}
+          >
+            Добавить объект
+          </button>
+        ) : undefined
       }
     >
       <div

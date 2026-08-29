@@ -135,6 +135,8 @@ HUNTER_WRITE = {'locations', 'biotech_works', 'work_photos', 'guests', 'hunter_b
 HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'documents',
                    'club_fees', 'club_bag', 'hunt_requests'}
 
+CLUB_ONLY_WRITE = {'locations', 'biotech_works', 'work_photos', 'club_bag'}
+
 HUNTER_LOCKED = {
     'club_bag': ('price', 'debt', 'debt_status', 'paid_on', 'hours_credited'),
     'guests': ('club_member', 'club_until', 'fee_monthly', 'archived'),
@@ -383,6 +385,12 @@ def handler(event: dict, context) -> dict:
     is_hunter = bool(viewer and viewer.get('role') == 'hunter')
     my_guest = int(viewer.get('guest_id') or 0) if viewer else 0
 
+    is_club = False
+    if is_hunter and my_guest:
+        cur.execute("SELECT club_member FROM guests WHERE id = " + str(my_guest))
+        g = cur.fetchone()
+        is_club = bool(g and g.get('club_member'))
+
     if is_hunter:
         allowed = HUNTER_READ if method == 'GET' else HUNTER_WRITE
         if table not in allowed:
@@ -390,6 +398,11 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return {'statusCode': 403, 'headers': CORS,
                     'body': json.dumps({'error': 'Этот раздел доступен только хозяйству'})}
+        if method != 'GET' and table in CLUB_ONLY_WRITE and not is_club:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Карта и локации доступны только для просмотра'})}
         if method == 'DELETE':
             cur.close()
             conn.close()

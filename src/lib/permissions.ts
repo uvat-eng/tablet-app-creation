@@ -65,6 +65,12 @@ export const ROLES: Record<string, string> = {
 
 export const isHunter = (user: StaffUser | null) => user?.role === 'hunter';
 
+export const canEditMap = (user: StaffUser | null) => {
+  if (!user) return false;
+  if (user.role !== 'hunter') return true;
+  return isClubMember();
+};
+
 export const canApproveHunts = (user: StaffUser | null) =>
   Boolean(user && user.role !== 'hunter' && user.can_approve_hunts);
 
