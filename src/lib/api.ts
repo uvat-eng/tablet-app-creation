@@ -190,20 +190,83 @@ export const removeRow = async (table: string, id: number) => {
   }
 };
 
-export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string> => {
-  const base64 = await new Promise<string>((resolve, reject) => {
+const readAsDataUrl = (file: Blob) =>
+  new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
     reader.readAsDataURL(file);
   });
+
+const MAX_SIDE = 1800;
+const TARGET_BYTES = 1_400_000;
+const HARD_LIMIT = 2_600_000;
+
+const drawScaled = (img: HTMLImageElement, maxSide: number) => {
+  const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+};
+
+const shrinkPhoto = async (file: File): Promise<string> => {
+  const raw = await readAsDataUrl(file);
+  if (!file.type.startsWith('image/') || file.type === 'image/gif') {
+    if (raw.length > HARD_LIMIT) {
+      throw new Error('Файл слишком большой — уменьшите размер');
+    }
+    return raw;
+  }
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error('Не удалось открыть фото'));
+    el.src = raw;
+  });
+
+  let side = MAX_SIDE;
+  let best = '';
+  for (let step = 0; step < 4; step += 1) {
+    const canvas = drawScaled(img, side);
+    if (!canvas) break;
+    let quality = 0.82;
+    let out = canvas.toDataURL('image/jpeg', quality);
+    while (out.length > TARGET_BYTES && quality > 0.4) {
+      quality -= 0.12;
+      out = canvas.toDataURL('image/jpeg', quality);
+    }
+    best = out;
+    if (out.length <= HARD_LIMIT) break;
+    side = Math.round(side * 0.7);
+  }
+
+  if (!best) {
+    if (raw.length > HARD_LIMIT) throw new Error('Не удалось сжать фото');
+    return raw;
+  }
+  if (best.length > HARD_LIMIT) throw new Error('Фото слишком тяжёлое даже после сжатия');
+  return best.length < raw.length ? best : raw;
+};
+
+export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string> => {
+  const base64 = await shrinkPhoto(file);
   const res = await fetch(UPLOAD_URL, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ file: base64, folder }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'upload failed');
+  if (!res.ok) {
+    if (res.status === 413) throw new Error('Фото слишком тяжёлое — снимите поменьше');
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Ошибка загрузки (${res.status})`);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!data.url) throw new Error('Сервер не вернул ссылку на фото');
   return data.url;
 };
 

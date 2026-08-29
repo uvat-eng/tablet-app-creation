@@ -44,9 +44,10 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'no file'})}
 
     binary = base64.b64decode(payload)
-    if len(binary) > 8 * 1024 * 1024:
+    if len(binary) > 2 * 1024 * 1024:
         return {'statusCode': 400, 'headers': CORS,
-                'body': json.dumps({'error': 'Файл больше 8 МБ'})}
+                'body': json.dumps({'error': 'Фото слишком тяжёлое — снимите с меньшим '
+                                             'разрешением'})}
 
     key = folder + '/' + uuid.uuid4().hex + '.' + EXT.get(content_type, 'jpg')
 

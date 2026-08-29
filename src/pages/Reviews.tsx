@@ -45,23 +45,27 @@ const Reviews = () => {
 
   const quickUpload = async (files: FileList | null) => {
     if (!files?.length) return;
+    const list = Array.from(files);
     setUploading(true);
+    let done = 0;
     try {
-      for (const file of Array.from(files)) {
+      for (const file of list) {
         const url = await uploadPhoto(file, 'reviews');
         await createRow('reviews', {
           photo_url: url,
           left_on: new Date().toISOString().slice(0, 10),
           published: true,
         });
+        done += 1;
       }
-      toast.success(files.length > 1 ? `Добавлено ${files.length} отзывов` : 'Отзыв добавлен');
-      load();
-    } catch {
-      toast.error('Не удалось загрузить фото');
+      toast.success(list.length > 1 ? `Добавлено ${done} отзывов` : 'Отзыв добавлен');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Не удалось загрузить фото';
+      toast.error(done ? `Добавлено ${done}, дальше ошибка: ${msg}` : msg);
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
+      load();
     }
   };
 
