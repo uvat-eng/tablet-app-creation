@@ -9,9 +9,14 @@ import {
   BIOTECH_KIND,
   BIOTECH_STATUS,
   hoursText,
+  LICENSE_NORMS,
+  EMPTY_DONE,
+  addWork,
+  earnedLicenses,
 } from '@/lib/biotech';
 import { money } from '@/lib/expenses';
 import WorkPhotos from '@/components/app/WorkPhotos';
+import BiotechContractDialog from '@/components/app/BiotechContractDialog';
 import { toast } from 'sonner';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -27,6 +32,7 @@ const Biotech = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [openRow, setOpenRow] = useState<number | null>(null);
+  const [contract, setContract] = useState(false);
   const [docs, setDocs] = useState<Row[]>([]);
   const [photoCount, setPhotoCount] = useState<Record<string, number>>({});
 
@@ -108,16 +114,24 @@ const Biotech = () => {
   }, [yearRows]);
 
   const ranking = useMemo(() => {
-    const map = new Map<string, { name: string; hours: number; value: number; club: boolean }>();
+    const map = new Map<
+      string,
+      { name: string; hours: number; value: number; club: boolean; done: typeof EMPTY_DONE }
+    >();
     yearRows.forEach((r) => {
       const g = guests.find((x) => String(x.id) === String(r.guest_id));
       const name = String(g?.name || r.hunter_name || 'Без имени');
-      const cur = map.get(name) || { name, hours: 0, value: 0, club: Boolean(g?.club_member) };
+      const cur =
+        map.get(name) ||
+        { name, hours: 0, value: 0, club: Boolean(g?.club_member), done: EMPTY_DONE };
       cur.hours += Number(r.hours || 0);
       cur.value += Number(r.value_rub || 0);
+      cur.done = addWork(cur.done, String(r.kind), Number(r.qty || 0));
       map.set(name, cur);
     });
-    return [...map.values()].sort((a, b) => b.hours - a.hours);
+    return [...map.values()]
+      .map((r) => ({ ...r, licenses: earnedLicenses(r.done) }))
+      .sort((a, b) => b.hours - a.hours);
   }, [yearRows, guests]);
 
   const fields: Field[] = useMemo(
@@ -220,15 +234,20 @@ const Biotech = () => {
       title="Охотники / биотехния"
       lede="Учёт помощи охотников хозяйству в трудочасах: топливо, зерно, посевы, ремонты, охоты."
       action={
-        <button
-          className="h-cta"
-          onClick={() => {
-            setEditing(null);
-            setOpen(true);
-          }}
-        >
-          <Icon name="Plus" size={15} /> Внести помощь
-        </button>
+        <span className="flex flex-wrap gap-2">
+          <button className="h-cta-ghost" onClick={() => setContract(true)}>
+            <Icon name="FileSignature" size={15} /> Сделать договор
+          </button>
+          <button
+            className="h-cta"
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+          >
+            <Icon name="Plus" size={15} /> Внести помощь
+          </button>
+        </span>
       }
     >
       <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -453,29 +472,84 @@ const Biotech = () => {
 
       {ranking.length > 0 && (
         <>
-          <div className="h-head text-[22px] mb-3">Вклад охотников</div>
+          <div className="h-head text-[22px] mb-1">Вклад охотников</div>
+          <p className="h-label mb-3 leading-relaxed">
+            Путёвки считаются по таблице №1 договора: кормушки или посев полей, плюс солонцы,
+            плюс галечники — на каждую особь.
+          </p>
           <div className="border border-[#e2e2df] overflow-x-auto">
-            <table className="w-full min-w-[560px]">
+            <table className="w-full min-w-[860px]">
               <thead>
                 <tr className="bg-[var(--hero-surface)]">
-                  <th className="h-label text-left px-4 py-2 font-normal w-[60px]">№</th>
+                  <th className="h-label text-left px-4 py-2 font-normal w-[50px]">№</th>
                   <th className="h-label text-left px-4 py-2 font-normal">Охотник</th>
-                  <th className="h-label text-left px-4 py-2 font-normal w-[130px]">Трудочасы</th>
-                  <th className="h-label text-left px-4 py-2 font-normal w-[150px]">Оценка</th>
+                  <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Трудочасы</th>
+                  <th className="h-label text-left px-4 py-2 font-normal w-[130px]">Оценка</th>
+                  <th className="h-label text-left px-4 py-2 font-normal">Заработал путёвок</th>
                 </tr>
               </thead>
               <tbody>
                 {ranking.map((r, i) => (
-                  <tr key={r.name} className="border-t border-[#e2e2df]">
+                  <tr key={r.name} className="border-t border-[#e2e2df] align-top">
                     <td className="px-4 py-2 text-[0.68em]">{i + 1}</td>
                     <td className="px-4 py-2 text-[0.72em]">
                       {r.name}
                       {r.club && (
                         <span className="h-chip h-chip-mark text-[0.9em] ml-2">клуб</span>
                       )}
+                      <div className="h-label mt-1">
+                        кормушки {r.done.feeder} · поля {r.done.fieldHa} га · солонцы{' '}
+                        {r.done.salt} · галечники {r.done.gravel}
+                      </div>
                     </td>
                     <td className="px-4 py-2 text-[0.72em]">{hoursText(r.hours)}</td>
                     <td className="px-4 py-2 text-[0.72em]">{money(r.value)}</td>
+                    <td className="px-4 py-2 text-[0.72em]">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {r.licenses.map((l) => (
+                          <span
+                            key={l.key}
+                            className="text-[0.92em]"
+                            style={{ color: l.count ? undefined : 'var(--hero-muted)' }}
+                          >
+                            {l.species}:{' '}
+                            <b>{l.count ? `${l.count} шт` : 'нет'}</b>
+                            {!l.count && l.ratio > 0 && (
+                              <span className="h-label ml-1">
+                                {Math.round(l.ratio * 100)}%
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 border border-[#e2e2df] overflow-x-auto">
+            <table className="w-full min-w-[620px]">
+              <thead>
+                <tr className="bg-[var(--hero-surface)]">
+                  <th className="h-label text-left px-4 py-2 font-normal">
+                    Норматив на одну особь
+                  </th>
+                  <th className="h-label text-left px-4 py-2 font-normal w-[150px]">Кормушки</th>
+                  <th className="h-label text-left px-4 py-2 font-normal w-[130px]">Поля, га</th>
+                  <th className="h-label text-left px-4 py-2 font-normal w-[110px]">Солонцы</th>
+                  <th className="h-label text-left px-4 py-2 font-normal w-[120px]">Галечники</th>
+                </tr>
+              </thead>
+              <tbody>
+                {LICENSE_NORMS.map((n) => (
+                  <tr key={n.key} className="border-t border-[#e2e2df]">
+                    <td className="px-4 py-2 text-[0.72em]">{n.species}</td>
+                    <td className="px-4 py-2 text-[0.72em]">{n.feeder || '—'}</td>
+                    <td className="px-4 py-2 text-[0.72em]">{n.fieldHa || '—'}</td>
+                    <td className="px-4 py-2 text-[0.72em]">{n.salt}</td>
+                    <td className="px-4 py-2 text-[0.72em]">{n.gravel}</td>
                   </tr>
                 ))}
               </tbody>
@@ -483,6 +557,8 @@ const Biotech = () => {
           </div>
         </>
       )}
+
+      <BiotechContractDialog open={contract} onOpenChange={setContract} guests={guests} />
 
       <RecordDialog
         open={open}

@@ -436,6 +436,32 @@ export const downloadContract = async (guestId: number, fileName: string) => {
   URL.revokeObjectURL(url);
 };
 
+export const downloadBiotech = async (body: {
+  guest_id?: number | null;
+  number?: string;
+  signed_on?: string;
+  fileName: string;
+}) => {
+  const res = await fetch(`${DOCS_URL}?kind=biotech`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': getToken() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Не удалось собрать договор');
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Биотехния ${body.fileName}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 export interface CollectiveSheet {
   hunt_date: string;
   place: string;

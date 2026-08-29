@@ -38,6 +38,60 @@ export const BIOTECH_STATUS: Record<string, string> = {
   counted: 'Зачтено в долг',
 };
 
+export interface LicenseNorm {
+  key: string;
+  species: string;
+  feeder: number;
+  fieldHa: number;
+  salt: number;
+  gravel: number;
+}
+
+export const LICENSE_NORMS: LicenseNorm[] = [
+  { key: 'elk', species: 'Лось', feeder: 3, fieldHa: 5, salt: 10, gravel: 20 },
+  { key: 'roe', species: 'Косуля', feeder: 1, fieldHa: 3, salt: 3, gravel: 5 },
+  { key: 'boar', species: 'Кабан', feeder: 3, fieldHa: 0, salt: 10, gravel: 20 },
+  { key: 'bear', species: 'Медведь', feeder: 2, fieldHa: 5, salt: 8, gravel: 20 },
+];
+
+export interface BiotechDone {
+  feeder: number;
+  fieldHa: number;
+  salt: number;
+  gravel: number;
+}
+
+export const EMPTY_DONE: BiotechDone = { feeder: 0, fieldHa: 0, salt: 0, gravel: 0 };
+
+export const addWork = (acc: BiotechDone, kind: string, qty: number): BiotechDone => {
+  const n = Number(qty || 0);
+  if (!n) return acc;
+  if (kind === 'feeder') return { ...acc, feeder: acc.feeder + n };
+  if (kind === 'field' || kind === 'sowing') return { ...acc, fieldHa: acc.fieldHa + n };
+  if (kind === 'salt') return { ...acc, salt: acc.salt + n };
+  if (kind === 'gravel') return { ...acc, gravel: acc.gravel + n };
+  return acc;
+};
+
+export const earnedLicenses = (done: BiotechDone) =>
+  LICENSE_NORMS.map((n) => {
+    const feedPart =
+      n.feeder && n.fieldHa
+        ? Math.max(
+            n.feeder ? done.feeder / n.feeder : 0,
+            n.fieldHa ? done.fieldHa / n.fieldHa : 0,
+          )
+        : n.feeder
+          ? done.feeder / n.feeder
+          : n.fieldHa
+            ? done.fieldHa / n.fieldHa
+            : Infinity;
+    const saltPart = n.salt ? done.salt / n.salt : Infinity;
+    const gravelPart = n.gravel ? done.gravel / n.gravel : Infinity;
+    const ratio = Math.min(feedPart, saltPart, gravelPart);
+    return { ...n, ratio, count: Math.floor(ratio) };
+  });
+
 export const hoursText = (v: unknown) => {
   const n = Number(v || 0);
   const round = Math.round(n * 10) / 10;

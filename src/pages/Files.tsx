@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 const KIND_LABEL: Record<string, string> = {
   collective: 'Коллективный лист охоты',
   contract: 'Договор с охотником',
+  biotech: 'Договор по биотехнии',
 };
 
 const ru = (d: unknown) => {
@@ -66,7 +67,8 @@ const Files = () => {
   const TABS = [
     { key: 'all', label: 'Все' },
     { key: 'collective', label: 'Листы охоты' },
-    { key: 'contract', label: 'Договоры' },
+    { key: 'contract', label: 'Договоры клуба' },
+    { key: 'biotech', label: 'Договоры биотехнии' },
   ];
 
   return (
