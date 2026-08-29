@@ -5,6 +5,7 @@ import Icon from '@/components/ui/icon';
 import { Row, listRows } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { EMPTY_DONE, addWork, earnedLicenses, hoursText } from '@/lib/biotech';
+import ClubStatus from '@/components/app/ClubStatus';
 
 const MyHome = () => {
   const navigate = useNavigate();
@@ -13,20 +14,26 @@ const MyHome = () => {
   const [bag, setBag] = useState<Row[]>([]);
   const [docs, setDocs] = useState<Row[]>([]);
   const [me, setMe] = useState<Row | null>(null);
+  const [fees, setFees] = useState<Row[]>([]);
+  const [clubBag, setClubBag] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [w, b, d, g] = await Promise.all([
+    const [w, b, d, g, f, cb] = await Promise.all([
       listRows('biotech_works'),
       listRows('hunter_bag'),
       listRows('documents'),
       listRows('guests'),
+      listRows('club_fees'),
+      listRows('club_bag'),
     ]);
     setWorks(w);
     setBag(b);
     setDocs(d);
     setMe(g[0] || null);
+    setFees(f);
+    setClubBag(cb);
     setLoading(false);
   }, []);
 
@@ -47,6 +54,17 @@ const MyHome = () => {
   const earned = summary.licenses.filter((l) => l.count > 0);
 
   const cards = [
+    ...(me?.club_member
+      ? [
+          {
+            to: '/my/club',
+            icon: 'ShieldCheck',
+            label: 'Членство и добыча',
+            value: String(clubBag.length),
+            hint: 'трофеев в сезоне',
+          },
+        ]
+      : []),
     {
       to: '/my/biotech',
       icon: 'Trees',
@@ -106,6 +124,19 @@ const MyHome = () => {
           </button>
         ))}
       </div>
+
+      {Boolean(me?.club_member) && (
+        <div className="mb-10">
+          <ClubStatus
+            guestId={Number(user?.guest_id || me?.id || 0)}
+            guest={me}
+            fees={fees}
+            bag={clubBag}
+            year={new Date().getFullYear()}
+            compact
+          />
+        </div>
+      )}
 
       <div className="h-head text-[22px] mb-1">Заработанные путёвки</div>
       <p className="h-label mb-3 leading-relaxed">

@@ -6,6 +6,7 @@ import { Row, listRows, downloadContract, removeRow } from '@/lib/api';
 import Icon from '@/components/ui/icon';
 import HelpDialog from '@/components/app/HelpDialog';
 import HunterActivity from '@/components/app/HunterActivity';
+import ClubBagManager from '@/components/app/ClubBagManager';
 import { HELP_KINDS, HELP_LABEL } from '@/lib/help';
 import { toast } from 'sonner';
 
@@ -237,6 +238,8 @@ const GuestCard = () => {
           )}
         </table>
       </div>
+
+      <ClubBagManager guestId={guestId} guest={guest} />
 
       <HunterActivity guestId={guestId} guestName={String(guest.name)} />
 

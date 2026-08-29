@@ -112,11 +112,19 @@ AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations'
             'guest_docs', 'transport_expenses', 'transfers', 'documents'}
 
 HUNTER_READ = {'locations', 'map_layers', 'biotech_works', 'work_photos', 'guests',
-               'hunter_bag', 'guest_docs', 'documents', 'trophies'}
+               'hunter_bag', 'guest_docs', 'documents', 'trophies', 'club_fees',
+               'club_bag', 'services'}
 
-HUNTER_WRITE = {'locations', 'biotech_works', 'work_photos', 'guests', 'hunter_bag'}
+HUNTER_WRITE = {'locations', 'biotech_works', 'work_photos', 'guests', 'hunter_bag',
+                'club_bag'}
 
-HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'documents'}
+HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'documents',
+                   'club_fees', 'club_bag'}
+
+HUNTER_LOCKED = {
+    'club_bag': ('price', 'debt', 'debt_status', 'paid_on', 'hours_credited'),
+    'guests': ('club_member', 'club_until', 'fee_monthly', 'archived'),
+}
 
 TITLE_FIELD = {
     'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
@@ -419,7 +427,7 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
                 'error': 'Ваш доступ не привязан к карточке охотника'})}
-        if table in ('biotech_works', 'hunter_bag'):
+        if table in ('biotech_works', 'hunter_bag', 'club_bag'):
             body['guest_id'] = my_guest
         if table == 'guests':
             if method == 'POST' or int(body.get('id') or 0) != my_guest:
@@ -427,8 +435,8 @@ def handler(event: dict, context) -> dict:
                 conn.close()
                 return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
                     'error': 'Можно менять только свою анкету'})}
-            for locked in ('club_member', 'club_until', 'fee_monthly', 'archived'):
-                body.pop(locked, None)
+        for locked in HUNTER_LOCKED.get(table, ()):
+            body.pop(locked, None)
 
     if table == 'bookings' and method in ('POST', 'PUT'):
         conflict = check_conflict(cur, body)
@@ -485,7 +493,7 @@ def handler(event: dict, context) -> dict:
 
         own_record = is_hunter and (
             (table == 'guests' and int(before.get('id') or 0) == my_guest)
-            or (table in ('biotech_works', 'hunter_bag')
+            or (table in ('biotech_works', 'hunter_bag', 'club_bag')
                 and int(before.get('guest_id') or 0) == my_guest)
         )
 

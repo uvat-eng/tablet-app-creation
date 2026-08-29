@@ -42,6 +42,7 @@ import Download from "./pages/Download";
 import NotFound from "./pages/NotFound";
 import MyHome from "./pages/my/MyHome";
 import MyBiotech from "./pages/my/MyBiotech";
+import MyClub from "./pages/my/MyClub";
 import MyBag from "./pages/my/MyBag";
 import MyProfile from "./pages/my/MyProfile";
 import MyDocs from "./pages/my/MyDocs";
@@ -65,6 +66,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={guard(<Index />, 'dashboard')} />
             <Route path="/my" element={guard(<MyHome />, 'my')} />
+            <Route path="/my/club" element={guard(<MyClub />, 'my-club')} />
             <Route path="/my/biotech" element={guard(<MyBiotech />, 'my-biotech')} />
             <Route path="/my/bag" element={guard(<MyBag />, 'my-bag')} />
             <Route path="/my/profile" element={guard(<MyProfile />, 'my-profile')} />

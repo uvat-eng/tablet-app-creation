@@ -34,6 +34,7 @@ export const HUNTER_SECTIONS: Section[] = [
   { key: 'my', to: '/my', label: 'Мой кабинет', icon: 'UserRound' },
   { key: 'map', to: '/map', label: 'Карта хозяйства', icon: 'Map' },
   { key: 'locations', to: '/locations', label: 'Локации', icon: 'MapPin' },
+  { key: 'my-club', to: '/my/club', label: 'Членство и добыча', icon: 'ShieldCheck' },
   { key: 'my-biotech', to: '/my/biotech', label: 'Моя биотехния', icon: 'Trees' },
   { key: 'my-bag', to: '/my/bag', label: 'Моя добыча', icon: 'Target' },
   { key: 'my-profile', to: '/my/profile', label: 'Мои данные', icon: 'IdCard' },
