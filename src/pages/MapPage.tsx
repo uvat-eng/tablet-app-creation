@@ -330,6 +330,8 @@ const MapPage = () => {
         <Navigator
           points={rows}
           offlineReady={offlineReady}
+          mayEdit={mayEdit}
+          onSaved={load}
           onClose={() => setNavOpen(false)}
         />
       )}

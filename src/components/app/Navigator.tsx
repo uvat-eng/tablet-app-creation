@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import Icon from '@/components/ui/icon';
-import { Row } from '@/lib/api';
-import { KIND } from '@/lib/locationKinds';
+import { Row, createRow } from '@/lib/api';
+import { KIND, LOCATION_KINDS } from '@/lib/locationKinds';
 import { watchLocation, GeoSample, FAIL_TEXT } from '@/lib/geoProvider';
 import { readOffline, offlineTileLayer } from '@/lib/offlineMap';
 import { makeBaseLayer } from '@/lib/basemaps';
 import { BASE_POINT, BASE_LABEL } from '@/lib/homeArea';
+import { COLORS as MARK_COLORS } from '@/components/map/mapStyles';
 import { distance, bearing, fmtDistance, fmtSpeed, sideName } from '@/lib/geoMath';
 import useTrackRecorder from '@/lib/useTrackRecorder';
 import useCompass from '@/lib/useCompass';
 import useBattery from '@/lib/useBattery';
+import useFullscreen from '@/lib/useFullscreen';
 import { toast } from 'sonner';
 
 interface Target {
@@ -24,13 +26,15 @@ interface Target {
 interface Props {
   points: Row[];
   offlineReady: boolean;
+  mayEdit?: boolean;
+  onSaved?: () => void;
   onClose: () => void;
 }
 
 const clock = () =>
   new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-const Navigator = ({ points, offlineReady, onClose }: Props) => {
+const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: Props) => {
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const meRef = useRef<L.Marker | null>(null);
@@ -44,15 +48,20 @@ const Navigator = ({ points, offlineReady, onClose }: Props) => {
   const [picker, setPicker] = useState(false);
   const [now, setNow] = useState(clock);
   const [follow, setFollow] = useState(true);
+  const [marking, setMarking] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [marks, setMarks] = useState<Target[]>([]);
 
   const rec = useTrackRecorder();
   const compass = useCompass(true);
   const battery = useBattery();
+  const fs = useFullscreen();
 
   const targets: Target[] = useMemo(() => {
     const list: Target[] = [
       { id: 'base', name: BASE_LABEL, lat: BASE_POINT[0], lng: BASE_POINT[1], kind: 'base' },
     ];
+    marks.forEach((m) => list.push(m));
     points.forEach((r) => {
       if (!Number(r.lat) || !Number(r.lng)) return;
       list.push({
@@ -64,7 +73,7 @@ const Navigator = ({ points, offlineReady, onClose }: Props) => {
       });
     });
     return list;
-  }, [points]);
+  }, [points, marks]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(clock()), 20000);
@@ -221,6 +230,70 @@ const Navigator = ({ points, offlineReady, onClose }: Props) => {
     ).addTo(map);
   }, [rec.points]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const group = L.layerGroup().addTo(map);
+    marks.forEach((m) => {
+      L.marker([m.lat, m.lng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="width:14px;height:14px;border-radius:50%;
+            background:${MARK_COLORS[m.kind] || '#607d8b'};
+            border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.4)"></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7],
+        }),
+        interactive: false,
+      }).addTo(group);
+    });
+    return () => {
+      map.removeLayer(group);
+    };
+  }, [marks]);
+
+  const saveMark = async (kind: string) => {
+    if (!fix || saving) return;
+    setSaving(true);
+    const lat = Number(fix.lat.toFixed(6));
+    const lng = Number(fix.lng.toFixed(6));
+    const stamp = new Date().toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const name = `${KIND(kind).single || KIND(kind).label} ${stamp}`;
+    try {
+      await createRow('locations', {
+        kind,
+        name,
+        lat,
+        lng,
+        coords: `${lat}, ${lng}`,
+        qty: 1,
+        unit: 'шт',
+        status: 'ok',
+        note: 'Отмечено из навигатора',
+      } as Row);
+      setMarks((prev) => [
+        ...prev,
+        { id: `mark-${Date.now()}`, name, lat, lng, kind },
+      ]);
+      toast.success(`Точка «${name}» сохранена`);
+      onSaved?.();
+    } catch {
+      toast.error('Не удалось сохранить — точка осталась в списке целей');
+      setMarks((prev) => [
+        ...prev,
+        { id: `mark-${Date.now()}`, name, lat, lng, kind },
+      ]);
+    } finally {
+      setSaving(false);
+      setMarking(false);
+    }
+  };
+
   const dist = fix && target ? distance(fix.lat, fix.lng, target.lat, target.lng) : null;
   const brg = fix && target ? bearing(fix.lat, fix.lng, target.lat, target.lng) : null;
   const myDir = compass ?? fix?.heading ?? null;
@@ -240,7 +313,10 @@ const Navigator = ({ points, offlineReady, onClose }: Props) => {
         }}
       >
         <button
-          onClick={onClose}
+          onClick={() => {
+            fs.exit();
+            onClose();
+          }}
           className="flex items-center gap-2 px-3 py-2"
           style={{ background: '#ffffff1a', color: '#fff' }}
         >
@@ -248,6 +324,18 @@ const Navigator = ({ points, offlineReady, onClose }: Props) => {
           <span className="text-[0.72em] uppercase tracking-[0.06em]">Выход</span>
         </button>
         <div className="flex items-center gap-3 text-[0.78em]">
+          <button
+            onClick={fs.toggle}
+            title={fs.active ? 'Обычный экран' : 'Во весь экран'}
+            className="flex items-center justify-center"
+            style={{ background: '#ffffff1a', color: '#fff', width: 38, height: 38 }}
+          >
+            <Icon
+              name={fs.active ? 'Minimize' : 'Maximize'}
+              size={18}
+              fallback="Expand"
+            />
+          </button>
           <span>{now}</span>
           {battery.level !== null && (
             <span
@@ -370,6 +458,20 @@ const Navigator = ({ points, offlineReady, onClose }: Props) => {
             <Icon name="Home" size={16} />
             На базу
           </button>
+          {mayEdit && (
+            <button
+              onClick={() => setMarking(true)}
+              disabled={!fix}
+              className="px-4 py-3 text-[0.72em] uppercase tracking-[0.06em] flex items-center gap-2"
+              style={{
+                background: fix ? '#f4c20d' : '#ffffff1a',
+                color: fix ? '#1f1f1d' : '#ffffff66',
+              }}
+            >
+              <Icon name="MapPin" size={16} />
+              Отметить
+            </button>
+          )}
           <button
             onClick={rec.recording ? rec.stop : rec.start}
             className="px-4 py-3 text-[0.72em] uppercase tracking-[0.06em] flex items-center gap-2"
@@ -399,6 +501,52 @@ const Navigator = ({ points, offlineReady, onClose }: Props) => {
           </div>
         )}
       </div>
+
+      {marking && (
+        <div
+          className="absolute inset-0 flex flex-col justify-end"
+          style={{ background: '#0d0d0cf2', zIndex: 20 }}
+        >
+          <div className="px-4 pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+            <div className="text-center mb-4" style={{ color: '#fff' }}>
+              <div className="text-[0.78em] uppercase tracking-[0.1em] opacity-70">
+                Что здесь отметить
+              </div>
+              {fix && (
+                <div className="text-[0.7em] opacity-50 mt-1">
+                  {fix.lat.toFixed(5)}, {fix.lng.toFixed(5)}
+                </div>
+              )}
+            </div>
+            {LOCATION_KINDS.map((k) => (
+              <button
+                key={k.key}
+                disabled={saving}
+                onClick={() => saveMark(k.key)}
+                className="w-full flex items-center gap-3 py-4 px-4 mb-2"
+                style={{ background: '#ffffff14', color: '#fff' }}
+              >
+                <span
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    background: MARK_COLORS[k.key] || '#607d8b',
+                  }}
+                />
+                <span className="text-[0.86em]">{k.single || k.label}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setMarking(false)}
+              className="w-full py-4 mt-2 text-[0.72em] uppercase tracking-[0.06em]"
+              style={{ background: '#ffffff1a', color: '#fff' }}
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
 
       {picker && (
         <div
