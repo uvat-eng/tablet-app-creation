@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { ReactNode, useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { useAuth } from '@/context/AuthContext';
 import { allowedSections, ROLES } from '@/lib/permissions';
@@ -17,6 +17,23 @@ interface LayoutProps {
 const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
   const { user, signOut } = useAuth();
   const items = allowedSections(user);
+  const location = useLocation();
+  const [menu, setMenu] = useState(false);
+
+  useEffect(() => {
+    setMenu(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = menu ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [menu]);
+
+  const current = items.find((n) =>
+    n.to === '/' ? location.pathname === '/' : location.pathname.startsWith(n.to),
+  );
 
   return (
   <div className="h-shell min-h-screen flex">
@@ -73,36 +90,109 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
     </aside>
 
     <main className="flex-1 min-w-0">
-      <div className="lg:hidden border-b border-[#e2e2df] px-4 py-2 flex justify-between items-center">
-        <NavLink to={user?.role === 'hunter' ? '/my/settings' : '/account'} className="h-label underline flex items-center gap-1">
-          <Icon name="KeyRound" size={12} fallback="Lock" />
-          Профиль
+      <div
+        className="lg:hidden border-b border-[#e2e2df] px-4 py-3 flex items-center justify-between gap-3 sticky top-0 z-30"
+        style={{
+          background: 'var(--hero-bg, #fff)',
+          paddingTop: 'calc(0.75rem + env(safe-area-inset-top))',
+        }}
+      >
+        <button
+          onClick={() => setMenu(true)}
+          className="flex items-center gap-2 border border-black px-3 py-2"
+        >
+          <Icon name="Menu" size={17} />
+          <span className="text-[0.66em] uppercase tracking-[0.06em]">Меню</span>
           {user && !user.password_changed && (
             <span
               className="w-[6px] h-[6px] rounded-full inline-block"
               style={{ background: '#c0392b' }}
             />
           )}
-        </NavLink>
+        </button>
+
+        <span className="text-[0.62em] uppercase tracking-[0.06em] truncate text-[var(--hero-muted)]">
+          {current?.label || ''}
+        </span>
+
         <SyncBadge />
       </div>
 
-      <div className="lg:hidden border-b border-[#e2e2df] px-4 py-3 flex gap-4 overflow-x-auto">
-        {items.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            end={n.to === '/'}
-            className={({ isActive }) =>
-              `text-[0.62em] uppercase tracking-[0.06em] whitespace-nowrap ${
-                isActive ? 'font-bold' : 'text-[var(--hero-muted)]'
-              }`
-            }
+      {menu && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <button
+            aria-label="Закрыть меню"
+            className="absolute inset-0"
+            style={{ background: 'rgba(0,0,0,0.45)' }}
+            onClick={() => setMenu(false)}
+          />
+
+          <div
+            className="relative w-[86%] max-w-[320px] h-full overflow-y-auto border-r border-[#e2e2df] flex flex-col"
+            style={{
+              background: '#fff',
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
           >
-            {n.label}
-          </NavLink>
-        ))}
-      </div>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e2df]">
+              <Brand />
+              <button onClick={() => setMenu(false)} className="p-2 -mr-2">
+                <Icon name="X" size={20} />
+              </button>
+            </div>
+
+            <nav className="flex flex-col gap-px p-3">
+              {items.map((n) => (
+                <NavLink
+                  key={n.to}
+                  to={n.to}
+                  end={n.to === '/'}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-3 text-[0.72em] uppercase tracking-[0.06em] ${
+                      isActive ? 'bg-black text-white' : 'hover:bg-[var(--hero-surface)]'
+                    }`
+                  }
+                >
+                  <Icon name={n.icon} size={17} fallback="Circle" />
+                  {n.label}
+                </NavLink>
+              ))}
+            </nav>
+
+            {user && (
+              <div className="mt-auto border-t border-[#e2e2df] p-5">
+                <div className="h-label">{user.name}</div>
+                <div className="h-label mt-1">
+                  {user.title || ROLES[user.role] || user.role}
+                </div>
+
+                <NavLink
+                  to={user.role === 'hunter' ? '/my/settings' : '/account'}
+                  className="flex items-center gap-2 border border-[#e2e2df] px-3 py-3 mt-4 text-[0.72em]"
+                >
+                  <Icon name="KeyRound" size={15} fallback="Lock" />
+                  Профиль и пароль
+                  {!user.password_changed && (
+                    <span
+                      className="w-[6px] h-[6px] rounded-full inline-block"
+                      style={{ background: '#c0392b' }}
+                    />
+                  )}
+                </NavLink>
+
+                <button
+                  onClick={signOut}
+                  className="flex items-center justify-center gap-2 w-full bg-[#1f1f1d] text-white px-3 py-3 mt-2 text-[0.72em]"
+                >
+                  <Icon name="LogOut" size={15} />
+                  Выйти из учётной записи
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="px-6 lg:px-12 py-10 max-w-[1280px]">
         <div className="flex flex-wrap items-end justify-between gap-4 h-fade h-d1">
