@@ -6,7 +6,13 @@ import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { LOCATION_KINDS, KIND, STATUSES, CROP_STATUSES } from '@/lib/locationKinds';
+import {
+  LOCATION_KINDS,
+  KIND,
+  STATUSES,
+  CROP_STATUSES,
+  parseCoords,
+} from '@/lib/locationKinds';
 import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
 import useGeoLocate from '@/lib/useGeoLocate';
 import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/offlineMap';
@@ -213,9 +219,9 @@ const MapPage = () => {
   ];
 
   const save = async (values: Row) => {
-    const parts = String(values.coords || '').split(',');
-    const lat = Number(parts[0]) || Number(draft?.lat) || 0;
-    const lng = Number(parts[1]) || Number(draft?.lng) || 0;
+    const parsed = parseCoords(values.coords);
+    const lat = parsed.lat || Number(draft?.lat) || 0;
+    const lng = parsed.lng || Number(draft?.lng) || 0;
     const payload: Row = {
       ...values,
       lat,

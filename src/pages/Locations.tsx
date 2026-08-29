@@ -5,7 +5,14 @@ import Icon from '@/components/ui/icon';
 import SearchBar from '@/components/app/SearchBar';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { LOCATION_KINDS, KIND, STATUSES_FOR, STATUS_LABEL, money } from '@/lib/locationKinds';
+import {
+  LOCATION_KINDS,
+  KIND,
+  STATUSES_FOR,
+  STATUS_LABEL,
+  money,
+  parseCoords,
+} from '@/lib/locationKinds';
 import { toast } from 'sonner';
 
 const makeFields = (kindKey?: string): Field[] => {
@@ -97,15 +104,12 @@ const Locations = () => {
   }, [rows, kind, query]);
 
   const save = async (values: Row) => {
-    const parts = String(values.coords || '').replace(/;/g, ',').split(',');
-    const lat = Number(String(parts[0] || '').trim().replace(',', '.'));
-    const lng = Number(String(parts[1] || '').trim().replace(',', '.'));
-    const okLat = Number.isFinite(lat) && lat !== 0 && Math.abs(lat) <= 90;
-    const okLng = Number.isFinite(lng) && lng !== 0 && Math.abs(lng) <= 180;
+    const { lat, lng } = parseCoords(values.coords);
     const payload: Row = {
       ...values,
-      lat: okLat ? Math.round(lat * 1e6) / 1e6 : null,
-      lng: okLng ? Math.round(lng * 1e6) / 1e6 : null,
+      lat,
+      lng,
+      coords: lat && lng ? `${lat}, ${lng}` : String(values.coords || ''),
       kind: String(values.kind || kind || 'ground'),
       qty: Number(values.qty || 0),
       area_ha: Number(values.area_ha || 0),
@@ -120,6 +124,11 @@ const Locations = () => {
       } else {
         await createRow('locations', payload);
         toast.success('Объект добавлен');
+      }
+      if (!lat || !lng) {
+        toast.warning('Без координат объект не появится на общей карте', {
+          description: 'Откройте запись и укажите GPS или отметьте точку кнопкой «На карте»',
+        });
       }
     } catch (e) {
       toast.error('Не удалось сохранить', {
@@ -209,7 +218,13 @@ const Locations = () => {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-[0.65em]">{String(r.coords || '—')}</td>
+                  <td className="px-4 py-3 text-[0.65em]">
+                    {r.lat && r.lng ? (
+                      String(r.coords || `${r.lat}, ${r.lng}`)
+                    ) : (
+                      <span className="text-[var(--hero-muted)]">нет на карте</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-[0.7em] whitespace-nowrap">
                     {Number(r.qty || 0).toLocaleString('ru-RU')} {String(r.unit || k.unit)}
                   </td>

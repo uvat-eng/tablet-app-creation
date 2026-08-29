@@ -3,7 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { KIND, STATUSES_FOR, STATUS_LABEL, COST_LABEL, money } from '@/lib/locationKinds';
+import {
+  KIND,
+  STATUSES_FOR,
+  STATUS_LABEL,
+  COST_LABEL,
+  money,
+  parseCoords,
+} from '@/lib/locationKinds';
 import { RECEIPT_FIELD } from '@/lib/expenses';
 import { toast } from 'sonner';
 
@@ -92,15 +99,14 @@ const LocationCard = () => {
   );
 
   const saveInfo = async (values: Row) => {
-    const parts = String(values.coords || '').split(',');
-    const lat = Number(parts[0]);
-    const lng = Number(parts[1]);
+    const { lat, lng } = parseCoords(values.coords);
     await updateRow('locations', {
       ...values,
       id: Number(id),
       kind,
-      lat: Number.isFinite(lat) && lat ? lat : null,
-      lng: Number.isFinite(lng) && lng ? lng : null,
+      lat,
+      lng,
+      coords: lat && lng ? `${lat}, ${lng}` : String(values.coords || ''),
       qty: Number(values.qty || 0),
       area_ha: Number(values.area_ha || 0),
       boars: Number(values.boars || 0),

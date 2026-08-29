@@ -49,6 +49,27 @@ const SALT_COSTS: CostItem[] = [
   { key: 'other', label: 'Иное' },
 ];
 
+export const parseCoords = (raw: unknown): { lat: number | null; lng: number | null } => {
+  const text = String(raw ?? '').trim();
+  if (!text) return { lat: null, lng: null };
+
+  const nums = text
+    .replace(/[°'"NnSsEeWwСсЮюВвЗз]/g, ' ')
+    .replace(/,(\s*\d)/g, ' $1')
+    .replace(/,/g, '.')
+    .replace(/;/g, ' ')
+    .split(/\s+/)
+    .map((p) => Number(p))
+    .filter((n) => Number.isFinite(n));
+
+  if (nums.length < 2) return { lat: null, lng: null };
+  const [a, b] = nums;
+  const okLat = a !== 0 && Math.abs(a) <= 90;
+  const okLng = b !== 0 && Math.abs(b) <= 180;
+  if (!okLat || !okLng) return { lat: null, lng: null };
+  return { lat: Math.round(a * 1e6) / 1e6, lng: Math.round(b * 1e6) / 1e6 };
+};
+
 export const LOCATION_KINDS: LocationKind[] = [
   {
     key: 'tower',
