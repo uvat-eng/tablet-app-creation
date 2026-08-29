@@ -12,6 +12,7 @@ import HuntRequests from "./pages/HuntRequests";
 import Supply from "./pages/Supply";
 import Account from "./pages/Account";
 import Access from "./pages/Access";
+import UpdateBar from "@/components/app/UpdateBar";
 import SupplyNew from "./pages/SupplyNew";
 import BookingCard from "./pages/BookingCard";
 import Documents from "./pages/Documents";
@@ -69,6 +70,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <UpdateBar />
       <AuthProvider>
         <SettingsProvider>
         <BrowserRouter>
