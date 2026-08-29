@@ -57,7 +57,7 @@ def handler(event: dict, context) -> dict:
             return None
         cur.execute(
             "SELECT s.id, s.name, s.login, s.role, s.permissions, s.title, "
-            "s.can_edit_others, s.can_remove, s.guest_id, s.can_approve_hunts, s.can_supply, s.password_changed FROM sessions x "
+            "s.can_edit_others, s.can_remove, s.guest_id, s.can_approve_hunts, s.can_supply, s.password_changed, s.can_manage_access FROM sessions x "
             "JOIN staff s ON s.id = x.staff_id "
             "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
         )
@@ -70,7 +70,7 @@ def handler(event: dict, context) -> dict:
         role_claim = str(body.get('role', '')).strip()
         cur.execute(
             "SELECT id, name, login, role, permissions, title, can_edit_others, can_remove, "
-            "guest_id, can_approve_hunts, can_supply, password_changed, password_hash FROM staff "
+            "guest_id, can_approve_hunts, can_supply, password_changed, can_manage_access, password_hash FROM staff "
             "WHERE lower(login) = " + esc(login) + " AND active = TRUE"
         )
         row = cur.fetchone()
@@ -104,7 +104,8 @@ def handler(event: dict, context) -> dict:
                 'guest_id': row.get('guest_id'),
                 'can_approve_hunts': bool(row.get('can_approve_hunts')),
                 'can_supply': bool(row.get('can_supply')),
-                'password_changed': bool(row.get('password_changed'))}
+                'password_changed': bool(row.get('password_changed')),
+                'can_manage_access': bool(row.get('can_manage_access'))}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}
@@ -151,7 +152,7 @@ def handler(event: dict, context) -> dict:
         user = {'id': row['id'], 'name': row['name'], 'login': row['login'],
                 'role': 'hunter', 'permissions': 'hunter', 'title': 'Охотник',
                 'can_edit_others': False, 'can_remove': False,
-                'guest_id': guest_id, 'can_approve_hunts': False, 'can_supply': False, 'password_changed': True}
+                'guest_id': guest_id, 'can_approve_hunts': False, 'can_supply': False, 'password_changed': True, 'can_manage_access': False}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}
@@ -212,6 +213,11 @@ def handler(event: dict, context) -> dict:
             close()
             return {'statusCode': 403, 'headers': CORS,
                     'body': json.dumps({'error': 'Доступ выдаёт руководитель'})}
+
+        if method != 'GET' and not me.get('can_manage_access'):
+            close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Логины и пароли выдают только Усков А.Н. и Усков Н.А.'})}
 
         if method == 'GET':
             cur.execute("SELECT id, login, name, active, guest_id FROM staff "
@@ -288,10 +294,10 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': dict(row)})}
 
     if action == 'access':
-        if not me or me['role'] != 'owner':
+        if not me or not me.get('can_manage_access'):
             close()
-            return {'statusCode': 403, 'headers': CORS,
-                    'body': json.dumps({'error': 'Доступами управляет владелец'})}
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Пароли выдают только Усков А.Н. и Усков Н.А.'})}
 
         if method == 'GET':
             cur.execute(
@@ -407,6 +413,10 @@ def handler(event: dict, context) -> dict:
         if 'can_remove' in body:
             sets.append('can_remove = ' + esc(bool(body['can_remove'])))
         if body.get('password'):
+            if not me.get('can_manage_access'):
+                close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Менять пароли могут только Усков А.Н. и Усков Н.А.'})}
             sets.append('password_hash = ' + esc(hash_password(str(body['password']))))
         if not staff_id or not sets:
             close()

@@ -30,6 +30,7 @@ export const SECTIONS: Section[] = [
   { key: 'finance', to: '/finance', label: 'Финансы', icon: 'Wallet' },
   { key: 'transfers', to: '/transfers', label: 'Финансы переводы', icon: 'ArrowLeftRight' },
   { key: 'office', to: '/office', label: 'Финансы ОФИС', icon: 'Landmark' },
+  { key: 'access', to: '/access', label: 'Логины и пароли', icon: 'KeyRound' },
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
@@ -52,7 +53,6 @@ export const HUNTER_SECTIONS: Section[] = [
 
 export const OWNER_ONLY: Section[] = [
   { key: 'staff', to: '/staff', label: 'Сотрудники', icon: 'UserCog' },
-  { key: 'access', to: '/access', label: 'Логины и пароли', icon: 'KeyRound' },
   { key: 'settings', to: '/settings', label: 'Настройки', icon: 'Settings' },
 ];
 
@@ -70,6 +70,9 @@ export const canEditMap = (user: StaffUser | null) => {
   if (user.role !== 'hunter') return true;
   return isClubMember();
 };
+
+export const canManageAccess = (user: StaffUser | null) =>
+  Boolean(user && user.role !== 'hunter' && user.can_manage_access);
 
 export const canApproveHunts = (user: StaffUser | null) =>
   Boolean(user && user.role !== 'hunter' && user.can_approve_hunts);
@@ -108,6 +111,7 @@ export const parsePermissions = (raw: unknown): string[] =>
 
 export const can = (user: StaffUser | null, key: string): boolean => {
   if (!user) return false;
+  if (key === 'access') return Boolean(user.can_manage_access);
   if (key === 'supply') return Boolean(user.can_supply);
   if (key === 'supply-new') {
     return parsePermissions(user.permissions).includes('supply-new');

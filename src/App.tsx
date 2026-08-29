@@ -87,7 +87,7 @@ const App = () => (
             <Route path="/bookings" element={guard(<Bookings />, 'bookings')} />
             <Route path="/hunt-requests" element={guard(<HuntRequests />, 'hunt-requests')} />
             <Route path="/account" element={<Protected><Account /></Protected>} />
-            <Route path="/access" element={<Protected ownerOnly><Access /></Protected>} />
+            <Route path="/access" element={guard(<Access />, 'access')} />
             <Route path="/supply" element={guard(<Supply />, 'supply')} />
             <Route path="/supply/new" element={guard(<SupplyNew />, 'supply-new')} />
             <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />

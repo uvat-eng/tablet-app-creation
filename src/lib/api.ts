@@ -407,6 +407,7 @@ export interface StaffUser {
   can_approve_hunts?: boolean;
   can_supply?: boolean;
   password_changed?: boolean;
+  can_manage_access?: boolean;
 }
 
 export const signup = async (body: {
