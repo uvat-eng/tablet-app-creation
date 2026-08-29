@@ -471,6 +471,35 @@ export const fetchMe = async (): Promise<StaffUser | null> => {
   }
 };
 
+export const listAccess = async (): Promise<Row[]> => {
+  const res = await fetch(`${AUTH_URL}?action=access`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось загрузить список');
+  return data.items || [];
+};
+
+export const resetUserPassword = async (id: number, newPassword: string) => {
+  const res = await fetch(`${AUTH_URL}?action=access`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ id, new_password: newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось задать пароль');
+  return true;
+};
+
+export const setUserActive = async (id: number, active: boolean) => {
+  const res = await fetch(`${AUTH_URL}?action=access`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ id, active }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось изменить доступ');
+  return true;
+};
+
 export const changePassword = async (oldPassword: string, newPassword: string) => {
   const res = await fetch(`${AUTH_URL}?action=change_password`, {
     method: 'POST',

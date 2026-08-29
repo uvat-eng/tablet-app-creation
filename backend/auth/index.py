@@ -287,6 +287,70 @@ def handler(event: dict, context) -> dict:
                     'body': json.dumps({'error': 'Такой логин уже занят'})}
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': dict(row)})}
 
+    if action == 'access':
+        if not me or me['role'] != 'owner':
+            close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Доступами управляет владелец'})}
+
+        if method == 'GET':
+            cur.execute(
+                "SELECT s.id, s.name, s.login, s.role, s.title, s.active, s.guest_id, "
+                "s.password_changed, s.password_changed_at, s.can_supply, "
+                "s.can_approve_hunts, g.club_member "
+                "FROM staff s LEFT JOIN guests g ON g.id = s.guest_id "
+                "ORDER BY CASE s.role WHEN 'owner' THEN 1 WHEN 'manager' THEN 2 "
+                "WHEN 'staff' THEN 3 ELSE 4 END, s.name"
+            )
+            items = []
+            for r in cur.fetchall():
+                d = dict(r)
+                if d.get('password_changed_at'):
+                    d['password_changed_at'] = str(d['password_changed_at'])
+                items.append(d)
+            close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'items': items})}
+
+        target = int(body.get('id') or 0)
+        cur.execute("SELECT id, name, login, role FROM staff WHERE id = " + str(target))
+        who = cur.fetchone()
+        if not who:
+            close()
+            return {'statusCode': 404, 'headers': CORS,
+                    'body': json.dumps({'error': 'Пользователь не найден'})}
+
+        if method == 'PUT':
+            new = str(body.get('new_password', ''))
+            if len(new) < 5:
+                close()
+                return {'statusCode': 400, 'headers': CORS,
+                        'body': json.dumps({'error': 'Пароль — не короче 5 символов'})}
+            cur.execute(
+                "UPDATE staff SET password_hash = " + esc(hash_password(new)) +
+                ", password_changed = FALSE, password_changed_at = NULL, active = TRUE "
+                "WHERE id = " + str(target)
+            )
+            cur.execute("DELETE FROM sessions WHERE staff_id = " + str(target))
+            close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
+
+        if method == 'POST':
+            turn_on = bool(body.get('active'))
+            if int(who['id']) == int(me['id']) and not turn_on:
+                close()
+                return {'statusCode': 400, 'headers': CORS,
+                        'body': json.dumps({'error': 'Нельзя закрыть вход самому себе'})}
+            cur.execute("UPDATE staff SET active = " + ('TRUE' if turn_on else 'FALSE') +
+                        " WHERE id = " + str(target))
+            if not turn_on:
+                cur.execute("DELETE FROM sessions WHERE staff_id = " + str(target))
+            close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
+
+        close()
+        return {'statusCode': 405, 'headers': CORS,
+                'body': json.dumps({'error': 'Метод не поддерживается'})}
+
     if not me or me['role'] != 'owner':
         close()
         return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({'error': 'forbidden'})}

@@ -11,6 +11,7 @@ import Bookings from "./pages/Bookings";
 import HuntRequests from "./pages/HuntRequests";
 import Supply from "./pages/Supply";
 import Account from "./pages/Account";
+import Access from "./pages/Access";
 import SupplyNew from "./pages/SupplyNew";
 import BookingCard from "./pages/BookingCard";
 import Documents from "./pages/Documents";
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/bookings" element={guard(<Bookings />, 'bookings')} />
             <Route path="/hunt-requests" element={guard(<HuntRequests />, 'hunt-requests')} />
             <Route path="/account" element={<Protected><Account /></Protected>} />
+            <Route path="/access" element={<Protected ownerOnly><Access /></Protected>} />
             <Route path="/supply" element={guard(<Supply />, 'supply')} />
             <Route path="/supply/new" element={guard(<SupplyNew />, 'supply-new')} />
             <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />

@@ -52,6 +52,7 @@ export const HUNTER_SECTIONS: Section[] = [
 
 export const OWNER_ONLY: Section[] = [
   { key: 'staff', to: '/staff', label: 'Сотрудники', icon: 'UserCog' },
+  { key: 'access', to: '/access', label: 'Логины и пароли', icon: 'KeyRound' },
   { key: 'settings', to: '/settings', label: 'Настройки', icon: 'Settings' },
 ];
 

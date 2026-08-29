@@ -41,6 +41,12 @@
         "new_password": "yyyyy"
       },
       "expectedStatus": 401
+    },
+    {
+      "name": "Доступы без прав владельца",
+      "method": "GET",
+      "path": "/?action=access",
+      "expectedStatus": 403
     }
   ]
 }
