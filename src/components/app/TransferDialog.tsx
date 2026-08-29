@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
-import { Row, createRow, updateRow, removeRow } from '@/lib/api';
+import { Row, createRow, updateRow, removeRow, uploadPhoto } from '@/lib/api';
 import { TRANSFER_SECTIONS, TRANSFER_SOURCES, SECTION } from '@/lib/transfers';
 import { toast } from 'sonner';
 
@@ -33,6 +33,8 @@ const TransferDialog = ({ open, onOpenChange, initial, units, locations, onSaved
   const [targetId, setTargetId] = useState('');
   const [category, setCategory] = useState('');
   const [note, setNote] = useState('');
+  const [receipt, setReceipt] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,7 +49,21 @@ const TransferDialog = ({ open, onOpenChange, initial, units, locations, onSaved
     setTargetId(initial?.target_id ? String(initial.target_id) : '');
     setCategory(String(initial?.category || ''));
     setNote(String(initial?.note || ''));
+    setReceipt(String(initial?.receipt_url || ''));
   }, [open, initial]);
+
+  const pickReceipt = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      setReceipt(await uploadPhoto(file, 'receipts'));
+      toast.success('Чек загружен');
+    } catch {
+      toast.error('Не удалось загрузить чек');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const sec = SECTION(section);
   const targets = sec?.key === 'transport' ? units : locations;
@@ -68,6 +84,7 @@ const TransferDialog = ({ open, onOpenChange, initial, units, locations, onSaved
       note: `Оплачено: ${source === 'personal' ? 'с личной карты' : 'переводом'}${
         payer ? ` (${payer})` : ''
       }`,
+      receipt_url: receipt || null,
     };
     if (sec.key === 'transport') return { ...base, object_id: Number(targetId || 0) };
     if (sec.table === 'house_expenses') return { ...base, facility: sec.key };
@@ -118,6 +135,7 @@ const TransferDialog = ({ open, onOpenChange, initial, units, locations, onSaved
         target_id: targetId ? Number(targetId) : null,
         category: category || null,
         note,
+        receipt_url: receipt || null,
         linked_table: linkedTable,
         linked_id: linkedId,
       };
@@ -301,6 +319,31 @@ const TransferDialog = ({ open, onOpenChange, initial, units, locations, onSaved
               onChange={(e) => setNote(e.target.value)}
             />
           </label>
+
+          <div className="block">
+            <span className="h-label block mb-1">Скриншот чека</span>
+            {receipt && (
+              <a href={receipt} target="_blank" rel="noreferrer" className="block mb-2">
+                <img
+                  src={receipt}
+                  alt="Чек"
+                  className="w-full h-[150px] object-cover border border-[#e2e2df]"
+                />
+              </a>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="text-[0.7em]"
+              onChange={(e) => pickReceipt(e.target.files?.[0])}
+            />
+            {uploading && <span className="h-label block mt-1">Загружаем…</span>}
+            {receipt && !uploading && (
+              <button className="h-label underline mt-1" onClick={() => setReceipt('')}>
+                Убрать чек
+              </button>
+            )}
+          </div>
 
           {sec && (
             <div className="h-label" style={{ color: 'var(--hero-muted)' }}>

@@ -7,6 +7,8 @@ import SearchBar from '@/components/app/SearchBar';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { CATEGORY_LABEL, money, Facility, HouseCategory } from '@/lib/houseCategories';
+import { RECEIPT_FIELD } from '@/lib/expenses';
+import ReceiptLink from '@/components/app/ReceiptLink';
 import { toast } from 'sonner';
 
 const makeFields = (cats: HouseCategory[]): Field[] => [
@@ -23,6 +25,7 @@ const makeFields = (cats: HouseCategory[]): Field[] => [
     options: cats.map((c) => ({ value: c.key, label: c.label })),
   },
   { key: 'note', label: 'Примечание', type: 'textarea' },
+  RECEIPT_FIELD,
 ];
 
 const FacilityExpenses = ({ facility }: { facility: Facility }) => {
@@ -214,6 +217,11 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
                     {r.vendor && (
                       <span className="block text-[0.85em] text-[var(--hero-muted)]">
                         {String(r.vendor)}
+                      </span>
+                    )}
+                    {r.receipt_url && (
+                      <span className="block mt-1">
+                        <ReceiptLink url={r.receipt_url} />
                       </span>
                     )}
                   </td>

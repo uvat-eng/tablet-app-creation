@@ -10,6 +10,8 @@ import {
   TRANSPORT_STATUS,
   money,
 } from '@/lib/transport';
+import { RECEIPT_FIELD } from '@/lib/expenses';
+import ReceiptLink from '@/components/app/ReceiptLink';
 import { toast } from 'sonner';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -29,6 +31,7 @@ const COST_FIELDS: Field[] = [
   { key: 'vendor', label: 'Поставщик / сервис' },
   { key: 'mileage', label: 'Пробег / моточасы', placeholder: '124 500 км' },
   { key: 'note', label: 'Примечание', type: 'textarea' },
+  RECEIPT_FIELD,
 ];
 
 const TransportCard = () => {
@@ -274,6 +277,11 @@ const TransportCard = () => {
                   {(r.vendor || r.mileage) && (
                     <span className="block text-[0.85em] text-[var(--hero-muted)]">
                       {[r.vendor, r.mileage].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                  {r.receipt_url && (
+                    <span className="block mt-1">
+                      <ReceiptLink url={r.receipt_url} />
                     </span>
                   )}
                 </td>

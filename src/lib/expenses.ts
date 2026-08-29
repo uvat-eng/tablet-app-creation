@@ -1,3 +1,10 @@
+export const RECEIPT_FIELD = {
+  key: 'receipt_url',
+  label: 'Скриншот чека',
+  type: 'photo' as const,
+  folder: 'receipts',
+};
+
 export interface ExpenseCategory {
   key: string;
   label: string;

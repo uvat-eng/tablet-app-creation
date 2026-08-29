@@ -1,6 +1,7 @@
 import Icon from '@/components/ui/icon';
 import { Row } from '@/lib/api';
 import { money } from '@/lib/expenses';
+import ReceiptLink from '@/components/app/ReceiptLink';
 import { SECTION_LABEL, SOURCE_LABEL } from '@/lib/transfers';
 
 interface Props {
@@ -53,7 +54,14 @@ const FinanceOther = ({
                 <td className="px-4 py-2 text-[0.68em]">
                   {String(r.spent_on || '').slice(0, 10)}
                 </td>
-                <td className="px-4 py-2 text-[0.72em]">{String(r.name || '')}</td>
+                <td className="px-4 py-2 text-[0.72em]">
+                  {String(r.name || '')}
+                  {r.receipt_url && (
+                    <span className="block mt-1">
+                      <ReceiptLink url={r.receipt_url} />
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-2 text-[0.68em]">{SOURCE_LABEL(String(r.source))}</td>
                 <td className="px-4 py-2 text-[0.68em]">
                   {r.section ? SECTION_LABEL(String(r.section)) : 'без привязки'}
@@ -109,7 +117,14 @@ const FinanceOther = ({
                       <td className="px-4 py-2 text-[0.68em]">
                         {String(r.spent_on || '').slice(0, 10)}
                       </td>
-                      <td className="px-4 py-2 text-[0.72em]">{String(r.name)}</td>
+                      <td className="px-4 py-2 text-[0.72em]">
+                        {String(r.name)}
+                        {r.receipt_url && (
+                          <span className="block mt-1">
+                            <ReceiptLink url={r.receipt_url} />
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-2 text-[0.68em]">{String(r.vendor || '—')}</td>
                       <td className="px-4 py-2 text-[0.72em] whitespace-nowrap">
                         {money(r.total)}

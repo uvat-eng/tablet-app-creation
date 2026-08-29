@@ -8,6 +8,7 @@ import {
   money,
 } from '@/lib/expenses';
 import { statBlock } from '@/components/app/FinanceSummary';
+import ReceiptLink from '@/components/app/ReceiptLink';
 
 interface Props {
   huntByCategory: Record<string, number>;
@@ -64,7 +65,14 @@ const FinanceHuntOffice = ({
               <td className="px-4 py-3 text-[0.68em]">
                 {HUNT_CATEGORY_LABEL(String(e.category))}
               </td>
-              <td className="px-4 py-3 text-[0.72em]">{String(e.name)}</td>
+              <td className="px-4 py-3 text-[0.72em]">
+                {String(e.name)}
+                {e.receipt_url && (
+                  <span className="block mt-1">
+                    <ReceiptLink url={e.receipt_url} />
+                  </span>
+                )}
+              </td>
               <td className="px-4 py-3 text-[0.68em]">№ {String(e.check_id || '—')}</td>
               <td className="px-4 py-3 text-[0.72em] whitespace-nowrap">{money(e.total)}</td>
             </tr>
@@ -120,7 +128,14 @@ const FinanceHuntOffice = ({
               <td className="px-4 py-3 text-[0.68em]">
                 {OFFICE_CATEGORY_LABEL(String(r.category))}
               </td>
-              <td className="px-4 py-3 text-[0.72em]">{String(r.name || '—')}</td>
+              <td className="px-4 py-3 text-[0.72em]">
+                {String(r.name || '—')}
+                {r.receipt_url && (
+                  <span className="block mt-1">
+                    <ReceiptLink url={r.receipt_url} />
+                  </span>
+                )}
+              </td>
               <td className="px-4 py-3 text-[0.68em]">{String(r.period || '—')}</td>
               <td className="px-4 py-3 text-[0.72em] whitespace-nowrap">{money(r.amount)}</td>
             </tr>

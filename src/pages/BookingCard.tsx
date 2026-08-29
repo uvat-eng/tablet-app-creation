@@ -4,6 +4,7 @@ import Layout from '@/components/app/Layout';
 import DataTable from '@/components/app/DataTable';
 import RecordDialog from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, removeRow } from '@/lib/api';
+import { RECEIPT_FIELD } from '@/lib/expenses';
 import { toast } from 'sonner';
 
 const money = (v: unknown) => `${Number(v || 0).toLocaleString('ru-RU')} ₽`;
@@ -82,6 +83,7 @@ const BookingCard = () => {
       method: String(values.method || 'cash'),
       paid_on: values.paid_on || new Date().toISOString().slice(0, 10),
       note: values.note || null,
+      receipt_url: values.receipt_url || null,
     });
     toast.success('Платёж записан');
     setPayOpen(false);
@@ -263,6 +265,7 @@ const BookingCard = () => {
           },
           { key: 'paid_on', label: 'Дата', type: 'date' },
           { key: 'note', label: 'Комментарий' },
+          RECEIPT_FIELD,
         ]}
       />
     </Layout>

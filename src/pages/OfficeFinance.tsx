@@ -2,8 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
+import ReceiptLink from '@/components/app/ReceiptLink';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { OFFICE_CATEGORIES, OFFICE_CATEGORY_LABEL, money } from '@/lib/expenses';
+import {
+  OFFICE_CATEGORIES,
+  OFFICE_CATEGORY_LABEL,
+  money,
+  RECEIPT_FIELD,
+} from '@/lib/expenses';
 import { toast } from 'sonner';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -30,6 +36,7 @@ const FIELDS: Field[] = [
   { key: 'payer', label: 'Кто платил', placeholder: 'с какого счёта' },
   { key: 'doc_number', label: 'Номер документа', placeholder: 'платёжка, счёт' },
   { key: 'note', label: 'Примечание', type: 'textarea' },
+  RECEIPT_FIELD,
 ];
 
 const OfficeFinance = () => {
@@ -233,7 +240,14 @@ const OfficeFinance = () => {
                 <td className="px-4 py-3 text-[0.68em]">
                   {OFFICE_CATEGORY_LABEL(String(r.category))}
                 </td>
-                <td className="px-4 py-3 text-[0.72em]">{String(r.name || '—')}</td>
+                <td className="px-4 py-3 text-[0.72em]">
+                  {String(r.name || '—')}
+                  {r.receipt_url && (
+                    <span className="block mt-1">
+                      <ReceiptLink url={r.receipt_url} />
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-[0.68em]">{String(r.period || '—')}</td>
                 <td className="px-4 py-3 text-[0.68em]">{String(r.recipient || '—')}</td>
                 <td className="px-4 py-3 text-[0.72em] whitespace-nowrap">{money(r.amount)}</td>

@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { EXPENSE_KINDS, SPLIT_KINDS, HUNT_CATEGORIES, OFFICE_CATEGORIES } from '@/lib/expenses';
+import {
+  EXPENSE_KINDS,
+  SPLIT_KINDS,
+  HUNT_CATEGORIES,
+  OFFICE_CATEGORIES,
+  RECEIPT_FIELD,
+} from '@/lib/expenses';
 import { FACILITIES } from '@/lib/houseCategories';
 import { LOCATION_KINDS } from '@/lib/locationKinds';
 import FinanceSummary from '@/components/app/FinanceSummary';
@@ -29,6 +35,7 @@ const FIELDS: Field[] = [
   { key: 'spent_on', label: 'Дата', type: 'date' },
   { key: 'vendor', label: 'Кому / где' },
   { key: 'note', label: 'Примечание', type: 'textarea' },
+  RECEIPT_FIELD,
 ];
 
 const Finance = () => {

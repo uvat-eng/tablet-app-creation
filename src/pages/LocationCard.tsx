@@ -4,6 +4,7 @@ import Layout from '@/components/app/Layout';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { KIND, STATUSES_FOR, STATUS_LABEL, COST_LABEL, money } from '@/lib/locationKinds';
+import { RECEIPT_FIELD } from '@/lib/expenses';
 import { toast } from 'sonner';
 
 const LocationCard = () => {
@@ -85,6 +86,7 @@ const LocationCard = () => {
       { key: 'spent_on', label: 'Дата', type: 'date' },
       { key: 'vendor', label: 'Поставщик / исполнитель' },
       { key: 'note', label: 'Примечание', type: 'textarea' },
+      RECEIPT_FIELD,
     ],
     [k],
   );

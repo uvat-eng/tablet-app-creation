@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
-import { HUNT_CATEGORIES, HUNT_CATEGORY_LABEL, money } from '@/lib/expenses';
+import { HUNT_CATEGORIES, HUNT_CATEGORY_LABEL, money, RECEIPT_FIELD } from '@/lib/expenses';
+import ReceiptLink from '@/components/app/ReceiptLink';
 import { toast } from 'sonner';
 
 const FIELDS: Field[] = [
@@ -20,6 +21,7 @@ const FIELDS: Field[] = [
   { key: 'spent_on', label: 'Дата', type: 'date' },
   { key: 'vendor', label: 'Поставщик / магазин' },
   { key: 'note', label: 'Примечание', type: 'textarea' },
+  RECEIPT_FIELD,
 ];
 
 const ExpenseAct = () => {
@@ -185,6 +187,11 @@ const ExpenseAct = () => {
                     {r.vendor && (
                       <span className="block text-[0.85em] text-[var(--hero-muted)]">
                         {String(r.vendor)}
+                      </span>
+                    )}
+                    {r.receipt_url && (
+                      <span className="block mt-1">
+                        <ReceiptLink url={r.receipt_url} />
                       </span>
                     )}
                   </td>
