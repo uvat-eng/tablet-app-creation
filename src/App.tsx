@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Bookings from "./pages/Bookings";
 import BookingCard from "./pages/BookingCard";
 import Documents from "./pages/Documents";
+import Files from "./pages/Files";
 import ActCard from "./pages/ActCard";
 import ReceiptCard from "./pages/ReceiptCard";
 import ExpenseAct from "./pages/ExpenseAct";
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/documents/act/:id" element={guard(<ActCard />, 'checks')} />
             <Route path="/documents/receipt/:id" element={guard(<ReceiptCard />, 'checks')} />
             <Route path="/documents/expenses/:id" element={guard(<ExpenseAct />, 'checks')} />
+            <Route path="/files" element={guard(<Files />, 'files')} />
             <Route path="/services" element={guard(<Services />, 'services')} />
             <Route path="/transport" element={guard(<Transport />, 'transport')} />
             <Route path="/transport/:id" element={guard(<TransportCard />, 'transport')} />

@@ -1,0 +1,2 @@
+UPDATE t_p51170708_tablet_app_creation.sessions SET expires_at = NOW() - INTERVAL '1 day' WHERE token = 'selftest-docs-token';
+UPDATE t_p51170708_tablet_app_creation.documents SET archived = TRUE WHERE title = 'Коллективная охота 29.08.2026' AND people = 0;

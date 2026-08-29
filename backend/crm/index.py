@@ -65,6 +65,8 @@ TABLES = {
                   'target_id', 'category', 'note', 'linked_table', 'linked_id', 'archived'],
     'transport_expenses': ['object_id', 'category', 'name', 'unit_price', 'qty', 'unit',
                            'total', 'spent_on', 'vendor', 'mileage', 'note', 'archived'],
+    'documents': ['kind', 'title', 'file_url', 'file_name', 'doc_date', 'guest_id',
+                  'people', 'note', 'archived'],
 }
 
 ORDER = {
@@ -91,19 +93,20 @@ ORDER = {
     'work_photos': 'shot_on DESC NULLS LAST, id DESC',
     'transport_expenses': 'spent_on DESC NULLS LAST, id DESC',
     'transfers': 'spent_on DESC NULLS LAST, id DESC',
+    'documents': 'created_at DESC, id DESC',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
               'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag', 'guest_docs',
-              'transport_expenses', 'transfers'}
+              'transport_expenses', 'transfers', 'documents'}
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
 AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'map_layers',
             'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
             'payments', 'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag',
-            'guest_docs', 'transport_expenses', 'transfers'}
+            'guest_docs', 'transport_expenses', 'transfers', 'documents'}
 
 TITLE_FIELD = {
     'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
@@ -119,6 +122,7 @@ TITLE_FIELD = {
     'work_photos': 'caption',
     'transport_expenses': 'name',
     'transfers': 'name',
+    'documents': 'title',
 }
 
 TABLE_LABEL = {
@@ -135,6 +139,7 @@ TABLE_LABEL = {
     'work_photos': 'Фото работы',
     'transport_expenses': 'Расход по технике',
     'transfers': 'Перевод / личная карта',
+    'documents': 'Готовый документ',
     'booking_services': 'Услуга в брони', 'payments': 'Платёж',
 }
 

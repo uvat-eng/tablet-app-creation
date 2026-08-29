@@ -3,6 +3,9 @@ import io
 import json
 import os
 
+import uuid
+
+import boto3
 import psycopg2
 import psycopg2.extras
 from docx import Document
@@ -468,6 +471,39 @@ def build_collective(payload, hunters, st):
     return buf.getvalue()
 
 
+DOCX_MIME = ('application/vnd.openxmlformats-officedocument.'
+             'wordprocessingml.document')
+
+
+def store_doc(cur, data, kind, title, file_name, doc_date, people, user):
+    """Кладёт готовый файл в хранилище и заводит запись в списке документов."""
+    key = 'docs/' + uuid.uuid4().hex + '.docx'
+    s3 = boto3.client(
+        's3',
+        endpoint_url='https://bucket.poehali.dev',
+        aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
+    )
+    s3.put_object(Bucket='files', Key=key, Body=data, ContentType=DOCX_MIME)
+    url = ('https://cdn.poehali.dev/projects/' + os.environ['AWS_ACCESS_KEY_ID'] +
+           '/bucket/' + key)
+
+    def q(v):
+        if v is None or v == '':
+            return 'NULL'
+        return "'" + str(v).replace("'", "''") + "'"
+
+    uid = str(int(user['id'])) if user else 'NULL'
+    cur.execute(
+        'INSERT INTO documents (kind, title, file_url, file_name, doc_date, people, '
+        'created_by, created_by_name) VALUES (' +
+        q(kind) + ', ' + q(title) + ', ' + q(url) + ', ' + q(file_name) + ', ' +
+        q(doc_date) + ', ' + str(int(people or 0)) + ', ' + uid + ', ' +
+        q(user['name'] if user else None) + ')'
+    )
+    return url
+
+
 def handler(event: dict, context) -> dict:
     """Формирует печатные документы: путевку-договор и коллективный лист охоты в Word."""
     method = event.get('httpMethod', 'GET')
@@ -501,15 +537,19 @@ def handler(event: dict, context) -> dict:
         cur.execute('SELECT * FROM settings WHERE id = 1')
         srow = cur.fetchone()
         st = dict(srow) if srow else {}
+        data = build_collective(payload, hunters, st)
+        day = str(payload.get('hunt_date') or '')[:10]
+        title = 'Коллективная охота ' + (ru_date(day) if day else '')
+        file_name = 'Коллективная охота ' + (day or 'без даты') + '.docx'
+        store_doc(cur, data, 'collective', title.strip(), file_name,
+                  day or None, len(hunters), user)
         cur.close()
         conn.close()
-        data = build_collective(payload, hunters, st)
         return {
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'application/vnd.openxmlformats-officedocument.'
-                                'wordprocessingml.document',
+                'Content-Type': DOCX_MIME,
                 'Content-Disposition': 'attachment; filename="collective.docx"',
             },
             'isBase64Encoded': True,
@@ -534,17 +574,18 @@ def handler(event: dict, context) -> dict:
     cur.execute('SELECT * FROM settings WHERE id = 1')
     srow = cur.fetchone()
     st = dict(srow) if srow else {}
-    cur.close()
-    conn.close()
 
     data = build_contract(guest, st)
     fio = str(guest.get('name') or 'охотник').replace(' ', '_')
+    store_doc(cur, data, 'contract', 'Договор — ' + str(guest.get('name') or ''),
+              'Договор ' + fio + '.docx', None, 1, user)
+    cur.close()
+    conn.close()
     return {
         'statusCode': 200,
         'headers': {
             'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.'
-                            'wordprocessingml.document',
+            'Content-Type': DOCX_MIME,
             'Content-Disposition': 'attachment; filename="dogovor.docx"',
             'X-File-Name': fio,
         },
