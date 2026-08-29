@@ -403,6 +403,7 @@ export interface StaffUser {
   title?: string;
   can_edit_others?: boolean;
   can_remove?: boolean;
+  guest_id?: number | null;
 }
 
 export const login = async (
@@ -480,6 +481,39 @@ export const saveStaff = async (body: Row, method: 'POST' | 'PUT') => {
   if (!res.ok) throw new Error(data.error || 'Ошибка сохранения');
   return data.item;
 };
+export const listHunterAccess = async (): Promise<Row[]> => {
+  const res = await fetch(`${AUTH_URL}?action=hunter_access`, { headers: authHeaders() });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.items || [];
+};
+
+export const saveHunterAccess = async (body: {
+  guest_id: number;
+  login?: string;
+  password?: string;
+}) => {
+  const res = await fetch(`${AUTH_URL}?action=hunter_access`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось выдать доступ');
+  return data.item as Row;
+};
+
+export const revokeHunterAccess = async (guestId: number) => {
+  const res = await fetch(`${AUTH_URL}?action=hunter_access`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+    body: JSON.stringify({ guest_id: guestId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось закрыть доступ');
+  return data;
+};
+
 export const downloadContract = async (guestId: number, fileName: string) => {
   const res = await fetch(`${DOCS_URL}?kind=contract&guest_id=${guestId}`, {
     headers: { 'X-Auth-Token': getToken() },

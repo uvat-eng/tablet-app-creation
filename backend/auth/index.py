@@ -57,7 +57,7 @@ def handler(event: dict, context) -> dict:
             return None
         cur.execute(
             "SELECT s.id, s.name, s.login, s.role, s.permissions, s.title, "
-            "s.can_edit_others, s.can_remove FROM sessions x "
+            "s.can_edit_others, s.can_remove, s.guest_id FROM sessions x "
             "JOIN staff s ON s.id = x.staff_id "
             "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
         )
@@ -70,7 +70,7 @@ def handler(event: dict, context) -> dict:
         role_claim = str(body.get('role', '')).strip()
         cur.execute(
             "SELECT id, name, login, role, permissions, title, can_edit_others, can_remove, "
-            "password_hash FROM staff "
+            "guest_id, password_hash FROM staff "
             "WHERE lower(login) = " + esc(login) + " AND active = TRUE"
         )
         row = cur.fetchone()
@@ -94,7 +94,8 @@ def handler(event: dict, context) -> dict:
                 'role': row['role'], 'permissions': row.get('permissions') or '',
                 'title': row.get('title') or '',
                 'can_edit_others': bool(row.get('can_edit_others')),
-                'can_remove': bool(row.get('can_remove'))}
+                'can_remove': bool(row.get('can_remove')),
+                'guest_id': row.get('guest_id')}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}
@@ -113,6 +114,87 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
 
     me = current_staff()
+
+    if action == 'hunter_access':
+        if not me or me['role'] not in ('owner', 'manager'):
+            close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Доступ выдаёт руководитель'})}
+
+        if method == 'GET':
+            cur.execute("SELECT id, login, name, active, guest_id FROM staff "
+                        "WHERE role = 'hunter' ORDER BY name")
+            items = [dict(r) for r in cur.fetchall()]
+            close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'items': items})}
+
+        guest_id = int(body.get('guest_id') or 0)
+        login = str(body.get('login', '')).strip().lower()
+        password = str(body.get('password', ''))
+
+        if not guest_id:
+            close()
+            return {'statusCode': 400, 'headers': CORS,
+                    'body': json.dumps({'error': 'Выберите охотника'})}
+
+        cur.execute("SELECT id, name FROM guests WHERE id = " + str(guest_id))
+        guest = cur.fetchone()
+        if not guest:
+            close()
+            return {'statusCode': 404, 'headers': CORS,
+                    'body': json.dumps({'error': 'Охотник не найден'})}
+
+        cur.execute("SELECT id FROM staff WHERE guest_id = " + str(guest_id) +
+                    " AND role = 'hunter'")
+        existing = cur.fetchone()
+
+        if method == 'DELETE':
+            if existing:
+                cur.execute("UPDATE staff SET active = FALSE WHERE id = " +
+                            str(existing['id']))
+                cur.execute("DELETE FROM sessions WHERE staff_id = " + str(existing['id']))
+            close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
+
+        if existing:
+            sets = ['active = TRUE', 'name = ' + esc(guest['name'])]
+            if password:
+                sets.append('password_hash = ' + esc(hash_password(password)))
+            if login:
+                cur.execute("SELECT id FROM staff WHERE lower(login) = " + esc(login) +
+                            " AND id <> " + str(existing['id']))
+                if cur.fetchone():
+                    close()
+                    return {'statusCode': 409, 'headers': CORS,
+                            'body': json.dumps({'error': 'Такой логин уже занят'})}
+                sets.append('login = ' + esc(login))
+            cur.execute("UPDATE staff SET " + ', '.join(sets) + " WHERE id = " +
+                        str(existing['id']) +
+                        " RETURNING id, login, name, active, guest_id")
+            row = cur.fetchone()
+            close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': dict(row)})}
+
+        if not login or not password:
+            close()
+            return {'statusCode': 400, 'headers': CORS,
+                    'body': json.dumps({'error': 'Нужны логин и пароль'})}
+
+        cur.execute(
+            "INSERT INTO staff (login, name, password_hash, role, permissions, title, "
+            "guest_id, can_edit_others, can_remove) VALUES (" +
+            esc(login) + ", " + esc(guest['name']) + ", " + esc(hash_password(password)) +
+            ", 'hunter', 'hunter', 'Член клуба', " + str(guest_id) + ", FALSE, FALSE) "
+            "ON CONFLICT (login) DO NOTHING "
+            "RETURNING id, login, name, active, guest_id"
+        )
+        row = cur.fetchone()
+        close()
+        if not row:
+            return {'statusCode': 409, 'headers': CORS,
+                    'body': json.dumps({'error': 'Такой логин уже занят'})}
+        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': dict(row)})}
+
     if not me or me['role'] != 'owner':
         close()
         return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({'error': 'forbidden'})}

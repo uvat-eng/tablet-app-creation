@@ -40,6 +40,11 @@ import Settings from "./pages/Settings";
 import Archive from "./pages/Archive";
 import Download from "./pages/Download";
 import NotFound from "./pages/NotFound";
+import MyHome from "./pages/my/MyHome";
+import MyBiotech from "./pages/my/MyBiotech";
+import MyBag from "./pages/my/MyBag";
+import MyProfile from "./pages/my/MyProfile";
+import MyDocs from "./pages/my/MyDocs";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +64,11 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={guard(<Index />, 'dashboard')} />
+            <Route path="/my" element={guard(<MyHome />, 'my')} />
+            <Route path="/my/biotech" element={guard(<MyBiotech />, 'my-biotech')} />
+            <Route path="/my/bag" element={guard(<MyBag />, 'my-bag')} />
+            <Route path="/my/profile" element={guard(<MyProfile />, 'my-profile')} />
+            <Route path="/my/docs" element={guard(<MyDocs />, 'my-docs')} />
             <Route path="/bookings" element={guard(<Bookings />, 'bookings')} />
             <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />
             <Route path="/documents" element={guard(<Documents />, 'checks')} />

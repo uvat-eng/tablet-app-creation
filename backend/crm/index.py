@@ -111,6 +111,13 @@ AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations'
             'payments', 'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag',
             'guest_docs', 'transport_expenses', 'transfers', 'documents'}
 
+HUNTER_READ = {'locations', 'map_layers', 'biotech_works', 'work_photos', 'guests',
+               'hunter_bag', 'guest_docs', 'documents', 'trophies'}
+
+HUNTER_WRITE = {'locations', 'biotech_works', 'work_photos', 'guests', 'hunter_bag'}
+
+HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'documents'}
+
 TITLE_FIELD = {
     'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
     'trophies': 'species', 'locations': 'name', 'map_layers': 'name', 'reviews': 'author',
@@ -208,7 +215,8 @@ def current_user(cur, event):
     if not token:
         return None
     cur.execute(
-        "SELECT s.id, s.name, s.role, s.can_edit_others, s.can_remove FROM sessions x "
+        "SELECT s.id, s.name, s.role, s.can_edit_others, s.can_remove, s.guest_id "
+        "FROM sessions x "
         "JOIN staff s ON s.id = x.staff_id "
         "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
     )
@@ -345,6 +353,23 @@ def handler(event: dict, context) -> dict:
     conn.autocommit = True
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    viewer = current_user(cur, event)
+    is_hunter = bool(viewer and viewer.get('role') == 'hunter')
+    my_guest = int(viewer.get('guest_id') or 0) if viewer else 0
+
+    if is_hunter:
+        allowed = HUNTER_READ if method == 'GET' else HUNTER_WRITE
+        if table not in allowed:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Этот раздел доступен только хозяйству'})}
+        if method == 'DELETE':
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Удалять записи может только хозяйство'})}
+
     if method == 'GET':
         show_archived = params.get('archived') == '1'
         where = []
@@ -358,6 +383,9 @@ def handler(event: dict, context) -> dict:
         if params.get('guest_id') and table in ('club_fees', 'club_bag', 'biotech_works',
                                                 'hunter_bag', 'guest_docs'):
             where.append('guest_id = ' + str(int(params['guest_id'])))
+        if is_hunter and table in HUNTER_OWN_ONLY:
+            key = 'id' if table == 'guests' else 'guest_id'
+            where.append(key + ' = ' + str(my_guest or 0))
         if params.get('year') and table == 'club_fees':
             where.append('year = ' + str(int(params['year'])))
         if params.get('season') and table == 'club_bag':
@@ -383,7 +411,24 @@ def handler(event: dict, context) -> dict:
 
     body = json.loads(event.get('body') or '{}')
     fields = TABLES[table]
-    me = current_user(cur, event)
+    me = viewer
+
+    if is_hunter:
+        if not my_guest:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Ваш доступ не привязан к карточке охотника'})}
+        if table in ('biotech_works', 'hunter_bag'):
+            body['guest_id'] = my_guest
+        if table == 'guests':
+            if method == 'POST' or int(body.get('id') or 0) != my_guest:
+                cur.close()
+                conn.close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Можно менять только свою анкету'})}
+            for locked in ('club_member', 'club_until', 'fee_monthly', 'archived'):
+                body.pop(locked, None)
 
     if table == 'bookings' and method in ('POST', 'PUT'):
         conflict = check_conflict(cur, body)
@@ -438,7 +483,13 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 404, 'headers': CORS,
                     'body': json.dumps({'error': 'Запись не найдена'})}
 
-        if table in AUTHORED and me and not me.get('can_edit_others'):
+        own_record = is_hunter and (
+            (table == 'guests' and int(before.get('id') or 0) == my_guest)
+            or (table in ('biotech_works', 'hunter_bag')
+                and int(before.get('guest_id') or 0) == my_guest)
+        )
+
+        if table in AUTHORED and me and not me.get('can_edit_others') and not own_record:
             owner_id = before.get('created_by')
             if owner_id and int(owner_id) != int(me['id']):
                 cur.close()

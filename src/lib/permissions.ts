@@ -30,6 +30,16 @@ export const SECTIONS: Section[] = [
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
+export const HUNTER_SECTIONS: Section[] = [
+  { key: 'my', to: '/my', label: 'Мой кабинет', icon: 'UserRound' },
+  { key: 'map', to: '/map', label: 'Карта хозяйства', icon: 'Map' },
+  { key: 'locations', to: '/locations', label: 'Локации', icon: 'MapPin' },
+  { key: 'my-biotech', to: '/my/biotech', label: 'Моя биотехния', icon: 'Trees' },
+  { key: 'my-bag', to: '/my/bag', label: 'Моя добыча', icon: 'Target' },
+  { key: 'my-profile', to: '/my/profile', label: 'Мои данные', icon: 'IdCard' },
+  { key: 'my-docs', to: '/my/docs', label: 'Мои документы', icon: 'FolderOpen' },
+];
+
 export const OWNER_ONLY: Section[] = [
   { key: 'staff', to: '/staff', label: 'Сотрудники', icon: 'UserCog' },
   { key: 'settings', to: '/settings', label: 'Настройки', icon: 'Settings' },
@@ -39,7 +49,10 @@ export const ROLES: Record<string, string> = {
   owner: 'Владелец',
   manager: 'Администратор',
   staff: 'Сотрудник',
+  hunter: 'Член клуба',
 };
+
+export const isHunter = (user: StaffUser | null) => user?.role === 'hunter';
 
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   manager: [
@@ -58,6 +71,7 @@ export const parsePermissions = (raw: unknown): string[] =>
 export const can = (user: StaffUser | null, key: string): boolean => {
   if (!user) return false;
   if (user.role === 'owner') return true;
+  if (user.role === 'hunter') return HUNTER_SECTIONS.some((s) => s.key === key);
   const list = parsePermissions(user.permissions);
   if (list.includes('all')) return true;
   if (!list.length) return (DEFAULT_PERMISSIONS[user.role] || []).includes(key);
@@ -66,6 +80,7 @@ export const can = (user: StaffUser | null, key: string): boolean => {
 
 export const allowedSections = (user: StaffUser | null): Section[] => {
   if (!user) return [];
+  if (user.role === 'hunter') return HUNTER_SECTIONS;
   const base = SECTIONS.filter((s) => can(user, s.key));
   return user.role === 'owner' ? [...base, ...OWNER_ONLY] : base;
 };

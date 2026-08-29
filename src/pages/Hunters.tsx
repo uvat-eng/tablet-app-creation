@@ -132,6 +132,7 @@ const Hunters = () => {
           <button className="h-cta-ghost" onClick={() => setSheetOpen(true)}>
             <Icon name="ClipboardList" size={15} /> Коллективный лист
           </button>
+
           <button className="h-cta" onClick={() => setOpen(true)}>
             <Icon name="Plus" size={15} /> Добавить охотника
           </button>

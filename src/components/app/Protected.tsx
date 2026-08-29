@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { can } from '@/lib/permissions';
+import { can, isHunter } from '@/lib/permissions';
 import { useSettings } from '@/context/SettingsContext';
 import Login from '@/pages/Login';
 import Setup from '@/pages/Setup';
@@ -14,6 +15,7 @@ interface ProtectedProps {
 const Protected = ({ children, ownerOnly = false, section }: ProtectedProps) => {
   const { user, loading } = useAuth();
   const { settings, loading: settingsLoading } = useSettings();
+  const location = useLocation();
 
   if (loading || settingsLoading) {
     return (
@@ -35,6 +37,10 @@ const Protected = ({ children, ownerOnly = false, section }: ProtectedProps) => 
   }
 
   const denied = (ownerOnly && user.role !== 'owner') || (section && !can(user, section));
+
+  if (denied && isHunter(user) && location.pathname !== '/my') {
+    return <Navigate to="/my" replace />;
+  }
 
   if (denied) {
     return (

@@ -5,6 +5,7 @@ import Icon from '@/components/ui/icon';
 import { Row, listRows } from '@/lib/api';
 import { money } from '@/lib/expenses';
 import CollectiveSheetDialog from '@/components/app/CollectiveSheetDialog';
+import HunterAccessDialog from '@/components/app/HunterAccessDialog';
 
 const FEE = 6500;
 const MONTHS_RU = [
@@ -21,15 +22,21 @@ const QUARTERS = [
 const Club = () => {
   const onlyMembers = useCallback((r: Row) => Boolean(r.club_member), []);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(false);
   const [fees, setFees] = useState<Row[]>([]);
+  const [members, setMembers] = useState<Row[]>([]);
 
   useEffect(() => {
     listRows('club_fees').then(setFees).catch(() => setFees([]));
+    listRows('guests')
+      .then((g) => setMembers(g.filter((r) => r.club_member)))
+      .catch(() => setMembers([]));
   }, []);
 
   return (
     <>
       <CollectiveSheetDialog open={sheetOpen} onOpenChange={setSheetOpen} />
+      <HunterAccessDialog open={accessOpen} onOpenChange={setAccessOpen} guests={members} />
       <CrudPage
       table="guests"
       index="Раздел / Закрытый клуб охотников"
@@ -38,9 +45,14 @@ const Club = () => {
       addLabel="Добавить члена клуба"
       searchKeys={['name', 'phone', 'city', 'note']}
       headExtra={
-        <button className="h-cta-ghost" onClick={() => setSheetOpen(true)}>
-          <Icon name="ClipboardList" size={15} /> Коллективный лист
-        </button>
+        <>
+          <button className="h-cta-ghost" onClick={() => setSheetOpen(true)}>
+            <Icon name="ClipboardList" size={15} /> Коллективный лист
+          </button>
+          <button className="h-cta-ghost" onClick={() => setAccessOpen(true)}>
+            <Icon name="KeyRound" size={15} /> Доступ в кабинет
+          </button>
+        </>
       }
       rowLink={(r) => `/club/${r.id}`}
       filter={onlyMembers}
