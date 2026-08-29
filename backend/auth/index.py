@@ -57,7 +57,7 @@ def handler(event: dict, context) -> dict:
             return None
         cur.execute(
             "SELECT s.id, s.name, s.login, s.role, s.permissions, s.title, "
-            "s.can_edit_others, s.can_remove, s.guest_id, s.can_approve_hunts FROM sessions x "
+            "s.can_edit_others, s.can_remove, s.guest_id, s.can_approve_hunts, s.can_supply FROM sessions x "
             "JOIN staff s ON s.id = x.staff_id "
             "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
         )
@@ -70,7 +70,7 @@ def handler(event: dict, context) -> dict:
         role_claim = str(body.get('role', '')).strip()
         cur.execute(
             "SELECT id, name, login, role, permissions, title, can_edit_others, can_remove, "
-            "guest_id, can_approve_hunts, password_hash FROM staff "
+            "guest_id, can_approve_hunts, can_supply, password_hash FROM staff "
             "WHERE lower(login) = " + esc(login) + " AND active = TRUE"
         )
         row = cur.fetchone()
@@ -96,7 +96,8 @@ def handler(event: dict, context) -> dict:
                 'can_edit_others': bool(row.get('can_edit_others')),
                 'can_remove': bool(row.get('can_remove')),
                 'guest_id': row.get('guest_id'),
-                'can_approve_hunts': bool(row.get('can_approve_hunts'))}
+                'can_approve_hunts': bool(row.get('can_approve_hunts')),
+                'can_supply': bool(row.get('can_supply'))}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}
@@ -143,7 +144,7 @@ def handler(event: dict, context) -> dict:
         user = {'id': row['id'], 'name': row['name'], 'login': row['login'],
                 'role': 'hunter', 'permissions': 'hunter', 'title': 'Охотник',
                 'can_edit_others': False, 'can_remove': False,
-                'guest_id': guest_id, 'can_approve_hunts': False}
+                'guest_id': guest_id, 'can_approve_hunts': False, 'can_supply': False}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}

@@ -38,6 +38,12 @@
       "method": "GET",
       "path": "/?table=hunt_requests",
       "expectedStatus": 200
+    },
+    {
+      "name": "Заказы снабжения без входа",
+      "method": "GET",
+      "path": "/?table=supply_orders",
+      "expectedStatus": 403
     }
   ]
 }

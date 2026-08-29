@@ -11,6 +11,8 @@ export const SECTIONS: Section[] = [
   { key: 'dashboard', to: '/', label: 'Главная', icon: 'LayoutDashboard' },
   { key: 'bookings', to: '/bookings', label: 'Бронирования', icon: 'CalendarDays' },
   { key: 'hunt-requests', to: '/hunt-requests', label: 'Заявки на охоту', icon: 'Inbox' },
+  { key: 'supply-new', to: '/supply/new', label: 'Заказ', icon: 'ShoppingCart' },
+  { key: 'supply', to: '/supply', label: 'Заявки на закупку', icon: 'Package' },
   { key: 'checks', to: '/documents', label: 'Акты и чеки', icon: 'ReceiptText' },
   { key: 'services', to: '/services', label: 'Услуги', icon: 'ClipboardList' },
   { key: 'transport', to: '/transport', label: 'Транспорт', icon: 'Truck' },
@@ -99,6 +101,10 @@ export const parsePermissions = (raw: unknown): string[] =>
 
 export const can = (user: StaffUser | null, key: string): boolean => {
   if (!user) return false;
+  if (key === 'supply') return Boolean(user.can_supply);
+  if (key === 'supply-new') {
+    return parsePermissions(user.permissions).includes('supply-new');
+  }
   if (user.role === 'owner') return true;
   if (user.role === 'hunter') return HUNTER_SECTIONS.some((s) => s.key === key);
   const list = parsePermissions(user.permissions);

@@ -405,6 +405,7 @@ export interface StaffUser {
   can_remove?: boolean;
   guest_id?: number | null;
   can_approve_hunts?: boolean;
+  can_supply?: boolean;
 }
 
 export const signup = async (body: {

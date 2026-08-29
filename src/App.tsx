@@ -9,6 +9,8 @@ import Protected from "@/components/app/Protected";
 import Index from "./pages/Index";
 import Bookings from "./pages/Bookings";
 import HuntRequests from "./pages/HuntRequests";
+import Supply from "./pages/Supply";
+import SupplyNew from "./pages/SupplyNew";
 import BookingCard from "./pages/BookingCard";
 import Documents from "./pages/Documents";
 import Files from "./pages/Files";
@@ -82,6 +84,8 @@ const App = () => (
             <Route path="/my/review" element={guard(<MyReview />, 'my-review')} />
             <Route path="/bookings" element={guard(<Bookings />, 'bookings')} />
             <Route path="/hunt-requests" element={guard(<HuntRequests />, 'hunt-requests')} />
+            <Route path="/supply" element={guard(<Supply />, 'supply')} />
+            <Route path="/supply/new" element={guard(<SupplyNew />, 'supply-new')} />
             <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />
             <Route path="/documents" element={guard(<Documents />, 'checks')} />
             <Route path="/documents/act/:id" element={guard(<ActCard />, 'checks')} />

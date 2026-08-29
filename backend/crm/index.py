@@ -71,6 +71,11 @@ TABLES = {
     'hunt_requests': ['guest_id', 'hunter_name', 'hunter_phone', 'date_from', 'date_to',
                       'people', 'species', 'est_total', 'extras', 'note', 'status',
                       'booking_id', 'decline_reason', 'archived'],
+    'supply_orders': ['title', 'facility', 'category', 'urgency', 'note', 'status',
+                      'planned_total', 'spent_total', 'bought_on', 'receipt_url',
+                      'decline_reason', 'archived'],
+    'supply_items': ['order_id', 'name', 'qty', 'unit', 'facility', 'est_price', 'spent',
+                     'bought', 'note'],
     'hunt_request_items': ['request_id', 'service_id', 'kind', 'name', 'price', 'qty', 'total'],
     'documents': ['kind', 'title', 'file_url', 'file_name', 'doc_date', 'guest_id',
                   'people', 'note', 'archived'],
@@ -103,19 +108,22 @@ ORDER = {
     'documents': 'created_at DESC, id DESC',
     'hunt_requests': 'created_at DESC, id DESC',
     'hunt_request_items': 'id',
+    'supply_orders': 'created_at DESC, id DESC',
+    'supply_items': 'id',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
               'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag', 'guest_docs',
-              'transport_expenses', 'transfers', 'documents', 'hunt_requests'}
+              'transport_expenses', 'transfers', 'documents', 'hunt_requests', 'supply_orders'}
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
 AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'map_layers',
             'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
             'payments', 'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag',
-            'guest_docs', 'transport_expenses', 'transfers', 'documents'}
+            'guest_docs', 'transport_expenses', 'transfers', 'documents',
+            'hunt_requests', 'supply_orders'}
 
 HUNTER_READ = {'locations', 'map_layers', 'biotech_works', 'work_photos', 'guests',
                'hunter_bag', 'guest_docs', 'documents', 'trophies', 'club_fees',
@@ -135,6 +143,7 @@ HUNTER_LOCKED = {
 }
 
 TITLE_FIELD = {
+    'supply_orders': 'title', 'supply_items': 'name',
     'bookings': 'guest_name', 'objects': 'name', 'guests': 'name', 'services': 'name',
     'trophies': 'species', 'locations': 'name', 'map_layers': 'name', 'reviews': 'author',
     'checks': 'guest_name', 'receipts': 'number', 'house_expenses': 'name',
@@ -231,7 +240,8 @@ def current_user(cur, event):
     if not token:
         return None
     cur.execute(
-        "SELECT s.id, s.name, s.role, s.can_edit_others, s.can_remove, s.guest_id "
+        "SELECT s.id, s.name, s.role, s.can_edit_others, s.can_remove, s.guest_id, "
+        "s.can_approve_hunts, s.can_supply, s.login "
         "FROM sessions x "
         "JOIN staff s ON s.id = x.staff_id "
         "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
@@ -386,9 +396,21 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 403, 'headers': CORS,
                     'body': json.dumps({'error': 'Удалять записи может только хозяйство'})}
 
+    if table in ('supply_orders', 'supply_items'):
+        if is_hunter or not viewer:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Раздел закрыт'})}
+
     if method == 'GET':
         show_archived = params.get('archived') == '1'
         where = []
+        if table == 'supply_orders' and not viewer.get('can_supply'):
+            where.append('created_by = ' + str(int(viewer['id'])))
+        if table == 'supply_items' and not viewer.get('can_supply'):
+            where.append('order_id IN (SELECT id FROM supply_orders WHERE created_by = ' +
+                         str(int(viewer['id'])) + ')')
         if table in ARCHIVABLE and not show_archived:
             where.append('archived = FALSE')
         if params.get('booking_id') and table in ('booking_services', 'payments', 'checks',
@@ -466,6 +488,39 @@ def handler(event: dict, context) -> dict:
         for locked in HUNTER_LOCKED.get(table, ()):
             body.pop(locked, None)
 
+    if table in ('supply_orders', 'supply_items') and not viewer.get('can_supply'):
+        if table == 'supply_orders':
+            for locked in ('status', 'spent_total', 'bought_on', 'receipt_url',
+                           'decline_reason', 'archived'):
+                body.pop(locked, None)
+            if method == 'PUT':
+                cur.execute("SELECT created_by, status FROM supply_orders WHERE id = " +
+                            str(int(body.get('id') or 0)))
+                own = cur.fetchone()
+                if not own or int(own['created_by'] or 0) != int(viewer['id']):
+                    cur.close()
+                    conn.close()
+                    return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                        'error': 'Можно менять только свою заявку'})}
+                if str(own['status'] or '') != 'new':
+                    cur.close()
+                    conn.close()
+                    return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                        'error': 'Заявку уже взяли в работу — менять нельзя'})}
+        else:
+            for locked in ('spent', 'bought'):
+                body.pop(locked, None)
+            order_id = int(body.get('order_id') or 0)
+            if order_id:
+                cur.execute("SELECT created_by, status FROM supply_orders WHERE id = " +
+                            str(order_id))
+                own = cur.fetchone()
+                if not own or int(own['created_by'] or 0) != int(viewer['id']):
+                    cur.close()
+                    conn.close()
+                    return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                        'error': 'Можно менять только свою заявку'})}
+
     if table == 'hunt_requests' and method == 'PUT' and not is_hunter:
         new_status = str(body.get('status') or '')
         if new_status in ('approved', 'declined'):
@@ -533,6 +588,9 @@ def handler(event: dict, context) -> dict:
             or (table in ('biotech_works', 'hunter_bag', 'club_bag')
                 and int(before.get('guest_id') or 0) == my_guest)
         )
+
+        if table in ('supply_orders', 'supply_items') and me and me.get('can_supply'):
+            own_record = True
 
         if table in AUTHORED and me and not me.get('can_edit_others') and not own_record:
             owner_id = before.get('created_by')
