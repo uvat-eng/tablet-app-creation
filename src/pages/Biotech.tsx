@@ -13,6 +13,8 @@ import {
   EMPTY_DONE,
   addWork,
   earnedLicenses,
+  materialValue,
+  MATERIAL_PRICES,
 } from '@/lib/biotech';
 import { money } from '@/lib/expenses';
 import WorkPhotos from '@/components/app/WorkPhotos';
@@ -99,40 +101,64 @@ const Biotech = () => {
       if (!map[k]) map[k] = { hours: 0, qty: 0, value: 0 };
       map[k].hours += Number(r.hours || 0);
       map[k].qty += Number(r.qty || 0);
-      map[k].value += Number(r.value_rub || 0);
+      map[k].value += Number(r.value_rub || 0) || materialValue(k, r.qty);
     });
     return map;
   }, [yearRows]);
 
+  const rowValue = useCallback(
+    (r: Row) => Number(r.value_rub || 0) || materialValue(String(r.kind), r.qty),
+    [],
+  );
+
   const totals = useMemo(() => {
     const hours = yearRows.reduce((s, r) => s + Number(r.hours || 0), 0);
-    const value = yearRows.reduce((s, r) => s + Number(r.value_rub || 0), 0);
+    const value = yearRows.reduce((s, r) => s + rowValue(r), 0);
     const people = new Set(
       yearRows.map((r) => String(r.guest_id || r.hunter_name || '')).filter(Boolean),
     ).size;
     return { hours, value, people, count: yearRows.length };
-  }, [yearRows]);
+  }, [yearRows, rowValue]);
 
   const ranking = useMemo(() => {
     const map = new Map<
       string,
-      { name: string; hours: number; value: number; club: boolean; done: typeof EMPTY_DONE }
+      {
+        name: string;
+        hours: number;
+        value: number;
+        club: boolean;
+        done: typeof EMPTY_DONE;
+        fuel: number;
+        grain: number;
+      }
     >();
     yearRows.forEach((r) => {
       const g = guests.find((x) => String(x.id) === String(r.guest_id));
       const name = String(g?.name || r.hunter_name || 'Без имени');
       const cur =
         map.get(name) ||
-        { name, hours: 0, value: 0, club: Boolean(g?.club_member), done: EMPTY_DONE };
+        {
+          name,
+          hours: 0,
+          value: 0,
+          club: Boolean(g?.club_member),
+          done: EMPTY_DONE,
+          fuel: 0,
+          grain: 0,
+        };
+      const k = String(r.kind);
       cur.hours += Number(r.hours || 0);
-      cur.value += Number(r.value_rub || 0);
-      cur.done = addWork(cur.done, String(r.kind), Number(r.qty || 0));
+      cur.value += rowValue(r);
+      cur.done = addWork(cur.done, k, Number(r.qty || 0));
+      if (k === 'fuel') cur.fuel += Number(r.qty || 0);
+      if (k === 'grain') cur.grain += Number(r.qty || 0);
       map.set(name, cur);
     });
     return [...map.values()]
       .map((r) => ({ ...r, licenses: earnedLicenses(r.done) }))
       .sort((a, b) => b.hours - a.hours);
-  }, [yearRows, guests]);
+  }, [yearRows, guests, rowValue]);
 
   const fields: Field[] = useMemo(
     () => [
@@ -155,7 +181,11 @@ const Biotech = () => {
       { key: 'hours', label: 'Трудочасы', type: 'number' },
       { key: 'qty', label: 'Количество (литры, кг, га)', type: 'number' },
       { key: 'unit', label: 'Единица', placeholder: 'л, кг, га, шт' },
-      { key: 'value_rub', label: 'Оценка в рублях', type: 'number' },
+      {
+        key: 'value_rub',
+        label: 'Оценка в рублях — топливо 80 ₽/л, зерно 10 ₽/кг считается само',
+        type: 'number',
+      },
       {
         key: 'location_id',
         label: 'Локация',
@@ -180,6 +210,7 @@ const Biotech = () => {
 
   const save = async (values: Row) => {
     const g = guests.find((x) => String(x.id) === String(values.guest_id));
+    const auto = materialValue(String(values.kind), values.qty);
     const payload: Row = {
       ...values,
       guest_id: values.guest_id ? Number(values.guest_id) : null,
@@ -187,7 +218,7 @@ const Biotech = () => {
       hunter_name: g ? String(g.name) : String(values.hunter_name || ''),
       hours: Number(values.hours || 0),
       qty: Number(values.qty || 0),
-      value_rub: Number(values.value_rub || 0),
+      value_rub: Number(values.value_rub || 0) || auto,
       work_on: String(values.work_on || today()),
       status: String(values.status || 'done'),
       unit: String(values.unit || BIOTECH_KIND(String(values.kind)).unit),
@@ -475,7 +506,8 @@ const Biotech = () => {
           <div className="h-head text-[22px] mb-1">Вклад охотников</div>
           <p className="h-label mb-3 leading-relaxed">
             Путёвки считаются по таблице №1 договора: кормушки или посев полей, плюс солонцы,
-            плюс галечники — на каждую особь.
+            плюс галечники — на каждую особь. Топливо и зерно идут в денежную оценку:
+            топливо {MATERIAL_PRICES.fuel} ₽ за литр, зерно {MATERIAL_PRICES.grain} ₽ за кг.
           </p>
           <div className="border border-[#e2e2df] overflow-x-auto">
             <table className="w-full min-w-[860px]">
@@ -501,6 +533,13 @@ const Biotech = () => {
                         кормушки {r.done.feeder} · поля {r.done.fieldHa} га · солонцы{' '}
                         {r.done.salt} · галечники {r.done.gravel}
                       </div>
+                      {(r.fuel > 0 || r.grain > 0) && (
+                        <div className="h-label mt-1">
+                          {r.fuel > 0 && `топливо ${r.fuel} л`}
+                          {r.fuel > 0 && r.grain > 0 && ' · '}
+                          {r.grain > 0 && `зерно ${r.grain} кг`}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-2 text-[0.72em]">{hoursText(r.hours)}</td>
                     <td className="px-4 py-2 text-[0.72em]">{money(r.value)}</td>

@@ -38,6 +38,17 @@ export const BIOTECH_STATUS: Record<string, string> = {
   counted: 'Зачтено в долг',
 };
 
+export const MATERIAL_PRICES: Record<string, number> = {
+  fuel: 80,
+  grain: 10,
+};
+
+export const materialValue = (kind: string, qty: unknown) => {
+  const price = MATERIAL_PRICES[kind];
+  if (!price) return 0;
+  return Math.round(Number(qty || 0) * price);
+};
+
 export interface LicenseNorm {
   key: string;
   species: string;
