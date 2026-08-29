@@ -5,6 +5,7 @@ import DataTable from '@/components/app/DataTable';
 import { Row, listRows, downloadContract, removeRow } from '@/lib/api';
 import Icon from '@/components/ui/icon';
 import HelpDialog from '@/components/app/HelpDialog';
+import HunterActivity from '@/components/app/HunterActivity';
 import { HELP_KINDS, HELP_LABEL } from '@/lib/help';
 import { toast } from 'sonner';
 
@@ -236,6 +237,8 @@ const GuestCard = () => {
           )}
         </table>
       </div>
+
+      <HunterActivity guestId={guestId} guestName={String(guest.name)} />
 
       <div className="mt-10 h-label mb-3">История заездов</div>
       <DataTable

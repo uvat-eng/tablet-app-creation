@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
+import HunterActivity from '@/components/app/HunterActivity';
 import { Row, listRows, updateRow, createRow, removeRow } from '@/lib/api';
 import { SPECIES, SPECIES_ONE } from '@/lib/species';
 import { COUNTRIES } from '@/lib/countries';
@@ -414,9 +415,11 @@ const HunterCard = () => {
         </table>
       </div>
 
+      <HunterActivity guestId={Number(id)} guestName={String(guest.name)} />
+
       {bookings.length > 0 && (
         <>
-          <div className="h-head text-[22px] mb-3">Заезды</div>
+          <div className="h-head text-[22px] mt-10 mb-3">Заезды</div>
           <div className="border border-[#e2e2df] overflow-x-auto">
             <table className="w-full min-w-[520px]">
               <thead>
