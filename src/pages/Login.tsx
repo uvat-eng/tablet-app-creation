@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { ROLES } from '@/lib/permissions';
 import Icon from '@/components/ui/icon';
 import Brand from '@/components/app/Brand';
-
-const STAFF_ROLES = Object.entries(ROLES).filter(([key]) => key !== 'hunter');
 
 type Mode = '' | 'staff' | 'hunter' | 'signup';
 
@@ -12,7 +9,6 @@ const Login = () => {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<Mode>('');
   const [login, setLogin] = useState('');
-  const [role, setRole] = useState('owner');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,7 +24,7 @@ const Login = () => {
       if (mode === 'signup') {
         await signUp({ name, phone, city, login, password });
       } else {
-        await signIn(login, password, mode === 'hunter' ? 'hunter' : role);
+        await signIn(login, password, mode === 'hunter' ? 'hunter' : 'staff');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка входа');
@@ -176,24 +172,6 @@ const Login = () => {
             onChange={(e) => setLogin(e.target.value)}
           />
         </label>
-
-        {!hunter && !reg && (
-          <div className="mt-4">
-            <span className="h-label block mb-2">Роль</span>
-            <div className="flex flex-wrap gap-2">
-              {STAFF_ROLES.map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={role === value ? 'h-cta' : 'h-cta-ghost'}
-                  onClick={() => setRole(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <label className="block mt-4">
           <span className="h-label block mb-1">Пароль</span>

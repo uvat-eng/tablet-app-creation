@@ -79,10 +79,16 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 401, 'headers': CORS,
                     'body': json.dumps({'error': 'Неверный логин или пароль'})}
 
-        if role_claim and role_claim != row['role']:
+        is_hunter_login = row['role'] == 'hunter'
+        wants_hunter = role_claim == 'hunter'
+
+        if role_claim and wants_hunter != is_hunter_login:
             close()
+            msg = ('Это логин сотрудника хозяйства — выберите «Сотрудник хозяйства»'
+                   if is_hunter_login is False
+                   else 'Это логин охотника — выберите вход «Охотник»')
             return {'statusCode': 401, 'headers': CORS,
-                    'body': json.dumps({'error': 'Выбрана не та роль для этого логина'})}
+                    'body': json.dumps({'error': msg})}
 
         new_token = secrets.token_hex(24)
         expires = (datetime.utcnow() + timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
