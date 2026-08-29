@@ -462,6 +462,35 @@ export const downloadBiotech = async (body: {
   URL.revokeObjectURL(url);
 };
 
+export const downloadBioAct = async (body: {
+  guest_id?: number | null;
+  number?: string;
+  signed_on?: string;
+  period?: string;
+  year?: number | null;
+  licenses?: string[];
+  fileName: string;
+}) => {
+  const res = await fetch(`${DOCS_URL}?kind=bio_act`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': getToken() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Не удалось собрать акт');
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Акт биотехния ${body.fileName}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 export interface CollectiveSheet {
   hunt_date: string;
   place: string;

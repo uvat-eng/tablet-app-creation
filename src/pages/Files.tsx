@@ -11,6 +11,7 @@ const KIND_LABEL: Record<string, string> = {
   collective: 'Коллективный лист охоты',
   contract: 'Договор с охотником',
   biotech: 'Договор по биотехнии',
+  bio_act: 'Акт биотехнических работ',
 };
 
 const ru = (d: unknown) => {
@@ -69,6 +70,7 @@ const Files = () => {
     { key: 'collective', label: 'Листы охоты' },
     { key: 'contract', label: 'Договоры клуба' },
     { key: 'biotech', label: 'Договоры биотехнии' },
+    { key: 'bio_act', label: 'Акты биотехнии' },
   ];
 
   return (

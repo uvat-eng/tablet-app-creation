@@ -521,6 +521,133 @@ def build_biotech(guest, st, payload):
     return buf.getvalue()
 
 
+BIO_ACT_KINDS = [
+    ('feeder', 'Подкормочная площадка (кормушка)', 'шт'),
+    ('field', 'Подкормочное поле (посев рапса)', 'га'),
+    ('sowing', 'Участие в посевах', 'га'),
+    ('salt', 'Солонец', 'шт'),
+    ('gravel', 'Галечник', 'шт'),
+    ('sign', 'Аншлаги и указатели', 'шт'),
+    ('biotech', 'Прочие биотехнические работы', 'шт'),
+    ('repair', 'Ремонты и стройки', 'шт'),
+    ('fuel', 'Передано топливо', 'л'),
+    ('grain', 'Передано зерно', 'кг'),
+]
+
+BIO_ACT_LABEL = dict((k, (label, unit)) for k, label, unit in BIO_ACT_KINDS)
+
+
+def build_bio_act(guest, st, payload, works):
+    """Акт сдачи-приёмки выполненных биотехнических мероприятий."""
+    doc = Document()
+    set_font(doc)
+    sec = doc.sections[0]
+    sec.top_margin = Cm(1.5)
+    sec.bottom_margin = Cm(1.5)
+    sec.left_margin = Cm(2.0)
+    sec.right_margin = Cm(1.5)
+
+    number = str(payload.get('number') or '').strip() or '____'
+    para(doc, 'АКТ № ' + number, bold=True, align='center', size=14, space_after=0)
+    para(doc, 'сдачи-приёмки выполненных биотехнических мероприятий',
+         bold=True, align='center', size=12, space_after=10)
+
+    signed = ru_date(payload.get('signed_on'))
+    para(doc, (signed if signed else '«___» __________ 20___ г.'),
+         align='left', space_after=0)
+    para(doc, str(st.get('base_place') or ''), align='left', space_after=10)
+
+    org = str(st.get('org_name') or '')
+    director = str(st.get('org_director') or '')
+    period = str(payload.get('period') or '').strip()
+    para(doc, org + ', в лице директора ' + (director or '____________________') +
+         ', именуемое далее «Заказчик», с одной стороны, и ' +
+         doc_value(guest.get('name'), 40) + ', именуемый далее «Охотник», с другой '
+         'стороны, составили настоящий акт о том, что Охотник выполнил, а Заказчик '
+         'принял следующие биотехнические мероприятия' +
+         (' за период ' + period if period else '') + ':', space_after=8)
+
+    t = doc.add_table(rows=0, cols=5)
+    t.style = 'Table Grid'
+    head = t.add_row().cells
+    for cell, title in zip(head, ['№', 'Вид мероприятия', 'Ед.', 'Объём', 'Место']):
+        cell.text = title
+        for p in cell.paragraphs:
+            for r in p.runs:
+                r.bold = True
+
+    totals = {}
+    hours = 0.0
+    for i, w in enumerate(works, 1):
+        kind = str(w.get('kind') or '')
+        label, unit = BIO_ACT_LABEL.get(kind, (kind, str(w.get('unit') or 'шт')))
+        qty = float(w.get('qty') or 0)
+        hours += float(w.get('hours') or 0)
+        totals[label] = totals.get(label, 0) + qty
+        cells = t.add_row().cells
+        cells[0].text = str(i)
+        cells[1].text = label
+        cells[2].text = unit
+        cells[3].text = ('%g' % qty) if qty else '—'
+        cells[4].text = str(w.get('place') or '—')
+
+    if not works:
+        cells = t.add_row().cells
+        cells[1].text = 'Мероприятия не зафиксированы'
+
+    widths = (Cm(1.2), Cm(7.5), Cm(1.6), Cm(2.2), Cm(5.0))
+    for row in t.rows:
+        for cell, w in zip(row.cells, widths):
+            cell.width = w
+            for p in cell.paragraphs:
+                p.paragraph_format.space_after = Pt(2)
+                for r in p.runs:
+                    r.font.size = Pt(10)
+
+    para(doc, '', space_after=6)
+    if hours:
+        para(doc, 'Всего отработано: ' + ('%g' % round(hours, 1)) + ' ч.', bold=True)
+
+    licenses = payload.get('licenses') or []
+    if licenses:
+        para(doc, 'В соответствии с таблицей №1 договора выполненный объём даёт право '
+                  'на получение разрешений на добычу:', space_before=6)
+        for line in licenses:
+            para(doc, '— ' + str(line), align='left', space_after=2)
+
+    para(doc, 'Работы выполнены в полном объёме, Заказчик претензий по объёму и '
+              'качеству не имеет. Настоящий акт является основанием для распределения '
+              'разрешений на добычу охотничьих ресурсов в пределах имеющихся лимитов.',
+         space_before=8)
+
+    para(doc, '', space_after=12)
+    sign = doc.add_table(rows=0, cols=2)
+    sign.alignment = WD_TABLE_ALIGNMENT.CENTER
+    r1 = sign.add_row().cells
+    r1[0].text = 'ЗАКАЗЧИК:'
+    r1[1].text = 'ОХОТНИК:'
+    r2 = sign.add_row().cells
+    r2[0].text = ('Директор ' + org + '\n\n______________ ' +
+                  str(st.get('org_director_short') or '') +
+                  '\n\n«___» _________ 20___ г.')
+    r2[1].text = (doc_value(guest.get('name'), 30) +
+                  '\n\n____________________________\n\n«___» _________ 20___ г.')
+    for row in sign.rows:
+        for cell in row.cells:
+            cell.width = Cm(8.5)
+            for p in cell.paragraphs:
+                p.paragraph_format.space_after = Pt(2)
+                for r in p.runs:
+                    r.font.size = Pt(10)
+    for p in sign.rows[0].cells[0].paragraphs + sign.rows[0].cells[1].paragraphs:
+        for r in p.runs:
+            r.bold = True
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 SAFETY = [
     'соблюдать Правила охоты, утвержденные приказом Министерства природных ресурсов '
     'и экологии РФ №477 от 24.07.2020 г., а также параметры осуществления охоты в '
@@ -735,6 +862,48 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return {'statusCode': 401, 'headers': CORS,
                 'body': json.dumps({'error': 'Нужен вход в систему'})}
+
+    if kind == 'bio_act':
+        payload = json.loads(event.get('body') or '{}')
+        guest = {}
+        gid = payload.get('guest_id')
+        works = []
+        if gid and str(gid).isdigit():
+            cur.execute('SELECT * FROM guests WHERE id = ' + str(int(gid)))
+            grow = cur.fetchone()
+            if grow:
+                guest = dict(grow)
+            sql = ('SELECT w.kind, w.qty, w.unit, w.hours, w.work_on, '
+                   'COALESCE(l.name, w.place) AS place FROM biotech_works w '
+                   'LEFT JOIN locations l ON l.id = w.location_id '
+                   'WHERE w.guest_id = ' + str(int(gid)) +
+                   " AND COALESCE(w.archived, FALSE) = FALSE")
+            year = payload.get('year')
+            if year and str(year).isdigit():
+                sql += " AND EXTRACT(YEAR FROM w.work_on) = " + str(int(year))
+            sql += ' ORDER BY w.work_on'
+            cur.execute(sql)
+            works = [dict(r) for r in cur.fetchall()]
+        cur.execute('SELECT * FROM settings WHERE id = 1')
+        srow = cur.fetchone()
+        st = dict(srow) if srow else {}
+        data = build_bio_act(guest, st, payload, works)
+        who = str(guest.get('name') or 'бланк')
+        store_doc(cur, data, 'bio_act', 'Акт биотехнических работ — ' + who,
+                  'Акт биотехния ' + who.replace(' ', '_') + '.docx',
+                  payload.get('signed_on') or None, 1, user)
+        cur.close()
+        conn.close()
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': DOCX_MIME,
+                'Content-Disposition': 'attachment; filename="bio_act.docx"',
+            },
+            'isBase64Encoded': True,
+            'body': base64.b64encode(data).decode(),
+        }
 
     if kind == 'biotech':
         payload = json.loads(event.get('body') or '{}')

@@ -19,6 +19,7 @@ import {
 import { money } from '@/lib/expenses';
 import WorkPhotos from '@/components/app/WorkPhotos';
 import BiotechContractDialog from '@/components/app/BiotechContractDialog';
+import BioActDialog from '@/components/app/BioActDialog';
 import { toast } from 'sonner';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -35,6 +36,7 @@ const Biotech = () => {
   const [editing, setEditing] = useState<Row | null>(null);
   const [openRow, setOpenRow] = useState<number | null>(null);
   const [contract, setContract] = useState(false);
+  const [act, setAct] = useState(false);
   const [docs, setDocs] = useState<Row[]>([]);
   const [photoCount, setPhotoCount] = useState<Record<string, number>>({});
 
@@ -268,6 +270,9 @@ const Biotech = () => {
         <span className="flex flex-wrap gap-2">
           <button className="h-cta-ghost" onClick={() => setContract(true)}>
             <Icon name="FileSignature" size={15} /> Сделать договор
+          </button>
+          <button className="h-cta-ghost" onClick={() => setAct(true)}>
+            <Icon name="ClipboardCheck" size={15} /> Сделать акт
           </button>
           <button
             className="h-cta"
@@ -598,6 +603,14 @@ const Biotech = () => {
       )}
 
       <BiotechContractDialog open={contract} onOpenChange={setContract} guests={guests} />
+
+      <BioActDialog
+        open={act}
+        onOpenChange={setAct}
+        guests={guests}
+        rows={rows}
+        year={year}
+      />
 
       <RecordDialog
         open={open}
