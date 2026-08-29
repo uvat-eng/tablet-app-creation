@@ -3,6 +3,7 @@ import {
   StaffUser,
   fetchMe,
   login as apiLogin,
+  signup as apiSignup,
   logout as apiLogout,
   preloadAll,
   syncQueue,
@@ -12,6 +13,13 @@ interface AuthValue {
   user: StaffUser | null;
   loading: boolean;
   signIn: (login: string, password: string, role?: string) => Promise<void>;
+  signUp: (body: {
+    name: string;
+    phone?: string;
+    city?: string;
+    login: string;
+    password: string;
+  }) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -19,6 +27,7 @@ const AuthContext = createContext<AuthValue>({
   user: null,
   loading: true,
   signIn: async () => undefined,
+  signUp: async () => undefined,
   signOut: async () => undefined,
 });
 
@@ -43,14 +52,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     preloadAll();
   };
 
+  const signUp = async (body: {
+    name: string;
+    phone?: string;
+    city?: string;
+    login: string;
+    password: string;
+  }) => {
+    const u = await apiSignup(body);
+    setUser(u);
+    preloadAll();
+  };
+
   const signOut = async () => {
     await apiLogout();
     localStorage.removeItem('hb_me');
+    localStorage.removeItem('hb_club_member');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

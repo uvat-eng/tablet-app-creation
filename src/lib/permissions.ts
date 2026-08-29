@@ -10,6 +10,7 @@ export interface Section {
 export const SECTIONS: Section[] = [
   { key: 'dashboard', to: '/', label: 'Главная', icon: 'LayoutDashboard' },
   { key: 'bookings', to: '/bookings', label: 'Бронирования', icon: 'CalendarDays' },
+  { key: 'hunt-requests', to: '/hunt-requests', label: 'Заявки на охоту', icon: 'Inbox' },
   { key: 'checks', to: '/documents', label: 'Акты и чеки', icon: 'ReceiptText' },
   { key: 'services', to: '/services', label: 'Услуги', icon: 'ClipboardList' },
   { key: 'transport', to: '/transport', label: 'Транспорт', icon: 'Truck' },
@@ -30,13 +31,18 @@ export const SECTIONS: Section[] = [
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
+const CLUB_ONLY_KEYS = ['my-club', 'my-biotech'];
+
 export const HUNTER_SECTIONS: Section[] = [
   { key: 'my', to: '/my', label: 'Мой кабинет', icon: 'UserRound' },
+  { key: 'my-hunts', to: '/my/hunts', label: 'Мои охоты', icon: 'CalendarDays' },
+  { key: 'my-price', to: '/my/price', label: 'Цены на охоту', icon: 'ReceiptText' },
   { key: 'map', to: '/map', label: 'Карта хозяйства', icon: 'Map' },
   { key: 'locations', to: '/locations', label: 'Локации', icon: 'MapPin' },
   { key: 'my-club', to: '/my/club', label: 'Членство и добыча', icon: 'ShieldCheck' },
   { key: 'my-biotech', to: '/my/biotech', label: 'Моя биотехния', icon: 'Trees' },
   { key: 'my-bag', to: '/my/bag', label: 'Моя добыча', icon: 'Target' },
+  { key: 'my-review', to: '/my/review', label: 'Оставить отзыв', icon: 'MessageSquare' },
   { key: 'my-profile', to: '/my/profile', label: 'Мои данные', icon: 'IdCard' },
   { key: 'my-docs', to: '/my/docs', label: 'Мои документы', icon: 'FolderOpen' },
   { key: 'my-settings', to: '/my/settings', label: 'Настройки', icon: 'Settings' },
@@ -56,12 +62,33 @@ export const ROLES: Record<string, string> = {
 
 export const isHunter = (user: StaffUser | null) => user?.role === 'hunter';
 
+export const canApproveHunts = (user: StaffUser | null) =>
+  Boolean(user && user.role !== 'hunter' && user.can_approve_hunts);
+
+const CLUB_FLAG = 'hb_club_member';
+
+export const setClubFlag = (v: boolean) => {
+  try {
+    localStorage.setItem(CLUB_FLAG, v ? '1' : '0');
+  } catch {
+    /* хранилище недоступно */
+  }
+};
+
+export const isClubMember = () => {
+  try {
+    return localStorage.getItem(CLUB_FLAG) === '1';
+  } catch {
+    return false;
+  }
+};
+
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   manager: [
-    'dashboard', 'bookings', 'checks', 'files', 'services', 'transport', 'house',
+    'dashboard', 'bookings', 'hunt-requests', 'checks', 'files', 'services', 'transport', 'house',
     'hotel', 'banya', 'trophies', 'locations', 'map', 'reviews', 'club', 'hunters', 'biotech',
   ],
-  staff: ['dashboard', 'bookings', 'trophies', 'locations', 'map', 'files'],
+  staff: ['dashboard', 'bookings', 'hunt-requests', 'trophies', 'locations', 'map', 'files'],
 };
 
 export const parsePermissions = (raw: unknown): string[] =>
@@ -82,7 +109,10 @@ export const can = (user: StaffUser | null, key: string): boolean => {
 
 export const allowedSections = (user: StaffUser | null): Section[] => {
   if (!user) return [];
-  if (user.role === 'hunter') return HUNTER_SECTIONS;
+  if (user.role === 'hunter') {
+    if (isClubMember()) return HUNTER_SECTIONS;
+    return HUNTER_SECTIONS.filter((s) => !CLUB_ONLY_KEYS.includes(s.key));
+  }
   const base = SECTIONS.filter((s) => can(user, s.key));
   return user.role === 'owner' ? [...base, ...OWNER_ONLY] : base;
 };

@@ -8,6 +8,7 @@ import { SettingsProvider } from "@/context/SettingsContext";
 import Protected from "@/components/app/Protected";
 import Index from "./pages/Index";
 import Bookings from "./pages/Bookings";
+import HuntRequests from "./pages/HuntRequests";
 import BookingCard from "./pages/BookingCard";
 import Documents from "./pages/Documents";
 import Files from "./pages/Files";
@@ -47,6 +48,9 @@ import MyBag from "./pages/my/MyBag";
 import MyProfile from "./pages/my/MyProfile";
 import MyDocs from "./pages/my/MyDocs";
 import MySettings from "./pages/my/MySettings";
+import MyHunts from "./pages/my/MyHunts";
+import MyPrice from "./pages/my/MyPrice";
+import MyReview from "./pages/my/MyReview";
 
 const queryClient = new QueryClient();
 
@@ -73,7 +77,11 @@ const App = () => (
             <Route path="/my/profile" element={guard(<MyProfile />, 'my-profile')} />
             <Route path="/my/docs" element={guard(<MyDocs />, 'my-docs')} />
             <Route path="/my/settings" element={guard(<MySettings />, 'my-settings')} />
+            <Route path="/my/hunts" element={guard(<MyHunts />, 'my-hunts')} />
+            <Route path="/my/price" element={guard(<MyPrice />, 'my-price')} />
+            <Route path="/my/review" element={guard(<MyReview />, 'my-review')} />
             <Route path="/bookings" element={guard(<Bookings />, 'bookings')} />
+            <Route path="/hunt-requests" element={guard(<HuntRequests />, 'hunt-requests')} />
             <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />
             <Route path="/documents" element={guard(<Documents />, 'checks')} />
             <Route path="/documents/act/:id" element={guard(<ActCard />, 'checks')} />

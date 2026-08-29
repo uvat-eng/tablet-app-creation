@@ -28,8 +28,16 @@
       "name": "Журнал нельзя изменить",
       "method": "POST",
       "path": "/?table=activity_log",
-      "body": {"action": "hack"},
+      "body": {
+        "action": "hack"
+      },
       "expectedStatus": 405
+    },
+    {
+      "name": "Заявки на охоту",
+      "method": "GET",
+      "path": "/?table=hunt_requests",
+      "expectedStatus": 200
     }
   ]
 }

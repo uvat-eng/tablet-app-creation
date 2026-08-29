@@ -57,7 +57,7 @@ def handler(event: dict, context) -> dict:
             return None
         cur.execute(
             "SELECT s.id, s.name, s.login, s.role, s.permissions, s.title, "
-            "s.can_edit_others, s.can_remove, s.guest_id FROM sessions x "
+            "s.can_edit_others, s.can_remove, s.guest_id, s.can_approve_hunts FROM sessions x "
             "JOIN staff s ON s.id = x.staff_id "
             "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
         )
@@ -70,7 +70,7 @@ def handler(event: dict, context) -> dict:
         role_claim = str(body.get('role', '')).strip()
         cur.execute(
             "SELECT id, name, login, role, permissions, title, can_edit_others, can_remove, "
-            "guest_id, password_hash FROM staff "
+            "guest_id, can_approve_hunts, password_hash FROM staff "
             "WHERE lower(login) = " + esc(login) + " AND active = TRUE"
         )
         row = cur.fetchone()
@@ -95,7 +95,55 @@ def handler(event: dict, context) -> dict:
                 'title': row.get('title') or '',
                 'can_edit_others': bool(row.get('can_edit_others')),
                 'can_remove': bool(row.get('can_remove')),
-                'guest_id': row.get('guest_id')}
+                'guest_id': row.get('guest_id'),
+                'can_approve_hunts': bool(row.get('can_approve_hunts'))}
+        close()
+        return {'statusCode': 200, 'headers': CORS,
+                'body': json.dumps({'token': new_token, 'user': user})}
+
+    if action == 'signup':
+        name = str(body.get('name', '')).strip()
+        phone = str(body.get('phone', '')).strip()
+        city = str(body.get('city', '')).strip()
+        login = str(body.get('login', '')).strip().lower()
+        password = str(body.get('password', ''))
+
+        if not name or not login or len(password) < 5:
+            close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({
+                'error': 'Заполните имя, логин и пароль от 5 символов'})}
+
+        cur.execute("SELECT id FROM staff WHERE lower(login) = " + esc(login))
+        if cur.fetchone():
+            close()
+            return {'statusCode': 409, 'headers': CORS, 'body': json.dumps({
+                'error': 'Такой логин уже занят — придумайте другой'})}
+
+        cur.execute(
+            "INSERT INTO guests (name, phone, city, club_member, self_signup) VALUES (" +
+            esc(name) + ", " + esc(phone) + ", " + esc(city) + ", FALSE, TRUE) RETURNING id"
+        )
+        guest_id = cur.fetchone()['id']
+
+        cur.execute(
+            "INSERT INTO staff (login, name, password_hash, role, permissions, title, "
+            "guest_id, can_edit_others, can_remove) VALUES (" +
+            esc(login) + ", " + esc(name) + ", " + esc(hash_password(password)) +
+            ", 'hunter', 'hunter', 'Охотник', " + str(guest_id) + ", FALSE, FALSE) "
+            "RETURNING id, name, login, role, permissions, title, guest_id"
+        )
+        row = cur.fetchone()
+
+        new_token = secrets.token_hex(24)
+        expires = (datetime.utcnow() + timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
+        cur.execute(
+            "INSERT INTO sessions (token, staff_id, expires_at) VALUES (" +
+            esc(new_token) + ", " + str(row['id']) + ", " + esc(expires) + ")"
+        )
+        user = {'id': row['id'], 'name': row['name'], 'login': row['login'],
+                'role': 'hunter', 'permissions': 'hunter', 'title': 'Охотник',
+                'can_edit_others': False, 'can_remove': False,
+                'guest_id': guest_id, 'can_approve_hunts': False}
         close()
         return {'statusCode': 200, 'headers': CORS,
                 'body': json.dumps({'token': new_token, 'user': user})}

@@ -404,7 +404,27 @@ export interface StaffUser {
   can_edit_others?: boolean;
   can_remove?: boolean;
   guest_id?: number | null;
+  can_approve_hunts?: boolean;
 }
+
+export const signup = async (body: {
+  name: string;
+  phone?: string;
+  city?: string;
+  login: string;
+  password: string;
+}): Promise<StaffUser> => {
+  const res = await fetch(`${AUTH_URL}?action=signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось зарегистрироваться');
+  localStorage.setItem('hb_token', data.token);
+  localStorage.setItem('hb_me', JSON.stringify(data.user));
+  return data.user;
+};
 
 export const login = async (
   loginName: string,

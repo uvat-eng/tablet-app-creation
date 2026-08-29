@@ -4,7 +4,10 @@
       "name": "Неверный пароль",
       "method": "POST",
       "path": "/?action=login",
-      "body": {"login": "admin", "password": "wrong"},
+      "body": {
+        "login": "admin",
+        "password": "wrong"
+      },
       "expectedStatus": 401
     },
     {
@@ -18,6 +21,16 @@
       "method": "GET",
       "path": "/?action=staff",
       "expectedStatus": 403
+    },
+    {
+      "name": "Регистрация без данных",
+      "method": "POST",
+      "path": "/?action=signup",
+      "body": {
+        "name": "",
+        "login": ""
+      },
+      "expectedStatus": 400
     }
   ]
 }

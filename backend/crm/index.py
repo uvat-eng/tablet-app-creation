@@ -68,6 +68,10 @@ TABLES = {
     'transport_expenses': ['object_id', 'category', 'name', 'unit_price', 'qty', 'unit',
                            'total', 'spent_on', 'vendor', 'mileage', 'note',
                            'receipt_url', 'archived'],
+    'hunt_requests': ['guest_id', 'hunter_name', 'hunter_phone', 'date_from', 'date_to',
+                      'people', 'species', 'est_total', 'extras', 'note', 'status',
+                      'booking_id', 'decline_reason', 'archived'],
+    'hunt_request_items': ['request_id', 'service_id', 'kind', 'name', 'price', 'qty', 'total'],
     'documents': ['kind', 'title', 'file_url', 'file_name', 'doc_date', 'guest_id',
                   'people', 'note', 'archived'],
 }
@@ -97,12 +101,14 @@ ORDER = {
     'transport_expenses': 'spent_on DESC NULLS LAST, id DESC',
     'transfers': 'spent_on DESC NULLS LAST, id DESC',
     'documents': 'created_at DESC, id DESC',
+    'hunt_requests': 'created_at DESC, id DESC',
+    'hunt_request_items': 'id',
 }
 
 ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
               'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag', 'guest_docs',
-              'transport_expenses', 'transfers', 'documents'}
+              'transport_expenses', 'transfers', 'documents', 'hunt_requests'}
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
@@ -113,17 +119,19 @@ AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations'
 
 HUNTER_READ = {'locations', 'map_layers', 'biotech_works', 'work_photos', 'guests',
                'hunter_bag', 'guest_docs', 'documents', 'trophies', 'club_fees',
-               'club_bag', 'services'}
+               'club_bag', 'services', 'hunt_requests', 'hunt_request_items', 'reviews'}
 
 HUNTER_WRITE = {'locations', 'biotech_works', 'work_photos', 'guests', 'hunter_bag',
-                'club_bag'}
+                'club_bag', 'hunt_requests', 'hunt_request_items', 'reviews'}
 
 HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'documents',
-                   'club_fees', 'club_bag'}
+                   'club_fees', 'club_bag', 'hunt_requests'}
 
 HUNTER_LOCKED = {
     'club_bag': ('price', 'debt', 'debt_status', 'paid_on', 'hours_credited'),
     'guests': ('club_member', 'club_until', 'fee_monthly', 'archived'),
+    'hunt_requests': ('status', 'booking_id', 'decline_reason', 'archived'),
+    'reviews': ('published', 'archived'),
 }
 
 TITLE_FIELD = {
@@ -427,8 +435,28 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
                 'error': 'Ваш доступ не привязан к карточке охотника'})}
-        if table in ('biotech_works', 'hunter_bag', 'club_bag'):
+        if table in ('biotech_works', 'hunter_bag', 'club_bag', 'hunt_requests'):
             body['guest_id'] = my_guest
+        if table == 'reviews':
+            body['guest_id'] = my_guest
+            body['source'] = 'hunter'
+            body['published'] = False
+        if table == 'hunt_requests' and method == 'POST':
+            body['status'] = 'pending'
+        if table == 'hunt_request_items':
+            req_id = int(body.get('request_id') or 0)
+            cur.execute("SELECT guest_id, status FROM hunt_requests WHERE id = " + str(req_id))
+            own = cur.fetchone()
+            if not own or int(own['guest_id'] or 0) != my_guest:
+                cur.close()
+                conn.close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Можно менять только свою заявку'})}
+            if str(own['status'] or '') != 'pending':
+                cur.close()
+                conn.close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Заявку уже рассмотрели — менять нельзя'})}
         if table == 'guests':
             if method == 'POST' or int(body.get('id') or 0) != my_guest:
                 cur.close()
@@ -437,6 +465,15 @@ def handler(event: dict, context) -> dict:
                     'error': 'Можно менять только свою анкету'})}
         for locked in HUNTER_LOCKED.get(table, ()):
             body.pop(locked, None)
+
+    if table == 'hunt_requests' and method == 'PUT' and not is_hunter:
+        new_status = str(body.get('status') or '')
+        if new_status in ('approved', 'declined'):
+            if not me or not me.get('can_approve_hunts'):
+                cur.close()
+                conn.close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Одобрять заявки могут только Усков А.Н. и Спиричев М.Ю.'})}
 
     if table == 'bookings' and method in ('POST', 'PUT'):
         conflict = check_conflict(cur, body)
