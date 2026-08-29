@@ -1,3 +1,5 @@
+import { Geolocation } from '@capacitor/geolocation';
+
 export interface GeoSample {
   lat: number;
   lng: number;
@@ -40,7 +42,9 @@ interface CapWindow {
 const cap = (): CapPlugin | null => {
   const w = window as unknown as CapWindow;
   if (!w.Capacitor?.isNativePlatform?.()) return null;
-  return w.Capacitor.Plugins?.Geolocation || null;
+  const registered = w.Capacitor.Plugins?.Geolocation;
+  if (registered) return registered;
+  return (Geolocation as unknown as CapPlugin) || null;
 };
 
 export const isNativeApp = () => {

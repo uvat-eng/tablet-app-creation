@@ -9,9 +9,21 @@ type FsDocument = Document & {
   webkitFullscreenElement?: Element | null;
 };
 
-const androidImmersive = () =>
-  (window as unknown as { AndroidImmersive?: { enter: () => void; exit: () => void } })
-    .AndroidImmersive;
+interface ImmersiveApi {
+  enter: () => Promise<void>;
+  exit: () => Promise<void>;
+}
+
+const androidImmersive = (): ImmersiveApi | null => {
+  const w = window as unknown as {
+    Capacitor?: {
+      isNativePlatform?: () => boolean;
+      Plugins?: { Immersive?: ImmersiveApi };
+    };
+  };
+  if (!w.Capacitor?.isNativePlatform?.()) return null;
+  return w.Capacitor.Plugins?.Immersive || null;
+};
 
 export const useFullscreen = () => {
   const [active, setActive] = useState(false);
@@ -32,7 +44,7 @@ export const useFullscreen = () => {
   const enter = useCallback(async () => {
     const native = androidImmersive();
     if (native) {
-      native.enter();
+      await native.enter().catch(() => undefined);
       setActive(true);
       return;
     }
@@ -48,7 +60,7 @@ export const useFullscreen = () => {
   const exit = useCallback(async () => {
     const native = androidImmersive();
     if (native) {
-      native.exit();
+      await native.exit().catch(() => undefined);
       setActive(false);
       return;
     }
