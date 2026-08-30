@@ -84,7 +84,11 @@ const MapPage = () => {
       zoom: HOME_ZOOM,
       zoomControl: true,
       scrollWheelZoom: true,
+      attributionControl: false,
     });
+    L.control
+      .attribution({ prefix: 'Малышенское', position: 'bottomright' })
+      .addTo(map);
     mapRef.current = map;
     layerRef.current = L.layerGroup().addTo(map);
     tracksRef.current = L.layerGroup().addTo(map);

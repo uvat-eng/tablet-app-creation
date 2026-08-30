@@ -80,6 +80,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
         zoomAnimation: false,
         fadeAnimation: false,
         markerZoomAnimation: false,
+        attributionControl: false,
       });
       mapRef.current = map;
       L.control.scale({ imperial: false }).addTo(map);
