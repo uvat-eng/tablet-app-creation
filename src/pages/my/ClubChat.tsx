@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import NotifyPrompt from '@/components/app/NotifyPrompt';
+import BackgroundToggle from '@/components/app/BackgroundToggle';
 import {
   ClubMessage,
   loadClubChat,
@@ -110,6 +111,7 @@ const ClubChat = () => {
       lede="Общий разговор членов клуба и руководства хозяйства."
     >
       <NotifyPrompt />
+      <BackgroundToggle />
 
       <div
         className="border border-[#e2e2df] flex flex-col"

@@ -8,6 +8,8 @@ import {
   preloadAll,
   syncQueue,
 } from '@/lib/api';
+import { bgStart, bgStop } from '@/lib/bgService';
+import { canClubChat } from '@/lib/permissions';
 
 interface AuthValue {
   user: StaffUser | null;
@@ -41,6 +43,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(u);
         if (u) {
           syncQueue().then(() => preloadAll());
+          if (localStorage.getItem('hb_bg_on') === '1') {
+            bgStart(canClubChat(u));
+          }
         }
       })
       .finally(() => setLoading(false));
@@ -65,9 +70,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    await bgStop();
     await apiLogout();
     localStorage.removeItem('hb_me');
     localStorage.removeItem('hb_club_member');
+    localStorage.removeItem('hb_bg_on');
     setUser(null);
   };
 

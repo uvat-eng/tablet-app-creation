@@ -5,6 +5,7 @@ import { can, canApproveHunts, canClubChat } from '@/lib/permissions';
 import { loadUnread } from '@/lib/chatApi';
 import { loadClubUnread } from '@/lib/clubChatApi';
 import { notifyMessages as notifyAll } from '@/lib/notify';
+import { bgSyncSeen } from '@/lib/bgService';
 
 export type PendingCounts = Record<string, number>;
 
@@ -60,9 +61,10 @@ export const usePendingCounts = (user: StaffUser | null): PendingCounts => {
       next['club-chat'] = await loadClubUnread().catch(() => 0);
     }
 
-    notifyAll(
-      (user.role === 'hunter' ? next.my : next.hunters) + next['club-chat'],
-    );
+    const chatTotal =
+      (user.role === 'hunter' ? next.my : next.hunters) + next['club-chat'];
+    notifyAll(chatTotal);
+    bgSyncSeen(chatTotal);
     setCounts(next);
   }, [user]);
 
@@ -74,6 +76,7 @@ export const usePendingCounts = (user: StaffUser | null): PendingCounts => {
         canClubChat(user) ? loadClubUnread().catch(() => 0) : Promise.resolve(0),
       ]);
       notifyAll(personal + club);
+      bgSyncSeen(personal + club);
       setCounts((prev) => ({
         ...prev,
         ...(user.role === 'hunter' ? { my: personal } : { hunters: personal }),
