@@ -1,12 +1,5 @@
-{
-  "tests": [
-    {
-      "name": "Возвращает ссылки",
-      "method": "GET",
-      "path": "/",
-      "expectedStatus": 200,
-      "expectedBody": {"cdn_url": "string"},
-      "bodyMatcher": "partial"
-    }
-  ]
-}
+{"tests": [
+  {"name": "Без входа заливка закрыта", "method": "POST", "path": "/",
+   "body": {"key": "apk/malyshenskoe.apk"}, "expectedStatus": 401},
+  {"name": "Проверка доступа", "method": "OPTIONS", "path": "/", "expectedStatus": 200}
+]}

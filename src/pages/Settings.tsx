@@ -3,6 +3,8 @@ import Layout from '@/components/app/Layout';
 import { useSettings } from '@/context/SettingsContext';
 import { uploadPhoto } from '@/lib/api';
 import BackupPanel from '@/components/app/BackupPanel';
+import ApkUploadPanel from '@/components/app/ApkUploadPanel';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 const ORG_FIELDS = [
@@ -31,6 +33,7 @@ const ORG_FIELDS = [
 
 const Settings = () => {
   const { settings, save } = useSettings();
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [logo, setLogo] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -159,6 +162,7 @@ const Settings = () => {
         >
           Страница загрузки
         </a>
+        {user?.role === 'owner' && <ApkUploadPanel />}
       </div>
 
       <BackupPanel />

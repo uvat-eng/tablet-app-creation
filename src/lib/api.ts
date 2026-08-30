@@ -270,6 +270,35 @@ export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string
   return data.url;
 };
 
+const APK_URL = 'https://functions.poehali.dev/2e163d28-609a-456c-9f87-501c8b2564f0';
+
+export const uploadApk = async (file: File, onProgress?: (pct: number) => void) => {
+  const res = await fetch(APK_URL, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ key: 'apk/malyshenskoe.apk' }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Не удалось начать загрузку');
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', data.put_url);
+    xhr.setRequestHeader('Content-Type', 'application/vnd.android.package-archive');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error('Хранилище отклонило файл'));
+    xhr.onerror = () => reject(new Error('Обрыв связи при загрузке'));
+    xhr.send(file);
+  });
+
+  return data.cdn_url as string;
+};
+
 const BACKUP_URL = 'https://functions.poehali.dev/e0b27be6-062c-438f-bc29-caf5515dfba9';
 
 export interface BackupFile {
