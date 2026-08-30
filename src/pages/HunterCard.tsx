@@ -4,6 +4,7 @@ import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import HunterActivity from '@/components/app/HunterActivity';
+import ChatPanel from '@/components/app/ChatPanel';
 import { Row, listRows, updateRow, createRow, removeRow } from '@/lib/api';
 import { SPECIES, SPECIES_ONE } from '@/lib/species';
 import { COUNTRIES } from '@/lib/countries';
@@ -220,6 +221,14 @@ const HunterCard = () => {
           <button className="h-cta-ghost" onClick={() => setEditOpen(true)}>
             <Icon name="Pencil" size={14} /> Изменить
           </button>
+          <button
+            className="h-cta-ghost"
+            onClick={() =>
+              document.getElementById('hunter-chat')?.scrollIntoView({ behavior: 'smooth' })
+            }
+          >
+            <Icon name="MessageSquare" size={14} fallback="MessageCircle" /> Чат
+          </button>
           {docs[0]?.file_url && (
             <a
               className="h-cta-ghost"
@@ -413,6 +422,11 @@ const HunterCard = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div id="hunter-chat" className="mt-10">
+        <div className="h-head text-[22px] mb-3">Переписка с охотником</div>
+        <ChatPanel guestId={Number(id)} height={440} />
       </div>
 
       <HunterActivity guestId={Number(id)} guestName={String(guest.name)} />

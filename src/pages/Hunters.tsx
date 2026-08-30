@@ -7,6 +7,8 @@ import DataTable from '@/components/app/DataTable';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import WorldPins from '@/components/app/WorldPins';
 import CollectiveSheetDialog from '@/components/app/CollectiveSheetDialog';
+import MessagesTab from '@/components/app/MessagesTab';
+import { loadUnread } from '@/lib/chatApi';
 import { Row, listRows, createRow } from '@/lib/api';
 import { SPECIES } from '@/lib/species';
 import { COUNTRIES } from '@/lib/countries';
@@ -43,6 +45,8 @@ const Hunters = () => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [tab, setTab] = useState('list');
+  const [unread, setUnread] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,6 +59,13 @@ const Hunters = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const check = () => loadUnread().then(setUnread).catch(() => undefined);
+    check();
+    const t = setInterval(check, 30000);
+    return () => clearInterval(t);
+  }, [tab]);
 
   const byCountry = useMemo(() => {
     const map: Record<string, number> = {};
@@ -139,6 +150,37 @@ const Hunters = () => {
         </span>
       }
     >
+      <div className="flex gap-2 mb-6 border-b border-[#e2e2df]">
+        {[
+          { key: 'list', label: 'Охотники' },
+          { key: 'messages', label: 'Сообщения' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className="h-label px-4 py-3 flex items-center gap-2"
+            style={{
+              borderBottom: tab === t.key ? '2px solid var(--hero-accent)' : '2px solid transparent',
+              opacity: tab === t.key ? 1 : 0.6,
+            }}
+          >
+            {t.label}
+            {t.key === 'messages' && unread > 0 && (
+              <span
+                className="text-[0.9em] px-1.5"
+                style={{ background: '#e53935', color: '#fff' }}
+              >
+                {unread}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'messages' && <MessagesTab />}
+
+      {tab === 'list' && (
+      <>
       <div
         className="grid gap-px mb-6"
         style={{
@@ -218,6 +260,8 @@ const Hunters = () => {
         empty={loading ? 'Загружаем…' : 'В базе пока нет охотников'}
         onRowClick={(r) => navigate(`/hunters/${r.id}`)}
       />
+      </>
+      )}
 
       <CollectiveSheetDialog open={sheetOpen} onOpenChange={setSheetOpen} />
 
