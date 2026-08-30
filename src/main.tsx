@@ -13,7 +13,7 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 if (typeof window !== 'undefined' && 'Capacitor' in window) {
   import('@capacitor/splash-screen')
     .then(({ SplashScreen }) => {
-      setTimeout(() => SplashScreen.hide(), 1800);
+      setTimeout(() => SplashScreen.hide(), 400);
     })
     .catch(() => undefined);
 }

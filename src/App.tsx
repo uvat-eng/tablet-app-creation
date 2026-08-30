@@ -57,6 +57,7 @@ import MySettings from "./pages/my/MySettings";
 import MyHunts from "./pages/my/MyHunts";
 import MyPrice from "./pages/my/MyPrice";
 import MyReview from "./pages/my/MyReview";
+import SplashIntro from "./components/app/SplashIntro";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <SplashIntro />
       <UpdateBar />
       <AuthProvider>
         <SettingsProvider>
