@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Row, listRows } from '@/lib/api';
 import Icon from '@/components/ui/icon';
@@ -82,9 +83,9 @@ const TrophyGallery = () => {
         </div>
       )}
 
-      {big && (
+      {big && createPortal(
         <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6"
+          className="fixed inset-0 z-[2500] bg-black/80 flex items-center justify-center p-6"
           onClick={() => setBig(null)}
         >
           <div
@@ -124,7 +125,8 @@ const TrophyGallery = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

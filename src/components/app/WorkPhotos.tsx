@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '@/components/ui/icon';
 import { Row, listRows, createRow, removeRow, uploadPhoto } from '@/lib/api';
 import { toast } from 'sonner';
@@ -102,9 +103,9 @@ const WorkPhotos = ({ workId, defaultDate, compact }: Props) => {
         </div>
       )}
 
-      {big && (
+      {big && createPortal(
         <div
-          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[2500] bg-black/85 flex items-center justify-center p-4"
           onClick={() => setBig(null)}
         >
           <div
@@ -141,7 +142,8 @@ const WorkPhotos = ({ workId, defaultDate, compact }: Props) => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

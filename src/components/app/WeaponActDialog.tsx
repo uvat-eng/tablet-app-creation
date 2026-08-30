@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '@/components/ui/icon';
 import { Row, getToken } from '@/lib/api';
 import { DOCS_URL, weaponTitle, hasDocs, missingWhat, today } from '@/lib/weapons';
@@ -77,9 +78,9 @@ const WeaponActDialog = ({ weapon, guests, onClose, onDone }: Props) => {
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center p-0 sm:p-6"
+      className="fixed inset-0 z-[2800] flex items-end sm:items-center justify-center p-0 sm:p-6"
       style={{ background: 'rgba(0,0,0,.45)' }}
       onClick={onClose}
     >
@@ -209,7 +210,8 @@ const WeaponActDialog = ({ weapon, guests, onClose, onDone }: Props) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

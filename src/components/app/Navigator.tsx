@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import Icon from '@/components/ui/icon';
 import { Row, createRow } from '@/lib/api';
@@ -93,6 +94,19 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
   useEffect(() => {
     const t = setInterval(() => setNow(clock()), 20000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const body = document.body;
+    const html = document.documentElement;
+    const prevBody = body.style.overflow;
+    const prevHtml = html.style.overflow;
+    body.style.overflow = 'hidden';
+    html.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = prevBody;
+      html.style.overflow = prevHtml;
+    };
   }, []);
 
   useEffect(() => {
@@ -375,8 +389,19 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
   const myDir = compass ?? fix?.heading ?? null;
   const rel = brg !== null && myDir !== null ? (brg - myDir + 360) % 360 : brg;
 
-  return (
-    <div className="fixed inset-0 z-[3000]" style={{ background: '#0d0d0c' }}>
+  return createPortal(
+    <div
+      className="fixed z-[3000]"
+      style={{
+        background: '#0d0d0c',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100dvh',
+        overscrollBehavior: 'contain',
+        touchAction: 'none',
+      }}
+    >
       <div ref={boxRef} className="absolute inset-0" />
 
       <div
@@ -797,7 +822,8 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
           )}
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 };
 
