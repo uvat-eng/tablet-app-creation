@@ -16,11 +16,21 @@ CORS = {
 
 TABLES = ['objects', 'guests', 'services', 'bookings', 'booking_services', 'payments',
           'checks', 'receipts', 'trophies', 'locations', 'map_layers', 'reviews',
-          'house_expenses', 'expenses', 'office_expenses', 'transport_expenses', 'transfers', 'biotech_works', 'club_fees', 'club_bag', 'hunter_bag', 'guest_docs', 'work_photos', 'settings']
+          'house_expenses', 'expenses', 'office_expenses', 'transport_expenses',
+          'transfers', 'biotech_works', 'club_fees', 'club_bag', 'hunter_bag',
+          'guest_docs', 'work_photos', 'settings',
+          'staff', 'documents', 'weapons', 'weapon_acts', 'club_chat',
+          'club_chat_reads', 'messages', 'hunt_requests', 'hunt_request_items',
+          'supply_orders', 'supply_items', 'calendar_feeds', 'activity_log']
 
-RESTORE_ORDER = ['objects', 'guests', 'services', 'locations', 'map_layers', 'trophies',
-                 'reviews', 'bookings', 'booking_services', 'payments', 'checks',
-                 'receipts', 'house_expenses', 'expenses', 'office_expenses', 'transport_expenses', 'transfers', 'biotech_works', 'club_fees', 'club_bag', 'hunter_bag', 'guest_docs', 'work_photos']
+RESTORE_ORDER = ['objects', 'guests', 'staff', 'services', 'locations', 'map_layers',
+                 'trophies', 'reviews', 'bookings', 'booking_services', 'payments',
+                 'checks', 'receipts', 'house_expenses', 'expenses', 'office_expenses',
+                 'transport_expenses', 'transfers', 'biotech_works', 'club_fees',
+                 'club_bag', 'hunter_bag', 'guest_docs', 'work_photos',
+                 'documents', 'weapons', 'weapon_acts', 'club_chat', 'club_chat_reads',
+                 'messages', 'hunt_requests', 'hunt_request_items',
+                 'supply_orders', 'supply_items', 'calendar_feeds', 'activity_log']
 
 JSON_COLS = {'items', 'geojson'}
 
@@ -89,14 +99,23 @@ def handler(event: dict, context) -> dict:
     if method == 'GET':
         data = {}
         counts = {}
+        missed = []
         for t in TABLES:
-            cur.execute('SELECT * FROM ' + t + ' ORDER BY id')
-            rows = [{k: jsonable(v) for k, v in dict(r).items()} for r in cur.fetchall()]
-            data[t] = rows
-            counts[t] = len(rows)
+            if t == 'staff':
+                continue
+            try:
+                cur.execute('SELECT * FROM ' + t + ' ORDER BY id')
+                rows = [{k: jsonable(v) for k, v in dict(r).items()}
+                        for r in cur.fetchall()]
+                data[t] = rows
+                counts[t] = len(rows)
+            except Exception:
+                conn.rollback()
+                missed.append(t)
 
         cur.execute("SELECT id, login, name, title, role, active, permissions, "
-                    "can_edit_others, can_remove FROM staff ORDER BY id")
+                    "can_edit_others, can_remove, can_approve_hunts, can_supply, "
+                    "can_manage_access, guest_id FROM staff ORDER BY id")
         data['staff'] = [{k: jsonable(v) for k, v in dict(r).items()} for r in cur.fetchall()]
         counts['staff'] = len(data['staff'])
 
@@ -107,6 +126,7 @@ def handler(event: dict, context) -> dict:
             'created_by': me['name'],
             'counts': counts,
             'total': sum(counts.values()),
+            'missed': missed,
             'data': data,
         }, ensure_ascii=False)}
 
