@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listRows } from '@/lib/api';
 import { StaffUser } from '@/lib/api';
-import { can, canApproveHunts } from '@/lib/permissions';
+import { can, canApproveHunts, canClubChat } from '@/lib/permissions';
 import { loadUnread } from '@/lib/chatApi';
-import { notifyMessages } from '@/lib/notify';
+import { loadClubUnread } from '@/lib/clubChatApi';
+import { notifyMessages as notifyAll } from '@/lib/notify';
 
 export type PendingCounts = Record<string, number>;
 
@@ -14,6 +15,7 @@ const EMPTY: PendingCounts = {
   'my-hunts': 0,
   my: 0,
   hunters: 0,
+  'club-chat': 0,
 };
 
 const REFRESH_MS = 120000;
@@ -54,18 +56,29 @@ export const usePendingCounts = (user: StaffUser | null): PendingCounts => {
       /* нет связи — оставляем как есть */
     }
 
-    notifyMessages(user.role === 'hunter' ? next.my : next.hunters);
+    if (canClubChat(user)) {
+      next['club-chat'] = await loadClubUnread().catch(() => 0);
+    }
+
+    notifyAll(
+      (user.role === 'hunter' ? next.my : next.hunters) + next['club-chat'],
+    );
     setCounts(next);
   }, [user]);
 
   const loadChatOnly = useCallback(async () => {
     if (!user) return;
     try {
-      const n = await loadUnread();
-      notifyMessages(n);
-      setCounts((prev) =>
-        user.role === 'hunter' ? { ...prev, my: n } : { ...prev, hunters: n },
-      );
+      const [personal, club] = await Promise.all([
+        loadUnread().catch(() => 0),
+        canClubChat(user) ? loadClubUnread().catch(() => 0) : Promise.resolve(0),
+      ]);
+      notifyAll(personal + club);
+      setCounts((prev) => ({
+        ...prev,
+        ...(user.role === 'hunter' ? { my: personal } : { hunters: personal }),
+        'club-chat': club,
+      }));
     } catch {
       /* нет связи */
     }

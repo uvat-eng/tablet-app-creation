@@ -34,7 +34,15 @@ export const SECTIONS: Section[] = [
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
-const CLUB_ONLY_KEYS = ['my-club', 'my-biotech'];
+const CLUB_ONLY_KEYS = ['my-club', 'my-biotech', 'club-chat'];
+
+const CLUB_CHAT_LOGINS = ['spy', 'uan', 'una', 'zna', 'tgw'];
+
+export const canClubChat = (user: StaffUser | null): boolean => {
+  if (!user) return false;
+  if (CLUB_CHAT_LOGINS.includes(String(user.login || '').toLowerCase())) return true;
+  return user.role === 'hunter' && isClubMember();
+};
 
 export const HUNTER_SECTIONS: Section[] = [
   { key: 'my', to: '/my', label: 'Мой кабинет', icon: 'UserRound' },
@@ -42,6 +50,7 @@ export const HUNTER_SECTIONS: Section[] = [
   { key: 'my-price', to: '/my/price', label: 'Цены на охоту', icon: 'ReceiptText' },
   { key: 'map', to: '/map', label: 'Карта хозяйства', icon: 'Map' },
   { key: 'locations', to: '/locations', label: 'Локации', icon: 'MapPin' },
+  { key: 'club-chat', to: '/club-chat', label: 'Чат клуба', icon: 'MessagesSquare' },
   { key: 'my-club', to: '/my/club', label: 'Членство и добыча', icon: 'ShieldCheck' },
   { key: 'my-biotech', to: '/my/biotech', label: 'Моя биотехния', icon: 'Trees' },
   { key: 'my-bag', to: '/my/bag', label: 'Моя добыча', icon: 'Target' },
@@ -111,6 +120,7 @@ export const parsePermissions = (raw: unknown): string[] =>
 
 export const can = (user: StaffUser | null, key: string): boolean => {
   if (!user) return false;
+  if (key === 'club-chat') return canClubChat(user);
   if (key === 'access') return Boolean(user.can_manage_access);
   if (key === 'supply') return Boolean(user.can_supply);
   if (key === 'supply-new') {
@@ -131,5 +141,16 @@ export const allowedSections = (user: StaffUser | null): Section[] => {
     return HUNTER_SECTIONS.filter((s) => !CLUB_ONLY_KEYS.includes(s.key));
   }
   const base = SECTIONS.filter((s) => can(user, s.key));
-  return user.role === 'owner' ? [...base, ...OWNER_ONLY] : base;
+  const withChat = canClubChat(user)
+    ? [
+        ...base,
+        {
+          key: 'club-chat',
+          to: '/club-chat',
+          label: 'Чат клуба',
+          icon: 'MessagesSquare',
+        } as Section,
+      ]
+    : base;
+  return user.role === 'owner' ? [...withChat, ...OWNER_ONLY] : withChat;
 };

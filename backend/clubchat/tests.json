@@ -1,0 +1,35 @@
+{
+  "tests": [
+    {
+      "name": "Без токена не пускает",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Отправка без токена запрещена",
+      "method": "POST",
+      "path": "/",
+      "body": {"body": "проверка"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Счётчик без токена запрещён",
+      "method": "GET",
+      "path": "/?action=unread",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Проверка метода OPTIONS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}
