@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Отдаёт открытый ключ",
+      "method": "GET",
+      "path": "/?action=key",
+      "expectedStatus": 200,
+      "expectedBody": {"publicKey": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Подписка без токена запрещена",
+      "method": "POST",
+      "path": "/?action=subscribe",
+      "body": {"subscription": {"endpoint": "x", "keys": {"p256dh": "y", "auth": "z"}}},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Проверка метода OPTIONS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}

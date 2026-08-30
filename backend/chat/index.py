@@ -4,6 +4,8 @@ import os
 import psycopg2
 import psycopg2.extras
 
+from pushsend import send_to
+
 SCHEMA = 't_p51170708_tablet_app_creation'
 MSG = SCHEMA + '.messages'
 
@@ -47,6 +49,33 @@ def current_user(cur, event):
     )
     row = cur.fetchone()
     return dict(row) if row else None
+
+
+STAFF_INBOX = ['uan', 'spy', 'una', 'zna', 'tgw']
+
+
+def push_personal(cur, author_id, author_name, text, guest_id, from_staff):
+    short = text if len(text) <= 90 else text[:90] + '…'
+    try:
+        if from_staff:
+            cur.execute(
+                'SELECT id FROM ' + SCHEMA + '.staff WHERE active = TRUE '
+                'AND guest_id = ' + str(int(guest_id))
+            )
+            ids = [int(dict(r)['id']) for r in cur.fetchall()]
+            send_to(cur, ids, 'Малышенское',
+                    author_name + ': ' + short, '/my', 'hb-personal')
+        else:
+            logins = ', '.join(esc(x) for x in STAFF_INBOX)
+            cur.execute(
+                'SELECT id FROM ' + SCHEMA + '.staff WHERE active = TRUE '
+                'AND LOWER(login) IN (' + logins + ') AND id <> ' + str(author_id)
+            )
+            ids = [int(dict(r)['id']) for r in cur.fetchall()]
+            send_to(cur, ids, 'Сообщение охотника',
+                    author_name + ': ' + short, '/hunters', 'hb-personal')
+    except Exception:
+        pass
 
 
 def handler(event: dict, context) -> dict:
@@ -144,6 +173,8 @@ def handler(event: dict, context) -> dict:
             + esc(user.get('name') or '') + ', ' + esc(not is_hunter) + ', ' + esc(text)
             + ', ' + esc(is_hunter is False) + ', ' + esc(is_hunter) + ')'
         )
+        push_personal(cur, int(user['id']), user.get('name') or '',
+                      text, guest_id, not is_hunter)
 
     if method == 'GET' or method == 'POST':
         if is_hunter:

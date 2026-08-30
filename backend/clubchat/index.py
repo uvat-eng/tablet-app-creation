@@ -4,6 +4,8 @@ import os
 import psycopg2
 import psycopg2.extras
 
+from pushsend import send_to
+
 SCHEMA = 't_p51170708_tablet_app_creation'
 CHAT = SCHEMA + '.club_chat'
 READS = SCHEMA + '.club_chat_reads'
@@ -66,6 +68,26 @@ def allowed(cur, user):
     return bool(g and dict(g).get('club_member'))
 
 
+def push_club(cur, author_id, author_name, text):
+    logins = ', '.join(esc(x) for x in STAFF_ALLOWED)
+    cur.execute(
+        'SELECT s.id FROM ' + SCHEMA + '.staff s '
+        'LEFT JOIN ' + SCHEMA + '.guests g ON g.id = s.guest_id '
+        'WHERE s.active = TRUE AND s.id <> ' + str(author_id) + ' AND ('
+        'LOWER(s.login) IN (' + logins + ') OR '
+        "(s.role = 'hunter' AND g.club_member = TRUE))"
+    )
+    ids = [int(dict(r)['id']) for r in cur.fetchall()]
+    if not ids:
+        return
+    short = text if len(text) <= 90 else text[:90] + '…'
+    try:
+        send_to(cur, ids, 'Чат клуба', author_name + ': ' + short,
+                '/club-chat', 'hb-club')
+    except Exception:
+        pass
+
+
 def handler(event: dict, context) -> dict:
     """Общий чат закрытого клуба: сообщения членов клуба и руководства."""
     method = event.get('httpMethod', 'GET')
@@ -115,6 +137,7 @@ def handler(event: dict, context) -> dict:
             + str(uid) + ', ' + esc(user.get('name') or '') + ', '
             + esc(user.get('role') or '') + ', ' + esc(text) + ')'
         )
+        push_club(cur, uid, user.get('name') or 'Участник', text)
 
     cur.execute(
         'SELECT id, staff_id, author_name, author_role, body, created_at FROM ' + CHAT
