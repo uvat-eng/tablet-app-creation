@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { EMPTY_DONE, addWork, earnedLicenses, hoursText } from '@/lib/biotech';
 import ClubStatus from '@/components/app/ClubStatus';
 import ChatPanel from '@/components/app/ChatPanel';
+import NotifyPrompt from '@/components/app/NotifyPrompt';
 import { setClubFlag } from '@/lib/permissions';
 import { REQUEST_STATUS, money } from '@/lib/hunts';
 
@@ -293,6 +294,7 @@ const MyHome = () => {
 
       <div className="mt-10">
         <div className="h-head text-[22px] mb-3">Связь с хозяйством</div>
+        <NotifyPrompt />
         <div className="h-mono-cap normal-case text-[var(--hero-muted)] mb-3 leading-relaxed">
           Напишите администратору — вопрос по заезду, документам или охоте.
           Ответ придёт сюда же.

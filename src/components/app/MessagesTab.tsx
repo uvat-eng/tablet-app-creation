@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Icon from '@/components/ui/icon';
 import ChatPanel from '@/components/app/ChatPanel';
+import NotifyPrompt from '@/components/app/NotifyPrompt';
 import { ChatThread, loadThreads, fmtWhen } from '@/lib/chatApi';
 
 const POLL_MS = 25000;
@@ -31,6 +32,8 @@ const MessagesTab = () => {
 
   return (
     <div>
+      <NotifyPrompt />
+
       <div className="flex items-center justify-between mb-3">
         <div className="h-head text-[22px]">Переписка с охотниками</div>
         {totalUnread > 0 && (
