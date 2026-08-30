@@ -10,6 +10,7 @@ import {
 const KEY = 'hb_share_position';
 const PUSH_MS = 30000;
 const POLL_MS = 45000;
+const SOS_MS = 12000;
 
 const readFlag = () => localStorage.getItem(KEY) === '1';
 
@@ -61,12 +62,14 @@ export const useFieldPresence = (fix: GeoSample | null, battery: number | null) 
     }
   }, [sharing]);
 
+  const anySos = people.some((p) => p.sos);
+
   useEffect(() => {
     sync();
-    const every = sharing ? PUSH_MS : POLL_MS;
+    const every = anySos ? SOS_MS : sharing ? PUSH_MS : POLL_MS;
     const t = setInterval(sync, every);
     return () => clearInterval(t);
-  }, [sync, sharing]);
+  }, [sync, sharing, anySos]);
 
   const toggle = useCallback(async () => {
     const next = !sharing;

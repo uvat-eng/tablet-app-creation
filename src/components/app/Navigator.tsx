@@ -15,6 +15,8 @@ import useBattery from '@/lib/useBattery';
 import useFullscreen from '@/lib/useFullscreen';
 import useFieldPresence from '@/lib/useFieldPresence';
 import { fmtAge } from '@/lib/fieldPresence';
+import AlarmScreen from '@/components/app/AlarmScreen';
+import alarmSignal from '@/lib/alarmSignal';
 import { toast } from 'sonner';
 
 interface Target {
@@ -53,6 +55,7 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
   const [marking, setMarking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [marks, setMarks] = useState<Target[]>([]);
+  const [alarmOpen, setAlarmOpen] = useState(false);
 
   const rec = useTrackRecorder();
   const compass = useCompass(true);
@@ -295,6 +298,30 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
     };
   }, [crew.others]);
 
+  const sosList = useMemo(() => crew.others.filter((p) => p.sos), [crew.others]);
+  const sosKey = sosList.map((p) => p.id).sort().join(',');
+  const seenSos = useRef('');
+
+  useEffect(() => {
+    if (!sosKey) {
+      seenSos.current = '';
+      setAlarmOpen(false);
+      return;
+    }
+    const known = seenSos.current ? seenSos.current.split(',') : [];
+    const fresh = sosKey.split(',').some((id) => !known.includes(id));
+    seenSos.current = sosKey;
+    if (!fresh) return;
+    setAlarmOpen(true);
+    alarmSignal();
+  }, [sosKey]);
+
+  useEffect(() => {
+    if (!alarmOpen || !sosKey) return;
+    const t = setInterval(alarmSignal, 12000);
+    return () => clearInterval(t);
+  }, [alarmOpen, sosKey]);
+
   const crewAge = (targetId: string) => {
     const p = crew.others.find((x) => `crew-${x.id}` === targetId);
     if (!p) return 'Участник';
@@ -464,6 +491,21 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
           </div>
         )}
 
+        {sosList.length > 0 && !alarmOpen && (
+          <button
+            onClick={() => setAlarmOpen(true)}
+            className="w-full mb-3 flex items-center justify-center gap-2 py-3"
+            style={{ background: '#e53935', color: '#fff' }}
+          >
+            <Icon name="TriangleAlert" size={17} fallback="CircleAlert" />
+            <span className="text-[0.76em] uppercase tracking-[0.06em]">
+              {sosList.length === 1
+                ? `Тревога · ${sosList[0].name}`
+                : `Тревога · ${sosList.length} чел.`}
+            </span>
+          </button>
+        )}
+
         {(crew.others.length > 0 || crew.sharing) && (
           <button
             onClick={() => setPicker(true)}
@@ -587,6 +629,27 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
           </div>
         )}
       </div>
+
+      {alarmOpen && sosList.length > 0 && (
+        <AlarmScreen
+          people={sosList}
+          fix={fix}
+          myDir={myDir}
+          onGo={(p) => {
+            setTarget({
+              id: `crew-${p.id}`,
+              name: p.name,
+              lat: p.lat,
+              lng: p.lng,
+              kind: 'crew',
+            });
+            setAlarmOpen(false);
+            setFollow(true);
+            toast.error(`Курс на «${p.name}»`);
+          }}
+          onClose={() => setAlarmOpen(false)}
+        />
+      )}
 
       {marking && (
         <div
