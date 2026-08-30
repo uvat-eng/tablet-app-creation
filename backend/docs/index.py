@@ -89,7 +89,8 @@ def current_user(cur, event):
     if not token:
         return None
     cur.execute(
-        "SELECT s.id, s.name, s.role FROM sessions x JOIN staff s ON s.id = x.staff_id "
+        "SELECT s.id, s.name, s.role, s.login FROM sessions x "
+        "JOIN staff s ON s.id = x.staff_id "
         "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
     )
     row = cur.fetchone()
@@ -809,6 +810,135 @@ def build_collective(payload, hunters, st):
     return buf.getvalue()
 
 
+def day_month_year(d):
+    """Разбирает дату на «21» августа 2026 — как в бланке акта."""
+    s = str(d or '')[:10]
+    try:
+        y, m, dd = s.split('-')
+        return dd, MONTHS[int(m) - 1], y
+    except (ValueError, IndexError):
+        return '__', '__________', '20__'
+
+
+def act_date_line(d):
+    dd, mon, y = day_month_year(d)
+    return '«' + dd + '» ' + mon + ' ' + y + ' г.'
+
+
+KIND_LABEL = {'rifled': 'нарезное', 'smooth': 'гладкоствольное'}
+
+
+def weapon_rows(w):
+    dd, mon, y = day_month_year(w.get('roh_date'))
+    roh = w.get('roh_number') or ''
+    roh_line = ('серия и номер ' + str(roh) + ', выдано «' + dd + '» ' + mon +
+                ' ' + y + ' г.') if roh else ''
+    return [
+        ('Тип оружия', KIND_LABEL.get(str(w.get('kind')), 'нарезное')),
+        ('Марка, модель', str(w.get('name') or '')),
+        ('Калибр', str(w.get('caliber') or '')),
+        ('№ оружия', str(w.get('serial_no') or '')),
+        ('РОХа', roh_line),
+        ('Патроны', 'калибр ____________, тип ____________, количество ______ штук'),
+    ]
+
+
+def build_weapon_act(weapon, guest, act):
+    """Собирает акт приёма-передачи оружия по образцу хозяйства."""
+    doc = Document()
+    set_font(doc, size=11)
+    for s in doc.sections:
+        s.top_margin = Cm(1.5)
+        s.bottom_margin = Cm(1.2)
+        s.left_margin = Cm(2.0)
+        s.right_margin = Cm(1.5)
+
+    para(doc, 'АКТ ПРИЕМА – ПЕРЕДАЧИ', bold=True, align='center', size=13)
+    para(doc, 'охотничьего огнестрельного оружия', bold=True, align='center', size=12)
+    para(doc, act_date_line(act.get('act_date')), align='center', space_after=8)
+
+    para(doc,
+         'Мы, нижеподписавшиеся, составили настоящий акт в том, что на основании '
+         'статьи 24.1 Федерального закона №150-ФЗ «Об оружии», при совместной охоте '
+         'на территории охотугодий «Кротовский» и «Бобровский» охотничьего хозяйства '
+         '«Малышенское» (охотсоглашения №245 от 30.12.2020 с ООО «Эксперт Плюс» и '
+         'охотсоглашение №242 от 24.12.2020 с ООО «ЭБНП»), в период совместной охоты:',
+         space_after=8)
+
+    para(doc, 'ОХОТНИК – ВЛАДЕЛЕЦ ОРУЖИЯ:', bold=True, space_after=2)
+    para(doc, str(weapon.get('owner_name') or ''), align='center', space_after=0)
+    para(doc, '(ФИО полностью)', align='center', size=8, space_after=8)
+
+    para(doc, 'Временно передает для совместной охоты охотничье огнестрельное оружие:',
+         space_after=4)
+    two_col_table(doc, weapon_rows(weapon), widths=(5.5, 11.0))
+    para(doc, '', space_after=6)
+
+    para(doc, 'ОХОТНИК – ПОЛУЧАТЕЛЬ ОРУЖИЯ:', bold=True, space_after=2)
+    para(doc, str(act.get('receiver_name') or guest.get('name') or ''),
+         align='center', space_after=0)
+    para(doc, '(ФИО полностью)', align='center', size=8, space_after=8)
+
+    para(doc,
+         'У ОХОТНИКА-ПОЛУЧАТЕЛЯ ОРУЖИЯ имеется действующее разрешение на право '
+         'ношения и хранения оружия:', space_after=4)
+
+    r_roh = act.get('receiver_roh') or guest.get('roh_number') or ''
+    dd, mon, y = day_month_year(act.get('receiver_roh_date') or guest.get('roh_date'))
+    para(doc, 'РОХа № ' + str(r_roh) + ' от «' + dd + '» ' + mon + ' ' + y + ' г.',
+         bold=True, align='center', space_after=2)
+
+    own = str(act.get('receiver_weapon') or guest.get('roh_weapon') or '').strip()
+    if own:
+        para(doc, own, align='center', space_after=0)
+    para(doc, '(тип, марка, модель, калибр и номер имеющегося у охотника '
+              'собственного оружия)', align='center', size=8, space_after=8)
+
+    para(doc, 'ОРУЖИЕ и ПАТРОНЫ передаются на период совместной охоты в срок',
+         space_after=2)
+    d1, m1, y1 = day_month_year(act.get('hunt_from'))
+    d2, m2, y2 = day_month_year(act.get('hunt_to'))
+    para(doc, 'с «' + d1 + '» ' + m1 + ' ' + y1 + ' г. по «' + d2 + '» ' + m2 +
+              ' ' + y2 + ' г.', bold=True, align='center', space_after=10)
+
+    t = doc.add_table(rows=0, cols=2)
+    t.style = 'Table Grid'
+    head = t.add_row().cells
+    head[0].text = 'ОХОТНИК-ВЛАДЕЛЕЦ ОРУЖИЯ:'
+    head[1].text = 'ОХОТНИК-ПОЛУЧАТЕЛЬ ОРУЖИЯ:'
+    for c in head:
+        for p in c.paragraphs:
+            for r in p.runs:
+                r.bold = True
+                r.font.size = Pt(10)
+
+    for left, right in (('ПЕРЕДАЛ', 'ПОЛУЧИЛ'), ('ПОЛУЧИЛ', 'ВОЗВРАТИЛ')):
+        row = t.add_row().cells
+        row[0].text = left
+        row[1].text = right
+        for c in row:
+            for p in c.paragraphs:
+                for r in p.runs:
+                    r.bold = True
+                    r.font.size = Pt(10)
+        sign = t.add_row().cells
+        for c in sign:
+            c.text = '____________   «___» ____________ 20__ г.'
+            c.add_paragraph('подпись                                  дата')
+            for p in c.paragraphs:
+                p.paragraph_format.space_after = Pt(2)
+                for r in p.runs:
+                    r.font.size = Pt(8) if 'подпись' in p.text else Pt(10)
+
+    return doc_bytes(doc)
+
+
+def doc_bytes(doc):
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 DOCX_MIME = ('application/vnd.openxmlformats-officedocument.'
              'wordprocessingml.document')
 
@@ -900,6 +1030,74 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Origin': '*',
                 'Content-Type': DOCX_MIME,
                 'Content-Disposition': 'attachment; filename="bio_act.docx"',
+            },
+            'isBase64Encoded': True,
+            'body': base64.b64encode(data).decode(),
+        }
+
+    if kind == 'weapon_act':
+        if str(user.get('login') or '').lower() != 'uan':
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Раздел закрыт'})}
+        payload = json.loads(event.get('body') or '{}')
+        wid = payload.get('weapon_id')
+        gid = payload.get('guest_id')
+        if not (wid and str(wid).isdigit()) or not (gid and str(gid).isdigit()):
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS,
+                    'body': json.dumps({'error': 'Выберите карабин и охотника'})}
+
+        cur.execute('SELECT * FROM weapons WHERE id = ' + str(int(wid)))
+        wrow = cur.fetchone()
+        cur.execute('SELECT * FROM guests WHERE id = ' + str(int(gid)))
+        grow = cur.fetchone()
+        if not wrow or not grow:
+            cur.close()
+            conn.close()
+            return {'statusCode': 404, 'headers': CORS,
+                    'body': json.dumps({'error': 'Карабин или охотник не найден'})}
+
+        weapon = dict(wrow)
+        guest = dict(grow)
+        data = build_weapon_act(weapon, guest, payload)
+
+        who = str(guest.get('name') or '')
+        gun = str(weapon.get('name') or '')
+        title = 'Акт передачи ' + gun + ' — ' + who
+        fname = ('Акт ' + gun + ' ' + who).replace(' ', '_') + '.docx'
+        url = store_doc(cur, data, 'weapon_act', title, fname,
+                        payload.get('act_date') or None, 1, user)
+
+        def qv(v):
+            if v is None or v == '':
+                return 'NULL'
+            return "'" + str(v).replace("'", "''") + "'"
+
+        cur.execute(
+            'INSERT INTO weapon_acts (weapon_id, guest_id, act_date, hunt_from, '
+            'hunt_to, receiver_name, receiver_roh, receiver_roh_date, '
+            'receiver_weapon, file_url, created_by, created_by_name) VALUES ('
+            + str(int(wid)) + ', ' + str(int(gid)) + ', '
+            + qv(payload.get('act_date')) + ', ' + qv(payload.get('hunt_from')) + ', '
+            + qv(payload.get('hunt_to')) + ', '
+            + qv(payload.get('receiver_name') or guest.get('name')) + ', '
+            + qv(payload.get('receiver_roh') or guest.get('roh_number')) + ', '
+            + qv(payload.get('receiver_roh_date') or guest.get('roh_date')) + ', '
+            + qv(payload.get('receiver_weapon') or guest.get('roh_weapon')) + ', '
+            + qv(url) + ', ' + str(int(user['id'])) + ', ' + qv(user.get('name')) + ')'
+        )
+
+        cur.close()
+        conn.close()
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': DOCX_MIME,
+                'Content-Disposition': 'attachment; filename="weapon_act.docx"',
             },
             'isBase64Encoded': True,
             'body': base64.b64encode(data).decode(),

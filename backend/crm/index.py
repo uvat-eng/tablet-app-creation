@@ -62,6 +62,11 @@ TABLES = {
     'biotech_works': ['guest_id', 'hunter_name', 'kind', 'location_id', 'place', 'work_on',
                       'hours', 'qty', 'unit', 'value_rub', 'status', 'note', 'photo_url',
                       'archived'],
+    'weapons': ['name', 'kind', 'caliber', 'serial_no', 'roh_number', 'roh_date',
+                'owner_name', 'sort_order', 'note', 'archived'],
+    'weapon_acts': ['weapon_id', 'guest_id', 'act_date', 'hunt_from', 'hunt_to',
+                    'receiver_name', 'receiver_roh', 'receiver_roh_date',
+                    'receiver_weapon', 'file_url', 'archived'],
     'transfers': ['name', 'amount', 'spent_on', 'source', 'payer', 'recipient', 'section',
                   'target_id', 'category', 'note', 'linked_table', 'linked_id',
                   'receipt_url', 'archived'],
@@ -104,6 +109,8 @@ ORDER = {
     'guest_docs': 'signed_on DESC NULLS LAST, id DESC',
     'work_photos': 'shot_on DESC NULLS LAST, id DESC',
     'transport_expenses': 'spent_on DESC NULLS LAST, id DESC',
+    'weapons': 'sort_order, id',
+    'weapon_acts': 'act_date DESC NULLS LAST, id DESC',
     'transfers': 'spent_on DESC NULLS LAST, id DESC',
     'documents': 'created_at DESC, id DESC',
     'hunt_requests': 'created_at DESC, id DESC',
@@ -112,7 +119,8 @@ ORDER = {
     'supply_items': 'id',
 }
 
-ARCHIVABLE = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
+ARCHIVABLE = {'weapons', 'weapon_acts',
+              'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
               'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag', 'guest_docs',
               'transport_expenses', 'transfers', 'documents', 'hunt_requests', 'supply_orders'}
@@ -162,6 +170,8 @@ TITLE_FIELD = {
     'guest_docs': 'title',
     'work_photos': 'caption',
     'transport_expenses': 'name',
+    'weapons': 'name',
+    'weapon_acts': 'receiver_name',
     'transfers': 'name',
     'documents': 'title',
 }
@@ -416,6 +426,13 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return {'statusCode': 403, 'headers': CORS,
                     'body': json.dumps({'error': 'Удалять записи может только хозяйство'})}
+
+    if table in ('weapons', 'weapon_acts'):
+        if not viewer or str(viewer.get('login') or '').lower() != 'uan':
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Раздел закрыт'})}
 
     if table in ('supply_orders', 'supply_items'):
         if is_hunter or not viewer:

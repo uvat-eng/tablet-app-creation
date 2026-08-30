@@ -30,6 +30,8 @@ export const SECTIONS: Section[] = [
   { key: 'finance', to: '/finance', label: 'Финансы', icon: 'Wallet' },
   { key: 'transfers', to: '/transfers', label: 'Финансы переводы', icon: 'ArrowLeftRight' },
   { key: 'office', to: '/office', label: 'Финансы ОФИС', icon: 'Landmark' },
+  { key: 'weapon-transfer', to: '/weapon-transfer', label: 'Передача оружия',
+    icon: 'Crosshair' },
   { key: 'access', to: '/access', label: 'Логины и пароли', icon: 'KeyRound' },
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
@@ -126,6 +128,9 @@ export const parsePermissions = (raw: unknown): string[] =>
 
 export const can = (user: StaffUser | null, key: string): boolean => {
   if (!user) return false;
+  if (key === 'weapon-transfer') {
+    return String(user.login || '').toLowerCase() === 'uan';
+  }
   if (key === 'club-chat') return canClubChat(user);
   if (key === 'access') return Boolean(user.can_manage_access);
   if (key === 'supply') return Boolean(user.can_supply);
