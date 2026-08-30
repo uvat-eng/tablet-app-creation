@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const KEY = 'hb_splash_seen';
+const SOUND_KEY = 'hb_splash_sound';
 const TOTAL = 6200;
 
 const SplashIntro = () => {
   const [phase, setPhase] = useState(0);
   const [gone, setGone] = useState(false);
+  const [needTap, setNeedTap] = useState(false);
+  const [muted, setMuted] = useState(
+    typeof localStorage !== 'undefined' && localStorage.getItem(SOUND_KEY) === '0',
+  );
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem(KEY) === '1') {
@@ -13,6 +19,13 @@ const SplashIntro = () => {
       return;
     }
     sessionStorage.setItem(KEY, '1');
+
+    if (localStorage.getItem(SOUND_KEY) !== '0') {
+      const audio = new Audio('/splash/intro.mp3');
+      audio.volume = 0.55;
+      audioRef.current = audio;
+      audio.play().catch(() => setNeedTap(true));
+    }
 
     const t1 = setTimeout(() => setPhase(1), 120);
     const t2 = setTimeout(() => setPhase(2), 2100);
@@ -25,13 +38,41 @@ const SplashIntro = () => {
     };
   }, []);
 
+  const fadeOut = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    const step = setInterval(() => {
+      a.volume = Math.max(0, a.volume - 0.08);
+      if (a.volume <= 0.02) {
+        clearInterval(step);
+        a.pause();
+      }
+    }, 45);
+  };
+
+  useEffect(() => {
+    if (phase >= 4) fadeOut();
+  }, [phase]);
+
+  const close = () => {
+    fadeOut();
+    setGone(true);
+  };
+
   if (gone) return null;
 
   const met = phase >= 2;
 
   return (
     <div
-      onClick={() => setGone(true)}
+      onClick={() => {
+        if (needTap && audioRef.current) {
+          audioRef.current.play().catch(() => undefined);
+          setNeedTap(false);
+          return;
+        }
+        close();
+      }}
       style={{
         position: 'fixed',
         inset: 0,
@@ -133,6 +174,54 @@ const SplashIntro = () => {
           Охотничье хозяйство
         </div>
       </div>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          const off = !muted;
+          setMuted(off);
+          localStorage.setItem(SOUND_KEY, off ? '0' : '1');
+          if (off) {
+            fadeOut();
+          } else if (audioRef.current) {
+            audioRef.current.volume = 0.55;
+            audioRef.current.play().catch(() => undefined);
+          }
+        }}
+        aria-label={muted ? 'Включить звук' : 'Выключить звук'}
+        style={{
+          position: 'absolute',
+          top: 'calc(env(safe-area-inset-top) + 16px)',
+          right: 16,
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          border: 'none',
+          background: 'rgba(31,31,29,.10)',
+          color: '#1f1f1d',
+          fontSize: 17,
+          lineHeight: '38px',
+          cursor: 'pointer',
+        }}
+      >
+        {muted ? '🔇' : '🔊'}
+      </button>
+
+      {needTap && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(env(safe-area-inset-top) + 62px)',
+            right: 16,
+            fontSize: 10,
+            letterSpacing: '.1em',
+            color: '#3f4a2a',
+            textTransform: 'uppercase',
+          }}
+        >
+          нажмите для звука
+        </div>
+      )}
 
       <div
         style={{
