@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Без токена не пускает",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Отправка координат без токена запрещена",
+      "method": "POST",
+      "path": "/",
+      "body": {"lat": 56.77, "lng": 69.05},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Проверка доступности метода OPTIONS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}

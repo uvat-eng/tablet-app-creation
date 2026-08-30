@@ -13,6 +13,8 @@ import useTrackRecorder from '@/lib/useTrackRecorder';
 import useCompass from '@/lib/useCompass';
 import useBattery from '@/lib/useBattery';
 import useFullscreen from '@/lib/useFullscreen';
+import useFieldPresence from '@/lib/useFieldPresence';
+import { fmtAge } from '@/lib/fieldPresence';
 import { toast } from 'sonner';
 
 interface Target {
@@ -56,11 +58,21 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
   const compass = useCompass(true);
   const battery = useBattery();
   const fs = useFullscreen();
+  const crew = useFieldPresence(fix, battery.level);
 
   const targets: Target[] = useMemo(() => {
     const list: Target[] = [
       { id: 'base', name: BASE_LABEL, lat: BASE_POINT[0], lng: BASE_POINT[1], kind: 'base' },
     ];
+    crew.others.forEach((p) =>
+      list.push({
+        id: `crew-${p.id}`,
+        name: p.name,
+        lat: p.lat,
+        lng: p.lng,
+        kind: 'crew',
+      }),
+    );
     marks.forEach((m) => list.push(m));
     points.forEach((r) => {
       if (!Number(r.lat) || !Number(r.lng)) return;
@@ -73,7 +85,7 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
       });
     });
     return list;
-  }, [points, marks]);
+  }, [points, marks, crew.others]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(clock()), 20000);
@@ -252,6 +264,43 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
     };
   }, [marks]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const group = L.layerGroup().addTo(map);
+    crew.others.forEach((p) => {
+      const stale = p.ageSec > 300;
+      const tone = p.sos ? '#e53935' : stale ? '#8d8d88' : '#1a73e8';
+      L.marker([p.lat, p.lng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="display:flex;flex-direction:column;align-items:center;
+              transform:translateY(-6px)">
+            <div style="white-space:nowrap;font-size:11px;line-height:1;color:#fff;
+              background:${tone};padding:3px 6px;border-radius:2px;
+              box-shadow:0 1px 3px rgba(0,0,0,.5);margin-bottom:3px">
+              ${p.sos ? 'SOS ' : ''}${p.name.split(' ')[0]}</div>
+            <div style="width:14px;height:14px;border-radius:50%;background:${tone};
+              border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.4)"></div>
+          </div>`,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0],
+        }),
+        interactive: false,
+        zIndexOffset: p.sos ? 900 : 500,
+      }).addTo(group);
+    });
+    return () => {
+      map.removeLayer(group);
+    };
+  }, [crew.others]);
+
+  const crewAge = (targetId: string) => {
+    const p = crew.others.find((x) => `crew-${x.id}` === targetId);
+    if (!p) return 'Участник';
+    return p.sos ? 'ТРЕВОГА · ' + fmtAge(p.ageSec) : 'Участник · ' + fmtAge(p.ageSec);
+  };
+
   const saveMark = async (kind: string) => {
     if (!fix || saving) return;
     setSaving(true);
@@ -415,6 +464,32 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
           </div>
         )}
 
+        {(crew.others.length > 0 || crew.sharing) && (
+          <button
+            onClick={() => setPicker(true)}
+            className="w-full mb-3 flex items-center justify-center gap-2 py-2"
+            style={{
+              background: crew.others.some((p) => p.sos) ? '#e5393533' : '#ffffff0f',
+              color: '#fff',
+            }}
+          >
+            <Icon name="Users" size={15} fallback="User" />
+            <span className="text-[0.72em]">
+              {crew.others.length === 0
+                ? 'В лесу пока никого не видно'
+                : `В лесу: ${crew.others.length}`}
+            </span>
+            {crew.others.some((p) => p.sos) && (
+              <span className="text-[0.72em]" style={{ color: '#ff8a80' }}>
+                · ТРЕВОГА
+              </span>
+            )}
+            {!crew.linked && (
+              <span className="text-[0.68em] opacity-60">· нет связи</span>
+            )}
+          </button>
+        )}
+
         <div className="flex items-center justify-center gap-6 mb-4 text-center">
           <div>
             <div className="text-[0.62em] uppercase tracking-[0.1em] opacity-60">Курс</div>
@@ -457,6 +532,17 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
           >
             <Icon name="Home" size={16} />
             На базу
+          </button>
+          <button
+            onClick={crew.toggle}
+            className="px-4 py-3 text-[0.72em] uppercase tracking-[0.06em] flex items-center gap-2"
+            style={{
+              background: crew.sharing ? '#1a73e8' : '#ffffff1a',
+              color: '#fff',
+            }}
+          >
+            <Icon name={crew.sharing ? 'Users' : 'UserX'} size={16} fallback="User" />
+            {crew.sharing ? 'Меня видно' : 'Я скрыт'}
           </button>
           {mayEdit && (
             <button
@@ -582,13 +668,22 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
                         width: 10,
                         height: 10,
                         borderRadius: '50%',
-                        background: t.kind === 'base' ? '#c6e97a' : '#e53935',
+                        background:
+                          t.kind === 'base'
+                            ? '#c6e97a'
+                            : t.kind === 'crew'
+                              ? '#1a73e8'
+                              : '#e53935',
                       }}
                     />
                     <span>
                       <span className="block text-[0.86em]">{t.name}</span>
                       <span className="block text-[0.64em] opacity-60 uppercase tracking-[0.08em]">
-                        {t.kind === 'base' ? 'База' : KIND(t.kind).label}
+                        {t.kind === 'base'
+                          ? 'База'
+                          : t.kind === 'crew'
+                            ? crewAge(t.id)
+                            : KIND(t.kind).label}
                       </span>
                     </span>
                   </span>
@@ -599,6 +694,29 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
               );
             })}
           </div>
+          <div className="px-4 pb-3">
+            <button
+              onClick={() => {
+                const on = !crew.sos;
+                crew.raiseSos(on);
+                toast[on ? 'error' : 'success'](
+                  on
+                    ? 'Тревога отправлена — вас видят все участники'
+                    : 'Тревога снята',
+                );
+              }}
+              disabled={!fix}
+              className="w-full py-4 flex items-center justify-center gap-2 text-[0.76em] uppercase tracking-[0.08em]"
+              style={{
+                background: crew.sos ? '#e53935' : '#ffffff14',
+                color: fix ? '#fff' : '#ffffff66',
+              }}
+            >
+              <Icon name="TriangleAlert" size={18} fallback="CircleAlert" />
+              {crew.sos ? 'Отменить тревогу' : 'Подать сигнал тревоги'}
+            </button>
+          </div>
+
           {rec.points.length > 0 && (
             <div className="px-4 pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
               <button
