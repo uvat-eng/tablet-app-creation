@@ -24,6 +24,7 @@ interface Props {
   setOpen: (v: boolean) => void;
   pointsCount: number;
   noCoords: number;
+  seeObjects: boolean;
 }
 
 const MapCanvas = ({
@@ -35,6 +36,7 @@ const MapCanvas = ({
   setOpen,
   pointsCount,
   noCoords,
+  seeObjects,
 }: Props) => (
   <>
     <div className="relative">
@@ -153,8 +155,15 @@ const MapCanvas = ({
     )}
 
     <div className="mt-3 h-label">
-      Точек на карте: {pointsCount}
-      {noCoords > 0 && ` · без координат: ${noCoords}`} · двойной клик по метке открывает карточку
+      {seeObjects ? (
+        <>
+          Точек на карте: {pointsCount}
+          {noCoords > 0 && ` · без координат: ${noCoords}`} · двойной клик по метке
+          открывает карточку
+        </>
+      ) : (
+        'Границы участков и база хозяйства'
+      )}
     </div>
   </>
 );

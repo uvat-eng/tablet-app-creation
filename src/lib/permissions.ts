@@ -34,7 +34,7 @@ export const SECTIONS: Section[] = [
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
-const CLUB_ONLY_KEYS = ['my-club', 'my-biotech', 'club-chat'];
+const CLUB_ONLY_KEYS = ['my-club', 'my-biotech', 'club-chat', 'locations'];
 
 const CLUB_CHAT_LOGINS = ['spy', 'uan', 'una', 'zna', 'tgw'];
 
@@ -75,6 +75,12 @@ export const ROLES: Record<string, string> = {
 export const isHunter = (user: StaffUser | null) => user?.role === 'hunter';
 
 export const canEditMap = (user: StaffUser | null) => {
+  if (!user) return false;
+  if (user.role !== 'hunter') return true;
+  return isClubMember();
+};
+
+export const canSeeObjects = (user: StaffUser | null) => {
   if (!user) return false;
   if (user.role !== 'hunter') return true;
   return isClubMember();
@@ -127,7 +133,10 @@ export const can = (user: StaffUser | null, key: string): boolean => {
     return parsePermissions(user.permissions).includes('supply-new');
   }
   if (user.role === 'owner') return true;
-  if (user.role === 'hunter') return HUNTER_SECTIONS.some((s) => s.key === key);
+  if (user.role === 'hunter') {
+    if (CLUB_ONLY_KEYS.includes(key) && !isClubMember()) return false;
+    return HUNTER_SECTIONS.some((s) => s.key === key);
+  }
   const list = parsePermissions(user.permissions);
   if (list.includes('all')) return true;
   if (!list.length) return (DEFAULT_PERMISSIONS[user.role] || []).includes(key);

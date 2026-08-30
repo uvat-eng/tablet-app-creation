@@ -16,7 +16,7 @@ import { parseGeoFile, toGeoJson, fromGeoJson } from '@/lib/geoParse';
 import useGeoLocate from '@/lib/useGeoLocate';
 import { readOffline, probeOffline, offlineTileLayer, OfflineCfg } from '@/lib/offlineMap';
 import { makeBaseLayer } from '@/lib/basemaps';
-import { HOME_CENTER, HOME_ZOOM } from '@/lib/homeArea';
+import { HOME_CENTER, HOME_ZOOM, BASE_POINT, BASE_LABEL } from '@/lib/homeArea';
 import Navigator from '@/components/app/Navigator';
 import MapControls from '@/components/map/MapControls';
 import MapCanvas from '@/components/map/MapCanvas';
@@ -24,11 +24,12 @@ import TracksTable from '@/components/map/TracksTable';
 import { pinIcon } from '@/components/map/mapStyles';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { canEditMap } from '@/lib/permissions';
+import { canEditMap, canSeeObjects } from '@/lib/permissions';
 
 const MapPage = () => {
   const { user } = useAuth();
   const mayEdit = canEditMap(user);
+  const seeObjects = canSeeObjects(user);
   const navigate = useNavigate();
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -68,10 +69,12 @@ const MapPage = () => {
 
   const points = useMemo(
     () =>
-      rows.filter(
-        (r) => Number(r.lat) && Number(r.lng) && active.includes(String(r.kind || 'ground')),
-      ),
-    [rows, active],
+      seeObjects
+        ? rows.filter(
+            (r) => Number(r.lat) && Number(r.lng) && active.includes(String(r.kind || 'ground')),
+          )
+        : [],
+    [rows, active, seeObjects],
   );
 
   useEffect(() => {
@@ -129,11 +132,23 @@ const MapPage = () => {
       group.addLayer(marker);
     });
 
+    if (!seeObjects) {
+      const base = L.marker(BASE_POINT, { icon: pinIcon('base') });
+      base.bindPopup(
+        `<div style="font-family:inherit;font-size:13px;min-width:150px">
+          <b>${BASE_LABEL}</b><br/>
+          <span style="font-size:11px">${BASE_POINT[0].toFixed(5)}, ${BASE_POINT[1].toFixed(5)}</span>
+        </div>`,
+      );
+      base.bindTooltip(BASE_LABEL, { direction: 'top', offset: [0, -12] });
+      group.addLayer(base);
+    }
+
     if (points.length) {
       const bounds = L.latLngBounds(points.map((r) => [Number(r.lat), Number(r.lng)]));
       map.fitBounds(bounds.pad(0.25), { maxZoom: 14 });
     }
-  }, [points, navigate]);
+  }, [points, navigate, seeObjects]);
 
   useEffect(() => {
     const group = tracksRef.current;
@@ -270,7 +285,11 @@ const MapPage = () => {
     <Layout
       index="Раздел / Карта"
       title="Карта хозяйства"
-      lede="Спутниковые снимки, границы угодий и все локации точками."
+      lede={
+        seeObjects
+          ? 'Спутниковые снимки, границы угодий и все локации точками.'
+          : 'Спутниковые снимки, границы угодий и база хозяйства.'
+      }
       action={
         <span className="flex gap-2">
           <input
@@ -311,6 +330,7 @@ const MapPage = () => {
         active={active}
         toggleKind={toggleKind}
         onOpenNav={() => setNavOpen(true)}
+        seeObjects={seeObjects}
       />
 
       <MapCanvas
@@ -322,9 +342,10 @@ const MapPage = () => {
         setOpen={setOpen}
         pointsCount={points.length}
         noCoords={noCoords}
+        seeObjects={seeObjects}
       />
 
-      <TracksTable tracks={tracks} mayEdit={mayEdit} load={load} />
+      {seeObjects && <TracksTable tracks={tracks} mayEdit={mayEdit} load={load} />}
 
       {navOpen && (
         <Navigator

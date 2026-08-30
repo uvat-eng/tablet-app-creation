@@ -16,6 +16,7 @@ interface Props {
   active: string[];
   toggleKind: (key: string) => void;
   onOpenNav: () => void;
+  seeObjects: boolean;
 }
 
 const MapControls = ({
@@ -28,6 +29,7 @@ const MapControls = ({
   active,
   toggleKind,
   onOpenNav,
+  seeObjects,
 }: Props) => (
   <>
     <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -64,6 +66,7 @@ const MapControls = ({
 
     <OfflineMapDownload onReady={() => setOfflineReady(true)} />
 
+    {seeObjects && (
     <div className="mb-4 flex flex-wrap items-center gap-2">
       <span className="h-label mr-1">Слои</span>
       {LOCATION_KINDS.map((k) => {
@@ -96,15 +99,18 @@ const MapControls = ({
         );
       })}
     </div>
+    )}
 
-    <button
-      onClick={onOpenNav}
-      className="w-full mb-4 flex items-center justify-center gap-3 py-4"
-      style={{ background: '#1f1f1d', color: '#fff' }}
-    >
-      <Icon name="Compass" size={22} fallback="Navigation" />
-      <span className="text-[0.8em] uppercase tracking-[0.1em]">Открыть навигатор</span>
-    </button>
+    {seeObjects && (
+      <button
+        onClick={onOpenNav}
+        className="w-full mb-4 flex items-center justify-center gap-3 py-4"
+        style={{ background: '#1f1f1d', color: '#fff' }}
+      >
+        <Icon name="Compass" size={22} fallback="Navigation" />
+        <span className="text-[0.8em] uppercase tracking-[0.1em]">Открыть навигатор</span>
+      </button>
+    )}
   </>
 );
 

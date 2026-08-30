@@ -6,7 +6,17 @@ import Icon from '@/components/ui/icon';
 import { readOffline, offlineTileLayer, probeOffline } from '@/lib/offlineMap';
 import { BASE_DEFS, makeBaseLayer } from '@/lib/basemaps';
 import { HOME_CENTER, HOME_ZOOM } from '@/lib/homeArea';
-import { listRows } from '@/lib/api';
+import { listRows, StaffUser } from '@/lib/api';
+import { canSeeObjects } from '@/lib/permissions';
+
+const readMe = (): StaffUser | null => {
+  try {
+    const raw = localStorage.getItem('hb_me');
+    return raw ? (JSON.parse(raw) as StaffUser) : null;
+  } catch {
+    return null;
+  }
+};
 
 interface Props {
   open: boolean;
@@ -96,7 +106,7 @@ const PickPointDialog = ({ open, onOpenChange, value, onPick }: Props) => {
           });
         }
       });
-      listRows('locations')
+      (canSeeObjects(readMe()) ? listRows('locations') : Promise.resolve([]))
         .then((rows) => {
           const layer = L.layerGroup().addTo(map);
           refsRef.current = layer;

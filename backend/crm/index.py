@@ -137,6 +137,10 @@ HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'docum
 
 CLUB_ONLY_WRITE = {'locations', 'biotech_works', 'work_photos', 'club_bag'}
 
+CLUB_ONLY_READ = {'locations'}
+
+PLAIN_HUNTER_LAYERS = ('boundary',)
+
 HUNTER_LOCKED = {
     'club_bag': ('price', 'debt', 'debt_status', 'paid_on', 'hours_credited'),
     'guests': ('club_member', 'club_until', 'fee_monthly', 'archived'),
@@ -398,6 +402,10 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return {'statusCode': 403, 'headers': CORS,
                     'body': json.dumps({'error': 'Этот раздел доступен только хозяйству'})}
+        if method == 'GET' and table in CLUB_ONLY_READ and not is_club:
+            cur.close()
+            conn.close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'items': []})}
         if method != 'GET' and table in CLUB_ONLY_WRITE and not is_club:
             cur.close()
             conn.close()
@@ -434,6 +442,9 @@ def handler(event: dict, context) -> dict:
         if params.get('guest_id') and table in ('club_fees', 'club_bag', 'biotech_works',
                                                 'hunter_bag', 'guest_docs'):
             where.append('guest_id = ' + str(int(params['guest_id'])))
+        if is_hunter and not is_club and table == 'map_layers':
+            kinds = ', '.join("'" + k + "'" for k in PLAIN_HUNTER_LAYERS)
+            where.append('kind IN (' + kinds + ')')
         if is_hunter and table in HUNTER_OWN_ONLY:
             key = 'id' if table == 'guests' else 'guest_id'
             where.append(key + ' = ' + str(my_guest or 0))
