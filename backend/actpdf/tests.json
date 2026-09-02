@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "Без входа в систему не отдаёт документ",
+      "method": "GET",
+      "path": "/?kind=act&id=1",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Без номера документа отвечает понятной ошибкой",
+      "method": "GET",
+      "path": "/?kind=act",
+      "expectedStatus": 400,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Проверка связи с браузером",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}
