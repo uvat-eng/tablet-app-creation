@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 import os
@@ -13,6 +14,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from fonts_data import BLD_B64, REG_B64
+
 CORS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -20,7 +23,6 @@ CORS = {
     'Content-Type': 'application/json',
 }
 
-FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
 REG = 'OS'
 BLD = 'OSB'
 _fonts_ready = False
@@ -30,8 +32,8 @@ def setup_fonts():
     global _fonts_ready
     if _fonts_ready:
         return
-    pdfmetrics.registerFont(TTFont(REG, os.path.join(FONT_DIR, 'OpenSans-Regular.ttf')))
-    pdfmetrics.registerFont(TTFont(BLD, os.path.join(FONT_DIR, 'OpenSans-Bold.ttf')))
+    pdfmetrics.registerFont(TTFont(REG, io.BytesIO(base64.b64decode(REG_B64))))
+    pdfmetrics.registerFont(TTFont(BLD, io.BytesIO(base64.b64decode(BLD_B64))))
     _fonts_ready = True
 
 
