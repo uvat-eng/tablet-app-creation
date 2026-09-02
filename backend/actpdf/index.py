@@ -409,8 +409,6 @@ def build_receipt(doc, st):
     p = Sheet()
     amount = float(doc.get('amount') or 0)
     no = str(doc.get('number') or doc.get('id') or '')
-    purpose = clean(doc.get('basis')) or ('Оплата по ордеру № ' + no)
-    draw_qr(p, st, amount, purpose, doc.get('accepted_from'), no, ru_date(doc.get('issued_on')))
 
     p.c.setFont(REG, 7.5)
     p.c.drawString(p.left, p.y, 'Унифицированная форма № КО-1')
