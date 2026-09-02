@@ -5,6 +5,8 @@ import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { PriceItem, loadPriceItems, lineSum, money, GROUP_LABELS } from '@/lib/price';
 import { rublesInWords } from '@/lib/rubles';
 import ActServiceDialog from '@/components/app/ActServiceDialog';
+import PdfButtons from '@/components/app/PdfButtons';
+import PayQr from '@/components/app/PayQr';
 import { toast } from 'sonner';
 
 const dmy = (v: unknown) => {
@@ -211,9 +213,7 @@ const ActCard = () => {
               </button>
             </>
           )}
-          <button className="h-cta-ghost" onClick={() => window.print()}>
-            Скачать PDF
-          </button>
+          {!isNew && <PdfButtons kind="act" id={String(id)} />}
           {!isNew && (
             <button className="h-cta-ghost" onClick={drop}>
               Удалить
@@ -256,11 +256,23 @@ const ActCard = () => {
       </div>
 
       <div id="check-print" className="border border-[#e2e2df] bg-white p-6">
-        <div className="text-center mb-6">
-          <div className="h-head text-[22px]">
-            Акт выполненных работ {isNew ? '' : `№ ${id}`}
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex-1 text-center">
+            <div className="h-head text-[22px]">
+              Акт выполненных работ {isNew ? '' : `№ ${id}`}
+            </div>
+            <div className="h-label mt-1">Охотничье хозяйство «Малышенское»</div>
           </div>
-          <div className="h-label mt-1">Охотничье хозяйство «Малышенское»</div>
+          {!isNew && totals.final > 0 && (
+            <PayQr
+              amount={totals.final}
+              purpose={`Оплата услуг по акту № ${id} от ${dmy(head.date_from)}`}
+              payer={String(head.guest_name || '')}
+              docNo={String(id)}
+              docDate={dmy(head.date_from)}
+              size={104}
+            />
+          )}
         </div>
         <div className="flex flex-wrap justify-between gap-6">
           <div>

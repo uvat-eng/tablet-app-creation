@@ -4,6 +4,7 @@ import Layout from '@/components/app/Layout';
 import { Row, listRows, updateRow, createRow, removeRow } from '@/lib/api';
 import { money } from '@/lib/price';
 import { rublesInWords } from '@/lib/rubles';
+import PdfButtons from '@/components/app/PdfButtons';
 import { toast } from 'sonner';
 
 const dmy = (v: unknown) => {
@@ -122,9 +123,7 @@ const ReceiptCard = () => {
               Открыть акт
             </Link>
           )}
-          <button className="h-cta-ghost" onClick={() => window.print()}>
-            Скачать PDF
-          </button>
+          {!isNew && <PdfButtons kind="receipt" id={String(id)} />}
           {!isNew && (
             <button className="h-cta-ghost" onClick={drop}>
               Удалить

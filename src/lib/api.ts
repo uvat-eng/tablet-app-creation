@@ -4,6 +4,7 @@ const CRM_URL = 'https://functions.poehali.dev/85ee97e6-1ee1-4333-be9f-698f0c374
 export const AUTH_URL = 'https://functions.poehali.dev/de14562b-724c-4ed9-80c1-c0d1787d0889';
 const UPLOAD_URL = 'https://functions.poehali.dev/ee5bce4e-47ca-4200-ae73-937c1cf34339';
 const DOCS_URL = 'https://functions.poehali.dev/00cd6749-c34b-44dc-8de2-a3cbeed57785';
+const ACTPDF_URL = 'https://functions.poehali.dev/6c2eba09-1b6f-4eb1-9c97-6367dabf9ee0';
 
 export type Row = Record<string, string | number | boolean | null>;
 
@@ -718,4 +719,17 @@ export const downloadCollective = async (body: CollectiveSheet) => {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+};
+export type ActKind = 'act' | 'expense' | 'receipt';
+
+export const buildActPdf = async (
+  kind: ActKind,
+  id: number,
+): Promise<{ url: string; file_name: string }> => {
+  const res = await fetch(`${ACTPDF_URL}?kind=${kind}&id=${id}`, {
+    headers: { 'X-Auth-Token': getToken() },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Не удалось собрать документ');
+  return data;
 };

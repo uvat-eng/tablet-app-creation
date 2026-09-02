@@ -16,7 +16,7 @@ from reportlab.pdfgen import canvas
 CORS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token, X-User-Id',
     'Content-Type': 'application/json',
 }
 
@@ -248,6 +248,7 @@ class Sheet:
 
     def signs(self, pairs):
         self.gap(6)
+        self.room(len(pairs) * 8 * mm)
         for label, who in pairs:
             self.room(8 * mm)
             self.c.setFont(REG, 9)

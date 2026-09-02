@@ -5,6 +5,7 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { HUNT_CATEGORIES, HUNT_CATEGORY_LABEL, money, RECEIPT_FIELD } from '@/lib/expenses';
 import ReceiptLink from '@/components/app/ReceiptLink';
+import PdfButtons from '@/components/app/PdfButtons';
 import { toast } from 'sonner';
 
 const FIELDS: Field[] = [
@@ -107,9 +108,7 @@ const ExpenseAct = () => {
           <Link className="h-cta-ghost" to={`/documents/act/${id}`}>
             К акту охоты
           </Link>
-          <button className="h-cta-ghost" onClick={() => window.print()}>
-            Скачать PDF
-          </button>
+          <PdfButtons kind="expense" id={String(id)} />
           <button
             className="h-cta"
             onClick={() => {
