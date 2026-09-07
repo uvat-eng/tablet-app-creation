@@ -18,6 +18,7 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
   const [guestId, setGuestId] = useState('');
   const [ground, setGround] = useState('krotovsky');
   const [permitNo, setPermitNo] = useState('');
+  const [docNo, setDocNo] = useState('');
   const [applyOn, setApplyOn] = useState(today());
   const [dateFrom, setDateFrom] = useState(today());
   const [dateTo, setDateTo] = useState(plusDays(14));
@@ -41,6 +42,8 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
       ['телефон', guest.phone],
       ['охотбилет', guest.hunt_ticket],
       ['кем выдан охотбилет', guest.hunt_ticket_issued],
+      ['ИНН', guest.inn],
+      ['СНИЛС', guest.snils],
     ];
     return need.filter(([, v]) => !String(v || '').trim()).map(([k]) => k);
   }, [guest]);
@@ -49,6 +52,7 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
     setResult(null);
     setGuestId('');
     setPermitNo('');
+    setDocNo('');
     setSpecial('');
     setNote('');
     setRows([emptySpecies()]);
@@ -79,6 +83,7 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
         guest_id: Number(guestId),
         ground,
         permit_no: permitNo,
+        doc_no: docNo,
         apply_on: applyOn,
         date_from: dateFrom,
         date_to: dateTo,
@@ -169,6 +174,16 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
                     </button>
                   ))}
                 </div>
+              </label>
+
+              <label>
+                <span className="h-label block mb-1">Номер путёвки</span>
+                <input
+                  className="w-full border border-[#e2e2df] px-3 py-2 text-[0.8em] bg-white"
+                  placeholder={`${new Date().getFullYear()}-01`}
+                  value={docNo}
+                  onChange={(e) => setDocNo(e.target.value)}
+                />
               </label>
 
               <label>

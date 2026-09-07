@@ -946,13 +946,60 @@ GROUNDS = {
 
 EXPERT = {
     'name': 'ООО "Эксперт-Плюс"',
-    'director': 'Алиферовой В. А.',
+    'director': 'Спиричеву М. Ю.',
+    'director_short': 'Спиричев М. Ю.',
     'inn': 'ИНН 7203302257 / КПП 720301001',
-    'region': 'Тюменская область,',
+    'region': '625003, Тюменская область,',
     'address': 'г. Тюмень, ул. Урицкого, д. 16, оф. 501',
     'phone': 'телефон: +7 (912) 929-52-85',
     'issuer': 'Земеров Н. А.',
 }
+
+
+def short_fio(full):
+    """Спиричев Михаил Юрьевич -> Спиричев М. Ю."""
+    parts = [p for p in str(full or '').replace(',', ' ').split() if p]
+    if not parts:
+        return ''
+    out = parts[0]
+    for p in parts[1:3]:
+        out += ' ' + p[0].upper() + '.'
+    return out
+
+
+def dative_fio(full):
+    """Спиричева Михаила Юрьевича -> Спиричеву М. Ю. (для шапки заявления)."""
+    parts = [p for p in str(full or '').replace(',', ' ').split() if p]
+    if not parts:
+        return ''
+    last = parts[0]
+    if last.endswith('а') and len(last) > 3:
+        last = last[:-1] + 'у'
+    elif not last.endswith(('у', 'ю')):
+        last = last + 'у'
+    out = last
+    for p in parts[1:3]:
+        out += ' ' + p[0].upper() + '.'
+    return out
+
+
+def org_from_settings(st):
+    """Реквизиты берём из настроек хозяйства, бланк — как запасной вариант."""
+    name = str(st.get('org_name') or '').strip() or EXPERT['name']
+    director_raw = str(st.get('org_director') or '').strip()
+    inn = str(st.get('org_inn') or '7203302257').strip()
+    kpp = str(st.get('org_kpp') or '720301001').strip()
+    address = str(st.get('org_address') or '').strip()
+    return {
+        'name': name,
+        'director': dative_fio(director_raw) if director_raw else EXPERT['director'],
+        'director_short': (short_fio(director_raw) if director_raw
+                           else EXPERT['director_short']),
+        'inn': 'ИНН ' + inn + ' / КПП ' + kpp,
+        'address': address or (EXPERT['region'] + ' ' + EXPERT['address']),
+        'phone': EXPERT['phone'],
+        'issuer': EXPERT['issuer'],
+    }
 
 RULES_LINE = (
     'С правилами охоты и техники безопасности при обращении с огнестрельным '
@@ -1003,8 +1050,8 @@ def caption(doc, text):
     para(doc, text, align='center', size=7, space_after=6)
 
 
-def build_application(guest, payload, ground):
-    """Заявление на выдачу разрешения на имя гендиректора Эксперт-Плюс."""
+def build_application(guest, payload, ground, org):
+    """Заявление на выдачу разрешения на имя директора хозяйства."""
     doc = Document()
     set_font(doc, size=11)
     for s in doc.sections:
@@ -1013,8 +1060,8 @@ def build_application(guest, payload, ground):
         s.left_margin = Cm(2.0)
         s.right_margin = Cm(1.5)
 
-    para(doc, 'Ген. директору ' + EXPERT['name'], align='right', space_after=0)
-    para(doc, EXPERT['director'], align='right', space_after=6)
+    para(doc, 'Директору ' + org['name'], align='right', space_after=0)
+    para(doc, org['director'], align='right', space_after=6)
 
     name = str(guest.get('name') or '')
     para(doc, 'от ' + (name or '_' * 45), align='right', space_after=0)
@@ -1028,6 +1075,9 @@ def build_application(guest, payload, ground):
     para(doc, 'от ' + date_slots(guest.get('passport_date')), align='right', space_after=4)
     para(doc, 'проживающего (ей) по адресу:', align='right', space_after=0)
     para(doc, str(guest.get('address') or '') or '_' * 45, align='right', space_after=4)
+    para(doc, 'ИНН ' + (str(guest.get('inn') or '') or '_' * 14) +
+              '      СНИЛС ' + (str(guest.get('snils') or '') or '_' * 16),
+         align='right', space_after=2)
     para(doc, 'контактный телефон: ' + (str(guest.get('phone') or '') or '_' * 20),
          align='right', space_after=10)
 
@@ -1062,34 +1112,36 @@ def build_application(guest, payload, ground):
     permit_line(doc, 'Кем выдан:', guest.get('hunt_ticket_issued'))
     para(doc, 'Дата выдачи: ' + date_slots(guest.get('hunt_ticket_date')), space_after=8)
 
+    sign = short_fio(name)
     para(doc, RULES_LINE, space_after=10)
-    para(doc, 'Подпись ______________________ / ' + (name or '_' * 30) + ' /',
+    para(doc, 'Подпись ______________________ / ' + (sign or '_' * 26) + ' /',
          space_after=12)
 
     para(doc, '    ' + CONSENT_LINE, space_after=12)
-    para(doc, 'Подпись ______________________ / ' + (name or '_' * 30) + ' /',
+    para(doc, 'Подпись ______________________ / ' + (sign or '_' * 26) + ' /',
          space_after=0)
 
     return doc
 
 
-def build_permit_body(doc, guest, payload, ground, st):
+def build_permit_body(doc, guest, payload, ground, org):
     """Путёвка-договор к разрешению — вторая страница пакета."""
     doc.add_page_break()
 
-    para(doc, EXPERT['name'], bold=True, space_after=0)
-    para(doc, EXPERT['inn'], size=9, space_after=0)
-    para(doc, EXPERT['region'], size=9, space_after=0)
-    para(doc, EXPERT['address'], size=9, space_after=0)
-    para(doc, EXPERT['phone'], size=9, space_after=2)
+    para(doc, org['name'], bold=True, space_after=0)
+    para(doc, org['inn'], size=9, space_after=0)
+    para(doc, org['address'], size=9, space_after=0)
+    para(doc, org['phone'], size=9, space_after=2)
     para(doc, 'Без права передачи', align='right', size=9, space_after=8)
 
-    para(doc, 'ПУТЁВКА (ДОГОВОР)', bold=True, align='center', size=13, space_after=2)
+    doc_no = str(payload.get('doc_no') or '')
+    para(doc, 'ПУТЁВКА (ДОГОВОР) № ' + (doc_no or '_' * 12),
+         bold=True, align='center', size=13, space_after=2)
     permit = str(payload.get('permit_no') or '')
     para(doc, 'к разрешению ' + ground['permit_prefix'] + ' № ' + (permit or '_' * 18),
          align='center', space_after=8)
 
-    para(doc, 'На право охоты в охотничьих угодьях:', space_after=2)
+    para(doc, 'На право охоты в охотничьих угодьях ' + org['name'] + ':', space_after=2)
     para(doc, 'Место охоты:  ' + ground['title'], space_after=0)
     caption(doc, '(указать точное место охоты)')
 
@@ -1156,17 +1208,20 @@ def build_permit_body(doc, guest, payload, ground, st):
               'с огнестрельным оружием, и правилам пожарной безопасности проведен:',
          space_after=6)
 
-    instructor = str(payload.get('instructor') or EXPERT['issuer'])
+    instructor = str(payload.get('instructor') or org['issuer'])
+    short_name = short_fio(name)
     para(doc, 'Инструктаж провел: ______________ / ' + instructor, space_after=6)
-    para(doc, 'Инструктаж прошел: ______________ / ' + (name or '_' * 28), space_after=10)
+    para(doc, 'Инструктаж прошел: ______________ / ' + (short_name or '_' * 28),
+         space_after=10)
 
-    para(doc, 'Путёвку получил  ' + (name or '_' * 45), space_after=0)
+    para(doc, 'Путёвку получил  ' + (short_name or '_' * 40), space_after=0)
     caption(doc, '(фамилия, имя, отчество охотника)')
     para(doc, 'Дата ______________          Подпись ______________', space_after=8)
 
-    para(doc, 'Путёвку выдал  ' + EXPERT['issuer'], space_after=0)
+    para(doc, 'Путёвку выдал  ' + org['issuer'], space_after=0)
     caption(doc, 'фамилия, имя, отчество представителя организации (хозяйства)')
-    para(doc, 'Дата ______________          Подпись ______________', space_after=0)
+    para(doc, 'Дата ______________          Подпись ______________', space_after=2)
+    para(doc, 'М.П.', align='right', space_after=0)
     return doc
 
 
@@ -1239,8 +1294,9 @@ def build_permit(guest, payload, st):
     """Пакет: заявление + путёвка-договор в одном файле."""
     key = str(payload.get('ground') or 'krotovsky')
     ground = GROUNDS.get(key, GROUNDS['krotovsky'])
-    doc = build_application(guest, payload, ground)
-    build_permit_body(doc, guest, payload, ground, st)
+    org = org_from_settings(st or {})
+    doc = build_application(guest, payload, ground, org)
+    build_permit_body(doc, guest, payload, ground, org)
     return doc_bytes(doc)
 
 
