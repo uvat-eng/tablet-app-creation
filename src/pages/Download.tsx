@@ -95,6 +95,29 @@ const Download = () => {
           </ol>
         </div>
 
+        <div className="mt-10 border-t border-[#e2e2df] pt-6">
+          <span className="h-label block mb-3">Иконки для магазина приложений</span>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/rustore-icon-512.png"
+              download="malyshenskoe-icon-512.png"
+              className="h-cta-ghost"
+            >
+              <Icon name="Download" size={14} /> Иконка 512×512
+            </a>
+            <a
+              href="/rustore-icon-1024.png"
+              download="malyshenskoe-icon-1024.png"
+              className="h-cta-ghost"
+            >
+              <Icon name="Download" size={14} /> Иконка 1024×1024
+            </a>
+          </div>
+          <p className="h-mono-cap mt-3">
+            PNG без прозрачности — подходит для загрузки в RuStore
+          </p>
+        </div>
+
         <div className="mt-8 border border-[#e2e2df] px-4 py-3 flex gap-3">
           <Icon name="Info" size={16} className="shrink-0 mt-[2px]" />
           <p className="text-[0.78em] leading-relaxed">
