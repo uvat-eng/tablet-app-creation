@@ -112,6 +112,13 @@ const Download = () => {
             >
               <Icon name="Download" size={14} /> Иконка 1024×1024
             </a>
+            <a
+              href="/rustore-banner-1024x500.png"
+              download="malyshenskoe-banner.png"
+              className="h-cta-ghost"
+            >
+              <Icon name="Download" size={14} /> Баннер 1024×500
+            </a>
           </div>
           <p className="h-mono-cap mt-3">
             PNG без прозрачности — подходит для загрузки в RuStore
