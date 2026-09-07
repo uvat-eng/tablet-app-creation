@@ -133,6 +133,8 @@ AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations'
             'guest_docs', 'transport_expenses', 'transfers', 'documents',
             'hunt_requests', 'supply_orders'}
 
+DEMO_READ = {'locations', 'map_layers', 'objects', 'trophies', 'reviews', 'services'}
+
 HUNTER_READ = {'locations', 'map_layers', 'biotech_works', 'work_photos', 'guests',
                'hunter_bag', 'guest_docs', 'documents', 'trophies', 'club_fees',
                'club_bag', 'services', 'hunt_requests', 'hunt_request_items', 'reviews'}
@@ -426,6 +428,13 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return {'statusCode': 403, 'headers': CORS,
                     'body': json.dumps({'error': 'Удалять записи может только хозяйство'})}
+
+    if viewer and str(viewer.get('login') or '').lower() == 'rustore':
+        if method != 'GET' or table not in DEMO_READ:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Демонстрационный доступ — раздел закрыт'})}
 
     if table in ('weapons', 'weapon_acts'):
         if not viewer or str(viewer.get('login') or '').lower() != 'uan':

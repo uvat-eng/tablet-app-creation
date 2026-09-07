@@ -64,6 +64,33 @@ const Account = () => {
             Иконки и баннер для карточки приложения в RuStore.
           </p>
           <StoreAssets />
+
+          <div className="h-head text-[22px] mt-10 mb-3">Доступ для проверки магазина</div>
+          <p className="h-label mb-3 leading-relaxed">
+            Впишите эти данные в поле «Комментарий для модератора» при подаче
+            приложения — иначе проверяющий не сможет войти дальше экрана логина.
+          </p>
+          <div className="border border-[#e2e2df]">
+            {[
+              { label: 'Логин', value: 'rustore' },
+              { label: 'Пароль', value: 'RuStore2026' },
+              { label: 'Тип входа', value: 'Сотрудник хозяйства' },
+            ].map((r, i) => (
+              <div
+                key={r.label}
+                className="flex flex-wrap gap-2 justify-between px-4 py-3"
+                style={{ borderTop: i ? '1px solid #e2e2df' : 'none' }}
+              >
+                <span className="h-label">{r.label}</span>
+                <span className="text-[0.78em]">{r.value}</span>
+              </div>
+            ))}
+          </div>
+          <p className="h-label mt-3 leading-relaxed">
+            Доступ ограничен: карта угодий, локации, трофейный зал и отзывы. Личные
+            данные охотников, финансы и документы закрыты на сервере — даже в обход
+            приложения.
+          </p>
         </>
       )}
 

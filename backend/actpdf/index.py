@@ -518,6 +518,12 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 401, 'headers': CORS,
                 'body': json.dumps({'error': 'Нужен вход в систему'})}
 
+    if str(user.get('login') or '').lower() == 'rustore':
+        cur.close()
+        conn.close()
+        return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+            'error': 'Демонстрационный доступ — документы недоступны'})}
+
     cur.execute('SELECT * FROM settings WHERE id = 1')
     srow = cur.fetchone()
     st = dict(srow) if srow else {}
