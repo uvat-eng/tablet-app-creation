@@ -23,12 +23,15 @@ const PROFILE: Field[] = [
   { key: 'nationality', label: 'Национальность' },
   { key: 'city', label: 'Город проживания' },
   { key: 'phone', label: 'Телефон' },
+  { key: 'email', label: 'Электронная почта' },
   { key: 'born_on', label: 'Дата рождения', type: 'date' },
   { key: 'passport', label: 'Паспорт: серия и номер' },
   { key: 'passport_date', label: 'Паспорт: дата выдачи', type: 'date' },
+  { key: 'passport_issued', label: 'Паспорт: кем выдан' },
   { key: 'address', label: 'Прописка' },
   { key: 'hunt_ticket', label: 'Охотничий билет: номер' },
   { key: 'hunt_ticket_date', label: 'Охотбилет: дата выдачи', type: 'date' },
+  { key: 'hunt_ticket_issued', label: 'Охотбилет: кем выдан' },
   { key: 'roh_number', label: 'РОХа: номер' },
   { key: 'roh_date', label: 'РОХа: действует до', type: 'date' },
   { key: 'roh_weapon', label: 'Оружие по РОХе' },
@@ -285,6 +288,7 @@ const HunterCard = () => {
             {field('Город проживания', guest.city)}
             {field('Дата рождения', String(guest.born_on || '').slice(0, 10))}
             {field('Телефон', guest.phone)}
+            {field('Почта', guest.email)}
             {field('Прописка', guest.address, true)}
           </div>
         </div>
@@ -296,8 +300,10 @@ const HunterCard = () => {
           <div className="grid gap-4 sm:grid-cols-2">
             {field('Паспорт', guest.passport)}
             {field('Выдан', String(guest.passport_date || '').slice(0, 10))}
+            {field('Кем выдан паспорт', guest.passport_issued, true)}
             {field('Охотничий билет', guest.hunt_ticket)}
             {field('Выдан', String(guest.hunt_ticket_date || '').slice(0, 10))}
+            {field('Кем выдан охотбилет', guest.hunt_ticket_issued, true)}
             {field('РОХа', guest.roh_number)}
             {field('Действует до', String(guest.roh_date || '').slice(0, 10))}
             {field('Оружие', guest.roh_weapon, true)}

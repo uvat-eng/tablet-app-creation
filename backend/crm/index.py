@@ -22,7 +22,11 @@ TABLES = {
     'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note', 'archived',
                'born_on', 'passport', 'passport_date', 'address', 'contract_no', 'cert_type',
                'fee_monthly', 'joined_on', 'country', 'nationality', 'hunt_ticket',
-               'hunt_ticket_date', 'roh_number', 'roh_date', 'roh_weapon'],
+               'hunt_ticket_date', 'roh_number', 'roh_date', 'roh_weapon',
+               'email', 'passport_issued', 'hunt_ticket_issued'],
+    'permits': ['guest_id', 'guest_name', 'ground', 'permit_no', 'apply_on', 'date_from',
+                'date_to', 'species', 'total', 'note', 'special_note', 'file_url',
+                'file_name', 'archived'],
     'hunter_bag': ['guest_id', 'species', 'qty', 'taken_on', 'season', 'location_id',
                    'place', 'trophy_note', 'photo_url', 'archived'],
     'guest_docs': ['guest_id', 'kind', 'title', 'doc_no', 'signed_on', 'valid_to',
@@ -117,13 +121,15 @@ ORDER = {
     'hunt_request_items': 'id',
     'supply_orders': 'created_at DESC, id DESC',
     'supply_items': 'id',
+    'permits': 'date_from DESC NULLS LAST, id DESC',
 }
 
 ARCHIVABLE = {'weapons', 'weapon_acts',
               'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
               'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag', 'guest_docs',
-              'transport_expenses', 'transfers', 'documents', 'hunt_requests', 'supply_orders'}
+              'transport_expenses', 'transfers', 'documents', 'hunt_requests', 'supply_orders',
+              'permits'}
 
 JSON_FIELDS = {'checks': {'items'}, 'map_layers': {'geojson'}}
 
@@ -131,7 +137,7 @@ AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations'
             'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
             'payments', 'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag',
             'guest_docs', 'transport_expenses', 'transfers', 'documents',
-            'hunt_requests', 'supply_orders'}
+            'hunt_requests', 'supply_orders', 'permits'}
 
 DEMO_READ = {'locations', 'map_layers', 'objects', 'trophies', 'reviews', 'services'}
 

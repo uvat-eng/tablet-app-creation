@@ -85,8 +85,10 @@ const Club = () => {
         { key: 'born_on', label: 'Дата рождения', type: 'date' },
         { key: 'passport', label: 'Паспорт: серия и номер' },
         { key: 'passport_date', label: 'Паспорт: дата выдачи', type: 'date' },
+  { key: 'passport_issued', label: 'Паспорт: кем выдан' },
         { key: 'address', label: 'Прописка' },
         { key: 'phone', label: 'Телефон' },
+  { key: 'email', label: 'Электронная почта' },
         { key: 'city', label: 'Город' },
         { key: 'contract_no', label: 'Номер договора' },
         {
@@ -100,6 +102,7 @@ const Club = () => {
         },
         { key: 'hunt_ticket', label: 'Охотничий билет: серия и номер' },
         { key: 'hunt_ticket_date', label: 'Охотбилет: дата выдачи', type: 'date' },
+  { key: 'hunt_ticket_issued', label: 'Охотбилет: кем выдан' },
         { key: 'roh_number', label: 'РОХа: номер' },
         { key: 'roh_date', label: 'РОХа: действует до', type: 'date' },
         { key: 'roh_weapon', label: 'Оружие по РОХе' },

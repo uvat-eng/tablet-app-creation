@@ -720,6 +720,58 @@ export const downloadCollective = async (body: CollectiveSheet) => {
   a.remove();
   URL.revokeObjectURL(url);
 };
+export interface PermitPayload {
+  guest_id: number;
+  ground: string;
+  permit_no?: string;
+  apply_on?: string;
+  date_from?: string;
+  date_to?: string;
+  special_note?: string;
+  note?: string;
+  instructor?: string;
+  species: { name: string; qty: string; sex: string; age: string; price: string }[];
+}
+
+export interface PermitResult {
+  id: number;
+  url: string;
+  file_name: string;
+  title: string;
+  total: number;
+  email: string;
+  phone: string;
+  file: string;
+}
+
+export const buildPermit = async (body: PermitPayload): Promise<PermitResult> => {
+  const res = await fetch(`${DOCS_URL}?kind=permit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': getToken() },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Не удалось собрать путёвку');
+  return data;
+};
+
+export const saveBase64File = (base64: string, fileName: string) => {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  const blob = new Blob([bytes], {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+};
+
 export type ActKind = 'act' | 'expense' | 'receipt';
 
 export const buildActPdf = async (

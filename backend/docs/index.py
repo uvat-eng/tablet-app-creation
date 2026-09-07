@@ -933,6 +933,317 @@ def build_weapon_act(weapon, guest, act):
     return doc_bytes(doc)
 
 
+GROUNDS = {
+    'krotovsky': {
+        'title': 'охотугодья 72.3.6 "Кротовский" (ООО "Эксперт-Плюс")',
+        'permit_prefix': '72',
+    },
+    'bobrovsky': {
+        'title': 'охотугодья 72.3.5 "Бобровский" (ООО "Эксперт-Плюс")',
+        'permit_prefix': '72',
+    },
+}
+
+EXPERT = {
+    'name': 'ООО "Эксперт-Плюс"',
+    'director': 'Алиферовой В. А.',
+    'inn': 'ИНН 7203302257 / КПП 720301001',
+    'region': 'Тюменская область,',
+    'address': 'г. Тюмень, ул. Урицкого, д. 16, оф. 501',
+    'phone': 'телефон: +7 (912) 929-52-85',
+    'issuer': 'Земеров Н. А.',
+}
+
+RULES_LINE = (
+    'С правилами охоты и техники безопасности при обращении с огнестрельным '
+    'оружием, требованиями охотничьего законодательства, а так же с правилами '
+    'пожарной безопасности ознакомлен'
+)
+
+CONSENT_LINE = (
+    'Достоверность и полноту сведений подтверждаю и даю согласие на обработку '
+    '(сбор, систематизацию, накопление, хранение, уточнение, передачу по запросу, '
+    'использование и проверку) указанных в заявлении моих персональных данных в '
+    'соответствии с Федеральным законом от 27 июля 2006 года №152 – ФЗ '
+    '«О персональных данных». Даю согласие на получение информации по '
+    'электронной почте.'
+)
+
+
+def split_passport(value):
+    """Делит паспорт на серию и номер: 7112 345678 или 71 12 № 345678."""
+    digits = ''.join(c for c in str(value or '') if c.isdigit())
+    if len(digits) >= 10:
+        return digits[:4], digits[4:10]
+    if not digits:
+        return '', ''
+    return digits[:4], digits[4:]
+
+
+def date_slots(d):
+    """Возвращает «21» августа 2026 в формате бланка: «21» августа 2026 г."""
+    dd, mon, y = day_month_year(d)
+    return '«' + dd + '» ' + mon + ' ' + y + ' г.'
+
+
+def permit_line(doc, label, value, size=11):
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.space_after = Pt(3)
+    r1 = p.add_run(label)
+    r1.font.size = Pt(size)
+    text = str(value or '').strip()
+    r2 = p.add_run(' ' + (text or '_' * 40))
+    r2.font.size = Pt(size)
+    r2.underline = bool(text)
+    return p
+
+
+def caption(doc, text):
+    para(doc, text, align='center', size=7, space_after=6)
+
+
+def build_application(guest, payload, ground):
+    """Заявление на выдачу разрешения на имя гендиректора Эксперт-Плюс."""
+    doc = Document()
+    set_font(doc, size=11)
+    for s in doc.sections:
+        s.top_margin = Cm(1.5)
+        s.bottom_margin = Cm(1.2)
+        s.left_margin = Cm(2.0)
+        s.right_margin = Cm(1.5)
+
+    para(doc, 'Ген. директору ' + EXPERT['name'], align='right', space_after=0)
+    para(doc, EXPERT['director'], align='right', space_after=6)
+
+    name = str(guest.get('name') or '')
+    para(doc, 'от ' + (name or '_' * 45), align='right', space_after=0)
+    para(doc, '(Ф.И.О. полностью)', align='right', size=7, space_after=6)
+
+    ser, num = split_passport(guest.get('passport'))
+    para(doc, 'Паспорт: серия ' + (ser or '____') + '  № ' + (num or '______'),
+         align='right', space_after=2)
+    para(doc, 'Выдан: ' + (str(guest.get('passport_issued') or '') or '_' * 40),
+         align='right', space_after=2)
+    para(doc, 'от ' + date_slots(guest.get('passport_date')), align='right', space_after=4)
+    para(doc, 'проживающего (ей) по адресу:', align='right', space_after=0)
+    para(doc, str(guest.get('address') or '') or '_' * 45, align='right', space_after=4)
+    para(doc, 'контактный телефон: ' + (str(guest.get('phone') or '') or '_' * 20),
+         align='right', space_after=10)
+
+    para(doc, 'ЗАЯВЛЕНИЕ от ' + date_slots(payload.get('apply_on')),
+         bold=True, align='center', size=13, space_after=10)
+
+    para(doc, '    Прошу выдать разрешение для осуществления любительской и '
+              'спортивной охоты в предполагаемые сроки на добычу:', space_after=6)
+
+    rows = payload.get('species') or []
+    if not rows:
+        rows = [{'name': '', 'qty': '', 'sex': '', 'age': ''}]
+
+    d1 = date_slots(payload.get('date_from'))
+    d2 = date_slots(payload.get('date_to'))
+
+    for r in rows:
+        line = (str(r.get('name') or '_' * 25) + ', в количестве ' +
+                str(r.get('qty') or '__') + ' ос., пол ' +
+                (str(r.get('sex') or '') or '____') + ', возраст ' +
+                (str(r.get('age') or '') or '____'))
+        para(doc, line, space_after=0)
+        caption(doc, 'охотничьи ресурсы                    пол                    возраст')
+        para(doc, 'с ' + d1 + ' по ' + d2, space_after=8)
+
+    para(doc, 'на территории  ' + ground['title'], space_after=0)
+    caption(doc, '(места охоты, наименование охотничьего угодья)')
+
+    tser, tnum = split_ticket(guest.get('hunt_ticket'))
+    para(doc, 'Охотничий билет: серия ' + (tser or '____') + '  № ' + (tnum or '______'),
+         space_after=3)
+    permit_line(doc, 'Кем выдан:', guest.get('hunt_ticket_issued'))
+    para(doc, 'Дата выдачи: ' + date_slots(guest.get('hunt_ticket_date')), space_after=8)
+
+    para(doc, RULES_LINE, space_after=10)
+    para(doc, 'Подпись ______________________ / ' + (name or '_' * 30) + ' /',
+         space_after=12)
+
+    para(doc, '    ' + CONSENT_LINE, space_after=12)
+    para(doc, 'Подпись ______________________ / ' + (name or '_' * 30) + ' /',
+         space_after=0)
+
+    return doc
+
+
+def build_permit_body(doc, guest, payload, ground, st):
+    """Путёвка-договор к разрешению — вторая страница пакета."""
+    doc.add_page_break()
+
+    para(doc, EXPERT['name'], bold=True, space_after=0)
+    para(doc, EXPERT['inn'], size=9, space_after=0)
+    para(doc, EXPERT['region'], size=9, space_after=0)
+    para(doc, EXPERT['address'], size=9, space_after=0)
+    para(doc, EXPERT['phone'], size=9, space_after=2)
+    para(doc, 'Без права передачи', align='right', size=9, space_after=8)
+
+    para(doc, 'ПУТЁВКА (ДОГОВОР)', bold=True, align='center', size=13, space_after=2)
+    permit = str(payload.get('permit_no') or '')
+    para(doc, 'к разрешению ' + ground['permit_prefix'] + ' № ' + (permit or '_' * 18),
+         align='center', space_after=8)
+
+    para(doc, 'На право охоты в охотничьих угодьях:', space_after=2)
+    para(doc, 'Место охоты:  ' + ground['title'], space_after=0)
+    caption(doc, '(указать точное место охоты)')
+
+    para(doc, 'с ' + date_slots(payload.get('date_from')) + ' по ' +
+              date_slots(payload.get('date_to')), space_after=8)
+
+    name = str(guest.get('name') or '')
+    para(doc, 'Выдана  ' + (name or '_' * 45), space_after=0)
+    caption(doc, '(фамилия, имя, отчество охотника)')
+
+    tser, tnum = split_ticket(guest.get('hunt_ticket'))
+    para(doc, 'Охотничий билет: серия ' + (tser or '____') + '  № ' + (tnum or '______'),
+         space_after=3)
+    permit_line(doc, 'Кем выдан:', guest.get('hunt_ticket_issued'))
+    para(doc, 'Дата выдачи: ' + date_slots(guest.get('hunt_ticket_date')), space_after=6)
+
+    permit_line(doc, 'Особая отметка', payload.get('special_note'))
+    caption(doc, '(охота с ловчей птицей, манной птицей, охотничьей собакой и т.п.)')
+
+    rows = payload.get('species') or []
+    t = doc.add_table(rows=0, cols=4)
+    t.style = 'Table Grid'
+    head = t.add_row().cells
+    for i, title in enumerate(['№ п/п', 'Разрешено к добыче\n(виды охотничьих ресурсов)',
+                               'Норма допустимой\nдобычи (кол-во, ос)',
+                               'Стоимость услуги (руб.)\nили кол-во отработанных часов']):
+        head[i].text = title
+        for p in head[i].paragraphs:
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_after = Pt(1)
+            for r in p.runs:
+                r.bold = True
+                r.font.size = Pt(8)
+
+    total = 0.0
+    body = rows if rows else [{}]
+    for i, r in enumerate(body, start=1):
+        cells = t.add_row().cells
+        price = r.get('price')
+        try:
+            total += float(price or 0)
+        except (TypeError, ValueError):
+            pass
+        vals = [str(i), str(r.get('name') or ''), str(r.get('qty') or ''),
+                ('' if price in (None, '') else str(price))]
+        for j, v in enumerate(vals):
+            cells[j].text = v
+            for p in cells[j].paragraphs:
+                p.paragraph_format.space_after = Pt(1)
+                for run in p.runs:
+                    run.font.size = Pt(9)
+
+    for _ in range(max(0, 4 - len(body))):
+        blank = t.add_row().cells
+        for c in blank:
+            c.text = ''
+
+    para(doc, '', space_after=4)
+    permit_line(doc, 'Итого оплачено:', rub_words(total))
+    caption(doc, '(сумма в рублях прописью)')
+    permit_line(doc, 'Примечание:', payload.get('note'))
+
+    para(doc, 'Инструктаж по правилам охоты и техники безопасности при обращении '
+              'с огнестрельным оружием, и правилам пожарной безопасности проведен:',
+         space_after=6)
+
+    instructor = str(payload.get('instructor') or EXPERT['issuer'])
+    para(doc, 'Инструктаж провел: ______________ / ' + instructor, space_after=6)
+    para(doc, 'Инструктаж прошел: ______________ / ' + (name or '_' * 28), space_after=10)
+
+    para(doc, 'Путёвку получил  ' + (name or '_' * 45), space_after=0)
+    caption(doc, '(фамилия, имя, отчество охотника)')
+    para(doc, 'Дата ______________          Подпись ______________', space_after=8)
+
+    para(doc, 'Путёвку выдал  ' + EXPERT['issuer'], space_after=0)
+    caption(doc, 'фамилия, имя, отчество представителя организации (хозяйства)')
+    para(doc, 'Дата ______________          Подпись ______________', space_after=0)
+    return doc
+
+
+ONES = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять',
+        'десять', 'одиннадцать', 'двенадцать', 'тринадцать', 'четырнадцать', 'пятнадцать',
+        'шестнадцать', 'семнадцать', 'восемнадцать', 'девятнадцать']
+TENS = ['', '', 'двадцать', 'тридцать', 'сорок', 'пятьдесят', 'шестьдесят', 'семьдесят',
+        'восемьдесят', 'девяносто']
+HUNDREDS = ['', 'сто', 'двести', 'триста', 'четыреста', 'пятьсот', 'шестьсот', 'семьсот',
+            'восемьсот', 'девятьсот']
+
+
+def under_thousand(n, female=False):
+    out = []
+    if n >= 100:
+        out.append(HUNDREDS[n // 100])
+        n %= 100
+    if n >= 20:
+        out.append(TENS[n // 10])
+        n %= 10
+    if n:
+        word = ONES[n]
+        if female and n == 1:
+            word = 'одна'
+        if female and n == 2:
+            word = 'две'
+        out.append(word)
+    return ' '.join(x for x in out if x)
+
+
+def plural(n, forms):
+    n = abs(n) % 100
+    if 11 <= n <= 19:
+        return forms[2]
+    n %= 10
+    if n == 1:
+        return forms[0]
+    if 2 <= n <= 4:
+        return forms[1]
+    return forms[2]
+
+
+def rub_words(value):
+    """Сумма прописью: 15000 -> «15 000 (пятнадцать тысяч) рублей 00 копеек»."""
+    try:
+        amount = float(value or 0)
+    except (TypeError, ValueError):
+        amount = 0.0
+    rub = int(amount)
+    kop = int(round((amount - rub) * 100))
+    if rub == 0:
+        words = 'ноль'
+    else:
+        parts = []
+        thousands = rub // 1000
+        rest = rub % 1000
+        if thousands:
+            parts.append(under_thousand(thousands, female=True))
+            parts.append(plural(thousands, ['тысяча', 'тысячи', 'тысяч']))
+        if rest:
+            parts.append(under_thousand(rest))
+        words = ' '.join(p for p in parts if p)
+    pretty = '{:,}'.format(rub).replace(',', ' ')
+    return (pretty + ' (' + words + ') ' + plural(rub, ['рубль', 'рубля', 'рублей']) +
+            ' ' + '{:02d}'.format(kop) + ' ' +
+            plural(kop, ['копейка', 'копейки', 'копеек']))
+
+
+def build_permit(guest, payload, st):
+    """Пакет: заявление + путёвка-договор в одном файле."""
+    key = str(payload.get('ground') or 'krotovsky')
+    ground = GROUNDS.get(key, GROUNDS['krotovsky'])
+    doc = build_application(guest, payload, ground)
+    build_permit_body(doc, guest, payload, ground, st)
+    return doc_bytes(doc)
+
+
 def doc_bytes(doc):
     buf = io.BytesIO()
     doc.save(buf)
@@ -998,6 +1309,86 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
             'error': 'Демонстрационный доступ — документы недоступны'})}
+
+    if kind == 'permit':
+        payload = json.loads(event.get('body') or '{}')
+        gid = payload.get('guest_id')
+        if not gid or not str(gid).isdigit():
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS,
+                    'body': json.dumps({'error': 'Не выбран охотник'})}
+
+        cur.execute('SELECT * FROM guests WHERE id = ' + str(int(gid)))
+        grow = cur.fetchone()
+        if not grow:
+            cur.close()
+            conn.close()
+            return {'statusCode': 404, 'headers': CORS,
+                    'body': json.dumps({'error': 'Охотник не найден'})}
+
+        guest = dict(grow)
+        cur.execute('SELECT * FROM settings WHERE id = 1')
+        srow = cur.fetchone()
+        st = dict(srow) if srow else {}
+
+        data = build_permit(guest, payload, st)
+
+        who = str(guest.get('name') or 'охотник')
+        gkey = str(payload.get('ground') or 'krotovsky')
+        gname = 'Кротовский' if gkey == 'krotovsky' else 'Бобровский'
+        title = 'Путёвка ' + gname + ' — ' + who
+        fname = ('Путёвка ' + who + ' ' + gname).replace(' ', '_') + '.docx'
+        url = store_doc(cur, data, 'permit', title, fname,
+                        payload.get('date_from') or None, 1, user)
+
+        def qp(v):
+            if v is None or v == '':
+                return 'NULL'
+            return "'" + str(v).replace("'", "''") + "'"
+
+        rows = payload.get('species') or []
+        species_text = '; '.join(
+            str(r.get('name') or '') + ' — ' + str(r.get('qty') or '') + ' ос.'
+            for r in rows if r.get('name')
+        )
+        total = 0.0
+        for r in rows:
+            try:
+                total += float(r.get('price') or 0)
+            except (TypeError, ValueError):
+                pass
+
+        cur.execute(
+            'INSERT INTO permits (guest_id, guest_name, ground, permit_no, apply_on, '
+            'date_from, date_to, species, total, note, special_note, file_url, '
+            'file_name, created_by, created_by_name) VALUES ('
+            + str(int(gid)) + ', ' + qp(who) + ', ' + qp(gkey) + ', '
+            + qp(payload.get('permit_no')) + ', ' + qp(payload.get('apply_on')) + ', '
+            + qp(payload.get('date_from')) + ', ' + qp(payload.get('date_to')) + ', '
+            + qp(species_text) + ', ' + str(total) + ', '
+            + qp(payload.get('note')) + ', ' + qp(payload.get('special_note')) + ', '
+            + qp(url) + ', ' + qp(fname) + ', ' + str(int(user['id'])) + ', '
+            + qp(user['name']) + ') RETURNING id'
+        )
+        new_id = cur.fetchone()['id']
+
+        cur.close()
+        conn.close()
+        return {
+            'statusCode': 200,
+            'headers': CORS,
+            'body': json.dumps({
+                'id': new_id,
+                'url': url,
+                'file_name': fname,
+                'title': title,
+                'total': total,
+                'email': guest.get('email') or '',
+                'phone': guest.get('phone') or '',
+                'file': base64.b64encode(data).decode(),
+            }),
+        }
 
     if kind == 'bio_act':
         payload = json.loads(event.get('body') or '{}')

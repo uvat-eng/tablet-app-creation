@@ -16,6 +16,7 @@ import UpdateBar from "@/components/app/UpdateBar";
 import SupplyNew from "./pages/SupplyNew";
 import BookingCard from "./pages/BookingCard";
 import Documents from "./pages/Documents";
+import Permits from "./pages/Permits";
 import Files from "./pages/Files";
 import ActCard from "./pages/ActCard";
 import ReceiptCard from "./pages/ReceiptCard";
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="/supply" element={guard(<Supply />, 'supply')} />
             <Route path="/supply/new" element={guard(<SupplyNew />, 'supply-new')} />
             <Route path="/bookings/:id" element={guard(<BookingCard />, 'bookings')} />
+            <Route path="/permits" element={guard(<Permits />, 'permits')} />
             <Route path="/documents" element={guard(<Documents />, 'checks')} />
             <Route path="/documents/act/:id" element={guard(<ActCard />, 'checks')} />
             <Route path="/documents/receipt/:id" element={guard(<ReceiptCard />, 'checks')} />

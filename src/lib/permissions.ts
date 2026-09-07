@@ -13,6 +13,7 @@ export const SECTIONS: Section[] = [
   { key: 'hunt-requests', to: '/hunt-requests', label: 'Заявки на охоту', icon: 'Inbox' },
   { key: 'supply-new', to: '/supply/new', label: 'Заказ', icon: 'ShoppingCart' },
   { key: 'supply', to: '/supply', label: 'Заявки на закупку', icon: 'Package' },
+  { key: 'permits', to: '/permits', label: 'Путёвки', icon: 'Ticket' },
   { key: 'checks', to: '/documents', label: 'Акты и чеки', icon: 'ReceiptText' },
   { key: 'services', to: '/services', label: 'Услуги', icon: 'ClipboardList' },
   { key: 'transport', to: '/transport', label: 'Транспорт', icon: 'Truck' },
@@ -130,6 +131,10 @@ export const can = (user: StaffUser | null, key: string): boolean => {
   if (!user) return false;
   if (key === 'weapon-transfer') {
     return String(user.login || '').toLowerCase() === 'uan';
+  }
+  if (key === 'permits') {
+    if (String(user.login || '').toLowerCase() === 'rustore') return false;
+    return user.role !== 'hunter';
   }
   if (key === 'club-chat') return canClubChat(user);
   if (key === 'access') return Boolean(user.can_manage_access);
