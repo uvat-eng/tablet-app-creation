@@ -1338,8 +1338,8 @@ def cut_line(cell):
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_after = Pt(0)
     p.paragraph_format.line_spacing = 1.0
-    for _ in range(58):
-        r = p.add_run('\u2502\n')
+    for i in range(58):
+        r = p.add_run(('\u2702\n' if i == 28 else '\u00a6\n'))
         r.font.size = Pt(7)
 
 
