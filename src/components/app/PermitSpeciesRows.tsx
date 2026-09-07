@@ -11,9 +11,10 @@ import {
 interface Props {
   rows: SpeciesRow[];
   onChange: (rows: SpeciesRow[]) => void;
+  labour?: boolean;
 }
 
-const PermitSpeciesRows = ({ rows, onChange }: Props) => {
+const PermitSpeciesRows = ({ rows, onChange, labour = false }: Props) => {
   const patch = (i: number, part: Partial<SpeciesRow>) => {
     const next = rows.map((r, idx) => (idx === i ? { ...r, ...part } : r));
     onChange(next);
@@ -42,7 +43,7 @@ const PermitSpeciesRows = ({ rows, onChange }: Props) => {
     <div className="border border-[#e2e2df]">
       <div className="h-label px-3 py-2 bg-[var(--hero-surface)] flex items-center justify-between">
         <span>Разрешено к добыче</span>
-        <span>Итого: {rubles(total)}</span>
+        <span>{labour ? 'В счёт трудоучастия' : `Итого: ${rubles(total)}`}</span>
       </div>
 
       {rows.map((r, i) => (
@@ -117,14 +118,20 @@ const PermitSpeciesRows = ({ rows, onChange }: Props) => {
           </div>
 
           <label className="sm:col-span-12">
-            <span className="h-label block mb-1">Стоимость услуги, рублей</span>
+            <span className="h-label block mb-1">
+              {labour ? 'Отработано часов' : 'Стоимость услуги, рублей'}
+            </span>
             <input
               type="number"
               min="0"
               className="w-full border border-[#e2e2df] px-3 py-2 text-[0.8em] bg-white"
-              value={r.price}
-              onChange={(e) => patch(i, { price: e.target.value })}
-              placeholder="Подставилась по прайсу — можно изменить"
+              value={labour ? r.hours : r.price}
+              onChange={(e) =>
+                patch(i, labour ? { hours: e.target.value } : { price: e.target.value })
+              }
+              placeholder={
+                labour ? 'Например, 120' : 'Подставилась по прайсу — можно изменить'
+              }
             />
           </label>
         </div>

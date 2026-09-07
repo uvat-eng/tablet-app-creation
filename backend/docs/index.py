@@ -9,7 +9,7 @@ import boto3
 import psycopg2
 import psycopg2.extras
 from docx import Document
-from docx.enum.section import WD_SECTION
+from docx.enum.section import WD_ORIENT, WD_SECTION
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
@@ -1055,6 +1055,8 @@ def build_application(guest, payload, ground, org):
     doc = Document()
     set_font(doc, size=11)
     for s in doc.sections:
+        s.page_width = Cm(21.0)
+        s.page_height = Cm(29.7)
         s.top_margin = Cm(1.5)
         s.bottom_margin = Cm(1.2)
         s.left_margin = Cm(2.0)
@@ -1124,57 +1126,79 @@ def build_application(guest, payload, ground, org):
     return doc
 
 
-def build_permit_body(doc, guest, payload, ground, org):
-    """Путёвка-договор к разрешению — вторая страница пакета."""
-    doc.add_page_break()
+def cpara(cell, text='', bold=False, align='left', size=8, space_after=2,
+          underline=False):
+    """Абзац внутри ячейки — экземпляр путёвки рисуем в колонке таблицы."""
+    p = cell.add_paragraph()
+    p.alignment = {
+        'just': WD_ALIGN_PARAGRAPH.JUSTIFY,
+        'center': WD_ALIGN_PARAGRAPH.CENTER,
+        'left': WD_ALIGN_PARAGRAPH.LEFT,
+        'right': WD_ALIGN_PARAGRAPH.RIGHT,
+    }[align]
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.line_spacing = 1.0
+    if text:
+        r = p.add_run(text)
+        r.bold = bold
+        r.underline = underline
+        r.font.size = Pt(size)
+    return p
 
-    para(doc, org['name'], bold=True, space_after=0)
-    para(doc, org['inn'], size=9, space_after=0)
-    para(doc, org['address'], size=9, space_after=0)
-    para(doc, org['phone'], size=9, space_after=2)
-    para(doc, 'Без права передачи', align='right', size=9, space_after=8)
 
-    doc_no = str(payload.get('doc_no') or '')
-    para(doc, 'ПУТЁВКА (ДОГОВОР) № ' + (doc_no or '_' * 12),
-         bold=True, align='center', size=13, space_after=2)
-    permit = str(payload.get('permit_no') or '')
-    para(doc, 'к разрешению ' + ground['permit_prefix'] + ' № ' + (permit or '_' * 18),
-         align='center', space_after=8)
+def cline(cell, label, value, size=8, fill=40):
+    """Строка «Подпись: ______» с подчёркнутым значением."""
+    p = cell.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(2)
+    p.paragraph_format.line_spacing = 1.0
+    r1 = p.add_run(label)
+    r1.font.size = Pt(size)
+    text = str(value or '').strip()
+    r2 = p.add_run(' ' + (text or '_' * fill))
+    r2.font.size = Pt(size)
+    r2.underline = bool(text)
+    return p
 
-    para(doc, 'На право охоты в охотничьих угодьях ' + org['name'] + ':', space_after=2)
-    para(doc, 'Место охоты:  ' + ground['title'], space_after=0)
-    caption(doc, '(указать точное место охоты)')
 
-    para(doc, 'с ' + date_slots(payload.get('date_from')) + ' по ' +
-              date_slots(payload.get('date_to')), space_after=8)
+def ccaption(cell, text, size=6):
+    cpara(cell, text, align='center', size=size, space_after=3)
 
-    name = str(guest.get('name') or '')
-    para(doc, 'Выдана  ' + (name or '_' * 45), space_after=0)
-    caption(doc, '(фамилия, имя, отчество охотника)')
 
-    tser, tnum = split_ticket(guest.get('hunt_ticket'))
-    para(doc, 'Охотничий билет: серия ' + (tser or '____') + '  № ' + (tnum or '______'),
-         space_after=3)
-    permit_line(doc, 'Кем выдан:', guest.get('hunt_ticket_issued'))
-    para(doc, 'Дата выдачи: ' + date_slots(guest.get('hunt_ticket_date')), space_after=6)
+def no_borders(table):
+    """Убираем рамку — таблица нужна только как две колонки-экземпляра."""
+    tbl = table._tbl
+    pr = tbl.tblPr
+    borders = OxmlElement('w:tblBorders')
+    for edge in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
+        el = OxmlElement('w:' + edge)
+        el.set(qn('w:val'), 'none')
+        el.set(qn('w:sz'), '0')
+        borders.append(el)
+    pr.append(borders)
 
-    permit_line(doc, 'Особая отметка', payload.get('special_note'))
-    caption(doc, '(охота с ловчей птицей, манной птицей, охотничьей собакой и т.п.)')
 
-    rows = payload.get('species') or []
-    t = doc.add_table(rows=0, cols=4)
+def species_table(cell, rows, money):
+    """Таблица добычи внутри экземпляра путёвки."""
+    t = cell.add_table(rows=0, cols=4)
     t.style = 'Table Grid'
+    last = 'Стоимость услуги (руб.)' if money else 'Отработано часов'
+    titles = ['№', 'Разрешено к добыче\n(виды охотничьих ресурсов)',
+              'Норма добычи\n(кол-во, ос)', last + '\nили кол-во часов']
+    widths = (Cm(0.8), Cm(5.6), Cm(2.4), Cm(3.0))
     head = t.add_row().cells
-    for i, title in enumerate(['№ п/п', 'Разрешено к добыче\n(виды охотничьих ресурсов)',
-                               'Норма допустимой\nдобычи (кол-во, ос)',
-                               'Стоимость услуги (руб.)\nили кол-во отработанных часов']):
+    for i, title in enumerate(titles):
         head[i].text = title
+        head[i].width = widths[i]
         for p in head[i].paragraphs:
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            p.paragraph_format.space_after = Pt(1)
+            p.paragraph_format.space_after = Pt(0)
+            p.paragraph_format.line_spacing = 1.0
             for r in p.runs:
                 r.bold = True
-                r.font.size = Pt(8)
+                r.font.size = Pt(6)
 
     total = 0.0
     body = rows if rows else [{}]
@@ -1185,44 +1209,137 @@ def build_permit_body(doc, guest, payload, ground, org):
             total += float(price or 0)
         except (TypeError, ValueError):
             pass
-        vals = [str(i), str(r.get('name') or ''), str(r.get('qty') or ''),
-                ('' if price in (None, '') else str(price))]
+        if money:
+            last_val = '' if price in (None, '') else str(price)
+        else:
+            last_val = str(r.get('hours') or '')
+        vals = [str(i), str(r.get('name') or ''), str(r.get('qty') or ''), last_val]
         for j, v in enumerate(vals):
             cells[j].text = v
+            cells[j].width = widths[j]
             for p in cells[j].paragraphs:
-                p.paragraph_format.space_after = Pt(1)
+                p.paragraph_format.space_after = Pt(0)
+                p.paragraph_format.line_spacing = 1.0
                 for run in p.runs:
-                    run.font.size = Pt(9)
+                    run.font.size = Pt(7)
 
-    for _ in range(max(0, 4 - len(body))):
+    for _ in range(max(0, 3 - len(body))):
         blank = t.add_row().cells
-        for c in blank:
+        for j, c in enumerate(blank):
             c.text = ''
+            c.width = widths[j]
+    return total
 
-    para(doc, '', space_after=4)
-    permit_line(doc, 'Итого оплачено:', rub_words(total))
-    caption(doc, '(сумма в рублях прописью)')
-    permit_line(doc, 'Примечание:', payload.get('note'))
 
-    para(doc, 'Инструктаж по правилам охоты и техники безопасности при обращении '
-              'с огнестрельным оружием, и правилам пожарной безопасности проведен:',
-         space_after=6)
+def permit_copy(cell, guest, payload, ground, org, mark):
+    """Один экземпляр путёвки-договора — хозяйства или охотника."""
+    money = not bool(payload.get('labour'))
+
+    cpara(cell, mark, bold=True, align='right', size=8, space_after=1)
+    cpara(cell, org['name'], bold=True, size=8, space_after=0)
+    cpara(cell, org['inn'], size=7, space_after=0)
+    cpara(cell, org['address'], size=7, space_after=0)
+    cpara(cell, org['phone'], size=7, space_after=0)
+    cpara(cell, 'Без права передачи', align='right', size=7, space_after=3)
+
+    doc_no = str(payload.get('doc_no') or '')
+    cpara(cell, 'ПУТЁВКА (ДОГОВОР) № ' + (doc_no or '_' * 10),
+          bold=True, align='center', size=10, space_after=1)
+    permit = str(payload.get('permit_no') or '')
+    cpara(cell, 'к разрешению ' + ground['permit_prefix'] + ' № ' + (permit or '_' * 14),
+          align='center', size=8, space_after=4)
+
+    cpara(cell, 'На право охоты в охотничьих угодьях ' + org['name'] + ':',
+          size=8, space_after=1)
+    cpara(cell, 'Место охоты:  ' + ground['title'], size=8, space_after=0)
+    ccaption(cell, '(указать точное место охоты)')
+
+    cpara(cell, 'с ' + date_slots(payload.get('date_from')) + ' по ' +
+          date_slots(payload.get('date_to')), size=8, space_after=4)
+
+    name = str(guest.get('name') or '')
+    cpara(cell, 'Выдана  ' + (name or '_' * 38), size=8, space_after=0)
+    ccaption(cell, '(фамилия, имя, отчество охотника)')
+
+    tser, tnum = split_ticket(guest.get('hunt_ticket'))
+    cpara(cell, 'Охотничий билет: серия ' + (tser or '____') + '  № ' + (tnum or '______'),
+          size=8, space_after=2)
+    cline(cell, 'Кем выдан:', guest.get('hunt_ticket_issued'), fill=30)
+    cpara(cell, 'Дата выдачи: ' + date_slots(guest.get('hunt_ticket_date')),
+          size=8, space_after=3)
+
+    cline(cell, 'Особая отметка', payload.get('special_note'), fill=28)
+    ccaption(cell, '(охота с ловчей птицей, манной птицей, охотничьей собакой и т.п.)')
+
+    total = species_table(cell, payload.get('species') or [], money)
+    cpara(cell, '', space_after=2)
+
+    if money:
+        cline(cell, 'Итого оплачено:', rub_words(total), fill=30)
+        ccaption(cell, '(сумма в рублях прописью)')
+    else:
+        cline(cell, 'Итого оплачено:', 'В счет трудоучастия', fill=30)
+        ccaption(cell, '(сумма в рублях прописью)')
+
+    cline(cell, 'Примечание:', payload.get('note'), fill=32)
+
+    cpara(cell, 'Инструктаж по правилам охоты и техники безопасности при обращении '
+          'с огнестрельным оружием, и правилам пожарной безопасности проведен:',
+          size=7, align='just', space_after=3)
 
     instructor = str(payload.get('instructor') or org['issuer'])
     short_name = short_fio(name)
-    para(doc, 'Инструктаж провел: ______________ / ' + instructor, space_after=6)
-    para(doc, 'Инструктаж прошел: ______________ / ' + (short_name or '_' * 28),
-         space_after=10)
+    cpara(cell, 'Инструктаж провел: ____________ / ' + instructor, size=8, space_after=3)
+    cpara(cell, 'Инструктаж прошел: ____________ / ' + (short_name or '_' * 20),
+          size=8, space_after=5)
 
-    para(doc, 'Путёвку получил  ' + (short_name or '_' * 40), space_after=0)
-    caption(doc, '(фамилия, имя, отчество охотника)')
-    para(doc, 'Дата ______________          Подпись ______________', space_after=8)
+    cpara(cell, 'Путёвку получил  ' + (short_name or '_' * 30), size=8, space_after=0)
+    ccaption(cell, '(фамилия, имя, отчество охотника)')
+    cpara(cell, 'Дата ____________     Подпись ____________', size=8, space_after=4)
 
-    para(doc, 'Путёвку выдал  ' + org['issuer'], space_after=0)
-    caption(doc, 'фамилия, имя, отчество представителя организации (хозяйства)')
-    para(doc, 'Дата ______________          Подпись ______________', space_after=2)
-    para(doc, 'М.П.', align='right', space_after=0)
+    cpara(cell, 'Путёвку выдал  ' + org['issuer'], size=8, space_after=0)
+    ccaption(cell, 'фамилия, имя, отчество представителя организации (хозяйства)')
+    cpara(cell, 'Дата ____________     Подпись ____________', size=8, space_after=1)
+    cpara(cell, 'М.П.', align='right', size=8, space_after=0)
+
+
+def build_permit_body(doc, guest, payload, ground, org):
+    """Путёвка-договор: альбомный лист, два экземпляра через линию отрыва."""
+    land = doc.add_section(WD_SECTION.NEW_PAGE)
+    land.orientation = WD_ORIENT.LANDSCAPE
+    land.page_width = Cm(29.7)
+    land.page_height = Cm(21.0)
+    land.top_margin = Cm(0.8)
+    land.bottom_margin = Cm(0.6)
+    land.left_margin = Cm(0.8)
+    land.right_margin = Cm(0.8)
+
+    t = doc.add_table(rows=1, cols=3)
+    t.alignment = WD_TABLE_ALIGNMENT.CENTER
+    no_borders(t)
+    left, mid, right = t.rows[0].cells
+    left.width = Cm(13.2)
+    mid.width = Cm(0.6)
+    right.width = Cm(13.2)
+
+    for c in (left, mid, right):
+        c.paragraphs[0]._p.getparent().remove(c.paragraphs[0]._p)
+
+    permit_copy(left, guest, payload, ground, org, 'Экземпляр ХОЗЯЙСТВА')
+    cut_line(mid)
+    permit_copy(right, guest, payload, ground, org, 'Экземпляр ОХОТНИКА')
     return doc
+
+
+def cut_line(cell):
+    """Вертикальная линия отрыва между экземплярами."""
+    p = cell.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_after = Pt(0)
+    p.paragraph_format.line_spacing = 1.0
+    for _ in range(58):
+        r = p.add_run('\u2502\n')
+        r.font.size = Pt(7)
 
 
 ONES = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять',

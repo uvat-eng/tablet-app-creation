@@ -46,11 +46,13 @@ export interface SpeciesRow {
   sex: string;
   age: string;
   price: string;
+  hours: string;
 }
 
 export const emptySpecies = (): SpeciesRow => ({
   name: '',
   qty: '1',
+  hours: '',
   sex: '',
   age: '',
   price: '',

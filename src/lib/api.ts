@@ -725,6 +725,7 @@ export interface PermitPayload {
   ground: string;
   permit_no?: string;
   doc_no?: string;
+  labour?: boolean;
   apply_on?: string;
   date_from?: string;
   date_to?: string;

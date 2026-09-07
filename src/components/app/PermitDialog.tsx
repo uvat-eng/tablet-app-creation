@@ -24,6 +24,7 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
   const [dateTo, setDateTo] = useState(plusDays(14));
   const [special, setSpecial] = useState('');
   const [note, setNote] = useState('');
+  const [labour, setLabour] = useState(false);
   const [rows, setRows] = useState<SpeciesRow[]>([emptySpecies()]);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<PermitResult | null>(null);
@@ -53,6 +54,7 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
     setGuestId('');
     setPermitNo('');
     setDocNo('');
+    setLabour(false);
     setSpecial('');
     setNote('');
     setRows([emptySpecies()]);
@@ -89,6 +91,7 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
         date_to: dateTo,
         special_note: special,
         note,
+        labour,
         species: rows.filter((r) => r.name),
       });
       setResult(data);
@@ -238,8 +241,23 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
               </div>
             )}
 
-            <div className="mt-5">
-              <PermitSpeciesRows rows={rows} onChange={setRows} />
+            <div className="mt-5 border border-[#e2e2df] px-3 py-3 flex items-start gap-3">
+              <input
+                id="labour"
+                type="checkbox"
+                className="w-4 h-4 accent-black mt-[2px]"
+                checked={labour}
+                onChange={(e) => setLabour(e.target.checked)}
+              />
+              <label htmlFor="labour" className="text-[0.78em] leading-relaxed">
+                <span className="h-label block mb-1">В счёт трудоучастия</span>
+                Вместо денег в путёвке будет указано «В счет трудоучастия», а в
+                таблице — отработанные часы.
+              </label>
+            </div>
+
+            <div className="mt-3">
+              <PermitSpeciesRows rows={rows} onChange={setRows} labour={labour} />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
