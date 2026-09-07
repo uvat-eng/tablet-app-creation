@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Icon from '@/components/ui/icon';
 import Brand from '@/components/app/Brand';
@@ -90,6 +91,10 @@ const Login = () => {
           <p className="h-label mt-6 leading-relaxed">
             Логин для сотрудников и членов клуба выдаёт хозяйство.
           </p>
+
+          <Link to="/privacy" className="h-label underline mt-4 inline-block">
+            Политика конфиденциальности
+          </Link>
         </div>
       </div>
     );

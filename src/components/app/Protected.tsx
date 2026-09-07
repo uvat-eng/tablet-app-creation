@@ -1,8 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { can, isHunter, allowedSections } from '@/lib/permissions';
 import { useSettings } from '@/context/SettingsContext';
+import ConsentGate, { isConsentGiven } from '@/components/app/ConsentGate';
 import Login from '@/pages/Login';
 import Setup from '@/pages/Setup';
 
@@ -16,6 +17,7 @@ const Protected = ({ children, ownerOnly = false, section }: ProtectedProps) => 
   const { user, loading } = useAuth();
   const { settings, loading: settingsLoading } = useSettings();
   const location = useLocation();
+  const [consent, setConsent] = useState(isConsentGiven);
 
   if (loading || settingsLoading) {
     return (
@@ -25,7 +27,10 @@ const Protected = ({ children, ownerOnly = false, section }: ProtectedProps) => 
     );
   }
 
-  if (!user) return <Login />;
+  if (!user) {
+    if (!consent) return <ConsentGate onAccept={() => setConsent(true)} />;
+    return <Login />;
+  }
 
   if (!settings.configured) {
     if (user.role === 'owner') return <Setup />;

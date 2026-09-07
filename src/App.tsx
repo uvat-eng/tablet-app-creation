@@ -46,6 +46,7 @@ import Staff from "./pages/Staff";
 import Settings from "./pages/Settings";
 import Archive from "./pages/Archive";
 import Download from "./pages/Download";
+import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import MyHome from "./pages/my/MyHome";
 import MyBiotech from "./pages/my/MyBiotech";
@@ -137,6 +138,7 @@ const App = () => (
             <Route path="/settings" element={guard(<Settings />, undefined, true)} />
             <Route path="/archive" element={guard(<Archive />, 'archive')} />
             <Route path="/download" element={<Download />} />
+            <Route path="/privacy" element={<Privacy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
