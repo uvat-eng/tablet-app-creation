@@ -31,6 +31,7 @@ const Index = () => {
   const [expenses, setExpenses] = useState<Row[]>([]);
   const [houseExpenses, setHouseExpenses] = useState<Row[]>([]);
   const [officeExpenses, setOfficeExpenses] = useState<Row[]>([]);
+  const [permits, setPermits] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const seesMoney = can(user, 'finance');
@@ -50,7 +51,8 @@ const Index = () => {
       listRows('expenses').catch(() => []),
       listRows('house_expenses').catch(() => []),
       listRows('office_expenses').catch(() => []),
-    ]).then(([b, g, o, s, t, l, r, ch, ex, he, oe]) => {
+      listRows('permits').catch(() => []),
+    ]).then(([b, g, o, s, t, l, r, ch, ex, he, oe, pm]) => {
       setBookings(b);
       setGuests(g);
       setObjects(o);
@@ -62,6 +64,7 @@ const Index = () => {
       setExpenses(ex);
       setHouseExpenses(he);
       setOfficeExpenses(oe);
+      setPermits(pm);
       setLoading(false);
     });
   }, []);
@@ -280,6 +283,26 @@ const Index = () => {
         .filter((g) => !g.club_member)
         .slice(0, 4)
         .map((g) => `${g.name}${g.city ? ` — ${g.city}` : ''}`),
+    },
+    {
+      to: '/permits',
+      icon: 'Ticket',
+      index: '11',
+      title: 'Путёвки',
+      lede: 'Заявление и путёвка-договор — собираются автоматически по карточке охотника.',
+      stats: [
+        { label: 'Выдано путёвок', value: String(permits.length) },
+        {
+          label: 'За трудоучастие',
+          value: String(permits.filter((p) => p.labour).length),
+        },
+      ],
+      preview: permits
+        .slice(0, 4)
+        .map(
+          (p) =>
+            `${p.guest_name || 'охотник'}${p.doc_no ? ` — № ${p.doc_no}` : ''}`,
+        ),
     },
   ];
 
