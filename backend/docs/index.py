@@ -1,4 +1,5 @@
 import base64
+import datetime
 import io
 import json
 import os
@@ -1427,6 +1428,102 @@ DOCX_MIME = ('application/vnd.openxmlformats-officedocument.'
              'wordprocessingml.document')
 
 
+XLSX_MIME = ('application/vnd.openxmlformats-officedocument.'
+             'spreadsheetml.sheet')
+
+
+def build_permits_report(rows, org_name):
+    """Сводный список выданных путёвок — таблица Excel."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Путёвки'
+
+    thin = Side(style='thin', color='B7B7B0')
+    box = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    ws['A1'] = 'Сводный список выданных путёвок'
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A2'] = org_name
+    ws['A2'].font = Font(size=10, color='666660')
+    ws['A3'] = 'Сформировано: ' + ru_date(str(datetime.date.today()))
+    ws['A3'].font = Font(size=10, color='666660')
+
+    titles = ['№', 'Путёвка №', 'Разрешение №', 'Охотник', 'Угодье',
+              'Заезд с', 'Заезд по', 'Разрешено к добыче',
+              'Оплата', 'Сумма, руб.', 'Примечание', 'Кто выдал', 'Создана']
+    head_row = 5
+    for i, t in enumerate(titles, start=1):
+        c = ws.cell(row=head_row, column=i, value=t)
+        c.font = Font(bold=True, size=10, color='FFFFFF')
+        c.fill = PatternFill('solid', fgColor='2F2F2C')
+        c.alignment = Alignment(horizontal='center', vertical='center',
+                                wrap_text=True)
+        c.border = box
+
+    total_money = 0.0
+    labour_count = 0
+    r = head_row + 1
+    for i, p in enumerate(rows, start=1):
+        labour = bool(p.get('labour'))
+        amount = 0.0
+        try:
+            amount = float(p.get('total') or 0)
+        except (TypeError, ValueError):
+            amount = 0.0
+        if labour:
+            labour_count += 1
+        else:
+            total_money += amount
+
+        gkey = str(p.get('ground') or '')
+        gname = 'Кротовский' if gkey == 'krotovsky' else 'Бобровский'
+        vals = [
+            i,
+            str(p.get('doc_no') or ''),
+            str(p.get('permit_no') or ''),
+            str(p.get('guest_name') or ''),
+            gname,
+            ru_date(str(p.get('date_from') or '')[:10]) if p.get('date_from') else '',
+            ru_date(str(p.get('date_to') or '')[:10]) if p.get('date_to') else '',
+            str(p.get('species') or ''),
+            'Трудоучастие' if labour else 'Деньги',
+            '' if labour else amount,
+            str(p.get('note') or ''),
+            str(p.get('created_by_name') or ''),
+            str(p.get('created_at') or '')[:10],
+        ]
+        for j, v in enumerate(vals, start=1):
+            c = ws.cell(row=r, column=j, value=v)
+            c.font = Font(size=10)
+            c.border = box
+            c.alignment = Alignment(vertical='top', wrap_text=(j in (4, 8, 11)))
+            if j == 10 and v != '':
+                c.number_format = '# ##0.00'
+        r += 1
+
+    r += 1
+    ws.cell(row=r, column=1, value='ИТОГО').font = Font(bold=True)
+    ws.cell(row=r, column=4, value='Путёвок: ' + str(len(rows))).font = Font(bold=True)
+    ws.cell(row=r, column=9,
+            value='За трудоучастие: ' + str(labour_count)).font = Font(bold=True)
+    tc = ws.cell(row=r, column=10, value=total_money)
+    tc.font = Font(bold=True)
+    tc.number_format = '# ##0.00'
+
+    widths = [5, 12, 14, 28, 14, 12, 12, 34, 14, 13, 24, 18, 12]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[ws.cell(row=head_row, column=i).column_letter].width = w
+    ws.row_dimensions[head_row].height = 30
+    ws.freeze_panes = ws.cell(row=head_row + 1, column=1)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 def store_doc(cur, data, kind, title, file_name, doc_date, people, user):
     """Кладёт готовый файл в хранилище и заводит запись в списке документов."""
     key = 'docs/' + uuid.uuid4().hex + '.docx'
@@ -1482,6 +1579,28 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
             'error': 'Демонстрационный доступ — документы недоступны'})}
+
+    if kind == 'permits_report':
+        cur.execute('SELECT * FROM permits ORDER BY COALESCE(date_from, created_at) DESC, '
+                    'id DESC')
+        rows = [dict(x) for x in cur.fetchall()]
+        cur.execute('SELECT * FROM settings WHERE id = 1')
+        srow = cur.fetchone()
+        st = dict(srow) if srow else {}
+        org = org_from_settings(st)
+        data = build_permits_report(rows, org['name'])
+        cur.close()
+        conn.close()
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': XLSX_MIME,
+                'Content-Disposition': 'attachment; filename="permits.xlsx"',
+            },
+            'isBase64Encoded': True,
+            'body': base64.b64encode(data).decode(),
+        }
 
     if kind == 'permit':
         payload = json.loads(event.get('body') or '{}')

@@ -774,6 +774,25 @@ export const saveBase64File = (base64: string, fileName: string) => {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 };
 
+export const downloadPermitsReport = async () => {
+  const res = await fetch(`${DOCS_URL}?kind=permits_report`, {
+    headers: { 'X-Auth-Token': getToken() },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Не удалось собрать свод');
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Свод путёвок.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+};
+
 export type ActKind = 'act' | 'expense' | 'receipt';
 
 export const buildActPdf = async (

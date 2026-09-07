@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import PermitDialog from '@/components/app/PermitDialog';
-import { Row, listRows } from '@/lib/api';
+import { Row, listRows, removeRow, downloadPermitsReport } from '@/lib/api';
 import { groundLabel, ruDate, rubles } from '@/lib/permits';
 import { toast } from 'sonner';
 
@@ -11,6 +11,8 @@ const Permits = () => {
   const [guests, setGuests] = useState<Row[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [report, setReport] = useState(false);
 
   const load = async () => {
     try {
@@ -28,15 +30,53 @@ const Permits = () => {
     load();
   }, []);
 
+  const drop = async (p: Row) => {
+    const label = p.doc_no ? `№ ${p.doc_no}` : String(p.guest_name || '');
+    if (!window.confirm(`Удалить путёвку ${label}? Отменить будет нельзя.`)) return;
+    try {
+      await removeRow('permits', Number(p.id));
+      setPermits((prev) => prev.filter((x) => x.id !== p.id));
+      toast.success('Путёвка удалена');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось удалить');
+    }
+  };
+
+  const makeReport = async () => {
+    setReport(true);
+    try {
+      await downloadPermitsReport();
+      toast.success('Свод выгружен в Excel');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось собрать свод');
+    } finally {
+      setReport(false);
+    }
+  };
+
   return (
     <Layout
       title="Путёвки"
       index="Разрешения на охоту"
       lede="Заявление и путёвка-договор для ООО «Эксперт-Плюс» — собираются автоматически по карточке охотника."
       action={
-        <button className="h-cta" onClick={() => setOpen(true)}>
-          <Icon name="Plus" size={15} /> Создать путёвку
-        </button>
+        <span className="flex flex-wrap gap-2">
+          {permits.length > 0 && (
+            <>
+              <button className="h-cta-ghost" onClick={makeReport} disabled={report}>
+                <Icon name="Table" size={15} fallback="FileSpreadsheet" />
+                {report ? 'Собираем…' : 'Общий свод'}
+              </button>
+              <button className="h-cta-ghost" onClick={() => setEditing((v) => !v)}>
+                <Icon name={editing ? 'Check' : 'Pencil'} size={15} />
+                {editing ? 'Готово' : 'Редактировать'}
+              </button>
+            </>
+          )}
+          <button className="h-cta" onClick={() => setOpen(true)}>
+            <Icon name="Plus" size={15} /> Создать путёвку
+          </button>
+        </span>
       }
     >
       <PermitDialog
@@ -120,8 +160,28 @@ const Permits = () => {
                   <Icon name="FileDown" size={14} /> Файл
                 </a>
               )}
+
+              {editing && (
+                <button
+                  className="h-cta-ghost"
+                  onClick={() => drop(p)}
+                  title="Удалить путёвку"
+                >
+                  <Icon name="Trash2" size={14} /> Удалить
+                </button>
+              )}
             </div>
           ))}
+        </div>
+      )}
+
+      {editing && permits.length > 0 && (
+        <div className="mt-4 border border-[#1f1f1d] px-4 py-3 flex gap-3">
+          <Icon name="TriangleAlert" size={16} className="shrink-0 mt-[2px]" fallback="AlertTriangle" />
+          <p className="text-[0.78em] leading-relaxed">
+            Режим редактирования включён. Удаление убирает путёвку из журнала
+            без возможности вернуть — сам файл останется в «Готовых документах».
+          </p>
         </div>
       )}
 
@@ -129,7 +189,8 @@ const Permits = () => {
         <Icon name="Info" size={16} className="shrink-0 mt-[2px]" />
         <p className="text-[0.78em] leading-relaxed">
           Все созданные путёвки также попадают в раздел «Готовые документы» —
-          их можно скачать повторно в любой момент.
+          их можно скачать повторно в любой момент. Кнопка «Общий свод» выгружает
+          таблицу Excel со всеми выданными путёвками.
         </p>
       </div>
     </Layout>
