@@ -64,7 +64,7 @@ const RecordDialog = ({ open, onOpenChange, title, fields, initial, onSubmit }: 
           <DialogTitle className="h-head text-[22px]">{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="grid gap-4 max-h-[68vh] overflow-y-auto pr-1">
           {fields.map((f) => (
             <label key={f.key} className="block">
               <span className="h-label block mb-1">{f.label}</span>

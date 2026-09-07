@@ -86,11 +86,11 @@ const Club = () => {
         { key: 'passport', label: 'Паспорт: серия и номер' },
         { key: 'passport_date', label: 'Паспорт: дата выдачи', type: 'date' },
   { key: 'passport_issued', label: 'Паспорт: кем выдан' },
-  { key: 'inn', label: 'ИНН' },
-  { key: 'snils', label: 'СНИЛС' },
         { key: 'address', label: 'Прописка' },
         { key: 'phone', label: 'Телефон' },
   { key: 'email', label: 'Электронная почта' },
+  { key: 'inn', label: 'ИНН' },
+  { key: 'snils', label: 'СНИЛС' },
         { key: 'city', label: 'Город' },
         { key: 'contract_no', label: 'Номер договора' },
         {
