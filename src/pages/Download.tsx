@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Brand from '@/components/app/Brand';
+import StoreAssets from '@/components/app/StoreAssets';
 import Icon from '@/components/ui/icon';
 
 const APK_URL =
@@ -97,32 +98,7 @@ const Download = () => {
 
         <div className="mt-10 border-t border-[#e2e2df] pt-6">
           <span className="h-label block mb-3">Иконки для магазина приложений</span>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href="/rustore-icon-512.png"
-              download="malyshenskoe-icon-512.png"
-              className="h-cta-ghost"
-            >
-              <Icon name="Download" size={14} /> Иконка 512×512
-            </a>
-            <a
-              href="/rustore-icon-1024.png"
-              download="malyshenskoe-icon-1024.png"
-              className="h-cta-ghost"
-            >
-              <Icon name="Download" size={14} /> Иконка 1024×1024
-            </a>
-            <a
-              href="/rustore-banner-1024x500.png"
-              download="malyshenskoe-banner.png"
-              className="h-cta-ghost"
-            >
-              <Icon name="Download" size={14} /> Баннер 1024×500
-            </a>
-          </div>
-          <p className="h-mono-cap mt-3">
-            PNG без прозрачности — подходит для загрузки в RuStore
-          </p>
+          <StoreAssets />
         </div>
 
         <div className="mt-8 border border-[#e2e2df] px-4 py-3 flex gap-3">

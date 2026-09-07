@@ -1,6 +1,7 @@
 import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import PasswordCard from '@/components/app/PasswordCard';
+import StoreAssets from '@/components/app/StoreAssets';
 import { useAuth } from '@/context/AuthContext';
 import { ROLES } from '@/lib/permissions';
 
@@ -55,6 +56,16 @@ const Account = () => {
       <p className="h-mono-cap mt-3 text-center">
         Откройте файл после загрузки и подтвердите установку — данные сохранятся
       </p>
+
+      {user?.role === 'owner' && (
+        <>
+          <div className="h-head text-[22px] mt-10 mb-3">Материалы для магазина</div>
+          <p className="h-label mb-3 leading-relaxed">
+            Иконки и баннер для карточки приложения в RuStore.
+          </p>
+          <StoreAssets />
+        </>
+      )}
 
       <div className="mt-8 border border-[#e2e2df] px-4 py-3 flex gap-3">
         <Icon name="Info" size={16} className="shrink-0 mt-[2px]" />
