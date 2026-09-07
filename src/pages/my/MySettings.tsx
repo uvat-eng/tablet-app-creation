@@ -6,9 +6,8 @@ import { Row, listRows } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import PasswordCard from '@/components/app/PasswordCard';
+import { APK_URL, APP_VERSION } from '@/lib/appVersion';
 
-const APK_URL =
-  'https://cdn.poehali.dev/projects/980fc694-d631-4b58-8bb8-84299cd838a9/bucket/apk/malyshenskoe.apk';
 
 const IOS_STEPS = [
   'Откройте сайт хозяйства в Safari.',
@@ -84,6 +83,9 @@ const MySettings = () => {
           </a>
           <p className="h-mono-cap mt-3 text-center">
             Откройте файл после загрузки и подтвердите установку
+          </p>
+          <p className="h-mono-cap mt-1 text-center opacity-60">
+            Установлена версия {APP_VERSION}
           </p>
         </>
       ) : (

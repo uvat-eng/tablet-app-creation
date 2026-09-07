@@ -4,9 +4,8 @@ import PasswordCard from '@/components/app/PasswordCard';
 import StoreAssets from '@/components/app/StoreAssets';
 import { useAuth } from '@/context/AuthContext';
 import { ROLES } from '@/lib/permissions';
+import { APK_URL, APP_VERSION } from '@/lib/appVersion';
 
-const APK_URL =
-  'https://cdn.poehali.dev/projects/980fc694-d631-4b58-8bb8-84299cd838a9/bucket/apk/malyshenskoe.apk';
 
 const Account = () => {
   const { user, signOut } = useAuth();
@@ -56,6 +55,7 @@ const Account = () => {
       <p className="h-mono-cap mt-3 text-center">
         Откройте файл после загрузки и подтвердите установку — данные сохранятся
       </p>
+      <p className="h-mono-cap mt-1 text-center opacity-60">Версия {APP_VERSION}</p>
 
       {user?.role === 'owner' && (
         <>

@@ -2,9 +2,8 @@ import { useState } from 'react';
 import Brand from '@/components/app/Brand';
 import StoreAssets from '@/components/app/StoreAssets';
 import Icon from '@/components/ui/icon';
+import { APK_URL, APP_VERSION } from '@/lib/appVersion';
 
-const APK_URL =
-  'https://cdn.poehali.dev/projects/980fc694-d631-4b58-8bb8-84299cd838a9/bucket/apk/malyshenskoe.apk';
 
 const ANDROID_STEPS = [
   'Нажмите кнопку «Скачать приложение» — файл сохранится в «Загрузки».',
@@ -70,7 +69,9 @@ const Download = () => {
               <Icon name="Download" size={18} />
               Скачать приложение
             </a>
-            <p className="h-mono-cap mt-3 text-center">Размер 4 МБ · карты качаются отдельно</p>
+            <p className="h-mono-cap mt-3 text-center">
+              Версия {APP_VERSION} · размер 4 МБ · карты качаются отдельно
+            </p>
           </>
         ) : (
           <div className="mt-6 border border-[#e2e2df] px-4 py-4 flex gap-3">
