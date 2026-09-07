@@ -406,6 +406,7 @@ def handler(event: dict, context) -> dict:
     viewer = current_user(cur, event)
     is_hunter = bool(viewer and viewer.get('role') == 'hunter')
     my_guest = int(viewer.get('guest_id') or 0) if viewer else 0
+    mine_only = params.get('mine') == '1' and my_guest > 0
 
     is_club = False
     if is_hunter and my_guest:
@@ -477,7 +478,7 @@ def handler(event: dict, context) -> dict:
         if is_hunter and not is_club and table == 'map_layers':
             kinds = ', '.join("'" + k + "'" for k in PLAIN_HUNTER_LAYERS)
             where.append('kind IN (' + kinds + ')')
-        if is_hunter and table in HUNTER_OWN_ONLY:
+        if (is_hunter or mine_only) and table in HUNTER_OWN_ONLY:
             key = 'id' if table == 'guests' else 'guest_id'
             where.append(key + ' = ' + str(my_guest or 0))
         if params.get('year') and table == 'club_fees':
@@ -506,6 +507,14 @@ def handler(event: dict, context) -> dict:
     body = json.loads(event.get('body') or '{}')
     fields = TABLES[table]
     me = viewer
+
+    if mine_only and not is_hunter:
+        if table in ('biotech_works', 'hunter_bag', 'club_bag', 'hunt_requests', 'reviews'):
+            body['guest_id'] = my_guest
+        if table == 'reviews' and method == 'POST':
+            body['source'] = 'hunter'
+        if table == 'guests' and method == 'PUT':
+            body['id'] = my_guest
 
     if is_hunter:
         if not my_guest:

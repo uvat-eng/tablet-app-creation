@@ -17,7 +17,7 @@ const MyDocs = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [d, g] = await Promise.all([listRows('documents'), listRows('guest_docs')]);
+    const [d, g] = await Promise.all([listRows('documents', { mine: true }), listRows('guest_docs', { mine: true })]);
     setDocs(d);
     setPersonal(g);
     setLoading(false);

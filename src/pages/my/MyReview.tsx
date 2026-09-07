@@ -20,7 +20,7 @@ const MyReview = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [g, r] = await Promise.all([listRows('guests'), listRows('reviews')]);
+    const [g, r] = await Promise.all([listRows('guests', { mine: true }), listRows('reviews')]);
     const guest = g[0] || null;
     setMe(guest);
     const gid = Number(guest?.id || 0);
@@ -62,7 +62,7 @@ const MyReview = () => {
         text: text.trim(),
         photo_url: photos[0] || null,
         left_on: today(),
-      });
+      }, true);
       for (const url of photos.slice(1)) {
         await createRow('reviews', {
           author: String(me?.name || user?.name || 'Охотник'),
@@ -70,7 +70,7 @@ const MyReview = () => {
           text: '',
           photo_url: url,
           left_on: today(),
-        });
+        }, true);
       }
       toast.success('Спасибо! Отзыв отправлен хозяйству');
       setText('');

@@ -33,13 +33,16 @@ const authHeaders = () => ({
 
 export const listRows = async (
   table: string,
-  opts: { archived?: boolean; bookingId?: number } = {},
+  opts: { archived?: boolean; bookingId?: number; mine?: boolean } = {},
 ): Promise<Row[]> => {
   const q = new URLSearchParams({ table });
   if (opts.archived) q.set('archived', '1');
   if (opts.bookingId) q.set('booking_id', String(opts.bookingId));
+  if (opts.mine) q.set('mine', '1');
 
-  const suffix = `${opts.archived ? 'arch' : ''}${opts.bookingId ? 'b' + opts.bookingId : ''}`;
+  const suffix = `${opts.archived ? 'arch' : ''}${opts.bookingId ? 'b' + opts.bookingId : ''}${
+    opts.mine ? 'mine' : ''
+  }`;
   const key = cacheKey(table, suffix);
 
   try {
@@ -94,9 +97,14 @@ export class ConflictError extends Error {
   }
 }
 
-const send = async (table: string, method: string, body: Row): Promise<Row> => {
+const send = async (
+  table: string,
+  method: string,
+  body: Row,
+  mine = false,
+): Promise<Row> => {
   try {
-    const res = await fetch(`${CRM_URL}?table=${table}`, {
+    const res = await fetch(`${CRM_URL}?table=${table}${mine ? '&mine=1' : ''}`, {
       method,
       headers: authHeaders(),
       body: JSON.stringify(body),
@@ -169,9 +177,11 @@ export const preloadAll = async () => {
   }
 };
 
-export const createRow = (table: string, body: Row) => send(table, 'POST', body);
+export const createRow = (table: string, body: Row, mine = false) =>
+  send(table, 'POST', body, mine);
 
-export const updateRow = (table: string, body: Row) => send(table, 'PUT', body);
+export const updateRow = (table: string, body: Row, mine = false) =>
+  send(table, 'PUT', body, mine);
 
 export const removeRow = async (table: string, id: number) => {
   try {

@@ -21,9 +21,9 @@ const MyClub = () => {
   const load = useCallback(async () => {
     setLoading(true);
     const [g, f, b] = await Promise.all([
-      listRows('guests'),
-      listRows('club_fees'),
-      listRows('club_bag'),
+      listRows('guests', { mine: true }),
+      listRows('club_fees', { mine: true }),
+      listRows('club_bag', { mine: true }),
     ]);
     setMe(g[0] || null);
     setFees(f);
@@ -66,10 +66,10 @@ const MyClub = () => {
     };
     try {
       if (editing?.id) {
-        await updateRow('club_bag', { ...payload, id: editing.id });
+        await updateRow('club_bag', { ...payload, id: editing.id }, true);
         toast.success('Запись обновлена');
       } else {
-        await createRow('club_bag', payload);
+        await createRow('club_bag', payload, true);
         toast.success('Добыча записана — хозяйство проставит стоимость');
       }
       setOpen(false);

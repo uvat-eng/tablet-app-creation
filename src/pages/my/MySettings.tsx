@@ -22,7 +22,7 @@ const MySettings = () => {
   const [tab, setTab] = useState<'android' | 'ios'>('android');
 
   const load = useCallback(async () => {
-    const g = await listRows('guests');
+    const g = await listRows('guests', { mine: true });
     setMe(g[0] || null);
   }, []);
 

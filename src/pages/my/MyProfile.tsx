@@ -60,7 +60,7 @@ const MyProfile = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const list = await listRows('guests');
+    const list = await listRows('guests', { mine: true });
     setMe(list[0] || null);
     setLoading(false);
   }, []);
@@ -76,7 +76,7 @@ const MyProfile = () => {
       payload[k] = String(values[k] || '').slice(0, 10) || null;
     });
     try {
-      await updateRow('guests', payload);
+      await updateRow('guests', payload, true);
       toast.success('Данные сохранены');
       setOpen(false);
       load();

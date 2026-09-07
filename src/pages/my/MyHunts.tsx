@@ -37,8 +37,8 @@ const MyHunts = () => {
     setLoading(true);
     const [s, r, g] = await Promise.all([
       listRows('services'),
-      listRows('hunt_requests'),
-      listRows('guests'),
+      listRows('hunt_requests', { mine: true }),
+      listRows('guests', { mine: true }),
     ]);
     setServices(s);
     setRequests(r);
@@ -122,7 +122,7 @@ const MyHunts = () => {
           .map((i) => i.name)
           .join(', '),
         note,
-      });
+      }, true);
       const reqId = Number(req.id);
       for (const i of items) {
         await createRow('hunt_request_items', {
@@ -148,7 +148,7 @@ const MyHunts = () => {
   const cancel = async (r: Row) => {
     if (!confirm('Отменить заявку?')) return;
     try {
-      await updateRow('hunt_requests', { id: Number(r.id), status: 'cancelled' });
+      await updateRow('hunt_requests', { id: Number(r.id), status: 'cancelled' }, true);
       toast.success('Заявка отменена');
       load();
     } catch {

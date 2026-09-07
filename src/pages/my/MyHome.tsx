@@ -27,10 +27,10 @@ const MyHome = () => {
   const load = useCallback(async () => {
     setLoading(true);
     const [g, b, d, r] = await Promise.all([
-      listRows('guests'),
-      listRows('hunter_bag'),
-      listRows('documents'),
-      listRows('hunt_requests'),
+      listRows('guests', { mine: true }),
+      listRows('hunter_bag', { mine: true }),
+      listRows('documents', { mine: true }),
+      listRows('hunt_requests', { mine: true }),
     ]);
     const mine = g[0] || null;
     setMe(mine);
@@ -42,9 +42,9 @@ const MyHome = () => {
 
     if (club) {
       const [w, f, cb] = await Promise.all([
-        listRows('biotech_works'),
-        listRows('club_fees'),
-        listRows('club_bag'),
+        listRows('biotech_works', { mine: true }),
+        listRows('club_fees', { mine: true }),
+        listRows('club_bag', { mine: true }),
       ]);
       setWorks(w);
       setFees(f);

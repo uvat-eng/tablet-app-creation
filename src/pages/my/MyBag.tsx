@@ -17,7 +17,7 @@ const MyBag = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [b, l] = await Promise.all([listRows('hunter_bag'), listRows('locations')]);
+    const [b, l] = await Promise.all([listRows('hunter_bag', { mine: true }), listRows('locations')]);
     setRows(b);
     setLocations(l);
     setLoading(false);
@@ -73,10 +73,10 @@ const MyBag = () => {
     };
     try {
       if (editing?.id) {
-        await updateRow('hunter_bag', { ...payload, id: editing.id });
+        await updateRow('hunter_bag', { ...payload, id: editing.id }, true);
         toast.success('Запись обновлена');
       } else {
-        await createRow('hunter_bag', payload);
+        await createRow('hunter_bag', payload, true);
         toast.success('Трофей записан');
       }
       setOpen(false);

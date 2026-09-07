@@ -23,7 +23,7 @@ const MyBiotech = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [w, l] = await Promise.all([listRows('biotech_works'), listRows('locations')]);
+    const [w, l] = await Promise.all([listRows('biotech_works', { mine: true }), listRows('locations')]);
     setRows(w);
     setLocations(l);
     setLoading(false);
@@ -82,10 +82,10 @@ const MyBiotech = () => {
     };
     try {
       if (editing?.id) {
-        await updateRow('biotech_works', { ...payload, id: editing.id });
+        await updateRow('biotech_works', { ...payload, id: editing.id }, true);
         toast.success('Запись обновлена');
       } else {
-        await createRow('biotech_works', payload);
+        await createRow('biotech_works', payload, true);
         toast.success('Работа записана — хозяйство её увидит');
       }
       setOpen(false);

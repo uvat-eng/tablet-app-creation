@@ -7,9 +7,20 @@ import {
   logout as apiLogout,
   preloadAll,
   syncQueue,
+  listRows,
 } from '@/lib/api';
 import { bgStart, bgStop } from '@/lib/bgService';
-import { canClubChat } from '@/lib/permissions';
+import { canClubChat, hasGuestCard, setClubFlag } from '@/lib/permissions';
+
+const syncClubFlag = async (u: StaffUser | null) => {
+  if (!hasGuestCard(u)) return;
+  try {
+    const rows = await listRows('guests', { mine: true });
+    setClubFlag(Boolean(rows[0]?.club_member));
+  } catch {
+    /* нет связи — оставляем прежнее значение */
+  }
+};
 
 interface AuthValue {
   user: StaffUser | null;
@@ -42,6 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .then((u) => {
         setUser(u);
         if (u) {
+          syncClubFlag(u);
           syncQueue().then(() => preloadAll());
           if (localStorage.getItem('hb_bg_on') === '1') {
             bgStart(canClubChat(u));
@@ -54,6 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (login: string, password: string, role?: string) => {
     const u = await apiLogin(login, password, role);
     setUser(u);
+    await syncClubFlag(u);
     preloadAll();
   };
 

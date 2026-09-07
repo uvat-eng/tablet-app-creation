@@ -77,6 +77,9 @@ export const ROLES: Record<string, string> = {
 
 export const isHunter = (user: StaffUser | null) => user?.role === 'hunter';
 
+export const hasGuestCard = (user: StaffUser | null) =>
+  Boolean(user && user.role !== 'hunter' && Number(user.guest_id || 0) > 0);
+
 export const canEditMap = (user: StaffUser | null) => {
   if (!user) return false;
   if (user.role !== 'hunter') return true;
@@ -142,6 +145,7 @@ export const can = (user: StaffUser | null, key: string): boolean => {
   if (key === 'supply-new') {
     return parsePermissions(user.permissions).includes('supply-new');
   }
+  if (key.startsWith('my') && user.role !== 'hunter') return hasGuestCard(user);
   if (user.role === 'owner') return true;
   if (user.role === 'hunter') {
     if (CLUB_ONLY_KEYS.includes(key) && !isClubMember()) return false;
@@ -171,5 +175,16 @@ export const allowedSections = (user: StaffUser | null): Section[] => {
         } as Section,
       ]
     : base;
-  return user.role === 'owner' ? [...withChat, ...OWNER_ONLY] : withChat;
+  const mine = hasGuestCard(user)
+    ? [
+        ...withChat,
+        ...HUNTER_SECTIONS.filter(
+          (s) =>
+            s.key.startsWith('my') &&
+            s.key !== 'my-settings' &&
+            (!CLUB_ONLY_KEYS.includes(s.key) || isClubMember()),
+        ),
+      ]
+    : withChat;
+  return user.role === 'owner' ? [...mine, ...OWNER_ONLY] : mine;
 };
