@@ -23,16 +23,21 @@ export interface GameOption {
 }
 
 export const GAME_LIST: GameOption[] = [
-  { name: 'Косуля сибирская', price: 45000 },
-  { name: 'Лось', price: 90000 },
-  { name: 'Кабан', price: 35000 },
-  { name: 'Медведь', price: 80000 },
-  { name: 'Боровая дичь (тетерев, глухарь)', price: 3000 },
-  { name: 'Куропатка', price: 2000 },
-  { name: 'Водоплавающая дичь (утка, гусь)', price: 2500 },
-  { name: 'Заяц', price: 2000 },
-  { name: 'Лисица', price: 1500 },
+  { name: 'Косуля сибирская (все половозрастные группы)', price: 45000 },
+  { name: 'Косуля сибирская, самец во время гона', price: 60000 },
+  { name: 'Косуля сибирская, сеголеток', price: 25000 },
+  { name: 'Лось (все половозрастные группы)', price: 90000 },
+  { name: 'Лось во время гона', price: 120000 },
+  { name: 'Кабан взрослый', price: 35000 },
+  { name: 'Кабан сеголеток', price: 20000 },
+  { name: 'Рысь', price: 30000 },
   { name: 'Волк', price: 0 },
+  { name: 'Медведь', price: 80000 },
+  { name: 'Куница', price: 3000 },
+  { name: 'Енотовидная собака', price: 2000 },
+  { name: 'Лисица', price: 1500 },
+  { name: 'Заяц', price: 2000 },
+  { name: 'Тетерев', price: 3000 },
 ];
 
 export interface SpeciesRow {

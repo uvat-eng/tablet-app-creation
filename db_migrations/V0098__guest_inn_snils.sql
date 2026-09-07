@@ -1,0 +1,3 @@
+-- ИНН и СНИЛС охотника
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS inn VARCHAR(20);
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS snils VARCHAR(20);

@@ -30,6 +30,8 @@ const FIELDS: Field[] = [
   { key: 'passport', label: 'Паспорт: серия и номер' },
   { key: 'passport_date', label: 'Паспорт: дата выдачи', type: 'date' },
   { key: 'passport_issued', label: 'Паспорт: кем выдан' },
+  { key: 'inn', label: 'ИНН' },
+  { key: 'snils', label: 'СНИЛС' },
   { key: 'address', label: 'Прописка' },
   { key: 'hunt_ticket', label: 'Охотничий билет: номер' },
   { key: 'hunt_ticket_date', label: 'Охотбилет: дата выдачи', type: 'date' },

@@ -23,7 +23,7 @@ TABLES = {
                'born_on', 'passport', 'passport_date', 'address', 'contract_no', 'cert_type',
                'fee_monthly', 'joined_on', 'country', 'nationality', 'hunt_ticket',
                'hunt_ticket_date', 'roh_number', 'roh_date', 'roh_weapon',
-               'email', 'passport_issued', 'hunt_ticket_issued'],
+               'email', 'passport_issued', 'hunt_ticket_issued', 'inn', 'snils'],
     'permits': ['guest_id', 'guest_name', 'ground', 'permit_no', 'apply_on', 'date_from',
                 'date_to', 'species', 'total', 'note', 'special_note', 'file_url',
                 'file_name', 'archived'],
