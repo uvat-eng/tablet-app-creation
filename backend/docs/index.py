@@ -1525,21 +1525,25 @@ def handler(event: dict, context) -> dict:
             str(r.get('name') or '') + ' — ' + str(r.get('qty') or '') + ' ос.'
             for r in rows if r.get('name')
         )
+        labour = bool(payload.get('labour'))
         total = 0.0
-        for r in rows:
-            try:
-                total += float(r.get('price') or 0)
-            except (TypeError, ValueError):
-                pass
+        if not labour:
+            for r in rows:
+                try:
+                    total += float(r.get('price') or 0)
+                except (TypeError, ValueError):
+                    pass
 
         cur.execute(
-            'INSERT INTO permits (guest_id, guest_name, ground, permit_no, apply_on, '
-            'date_from, date_to, species, total, note, special_note, file_url, '
-            'file_name, created_by, created_by_name) VALUES ('
+            'INSERT INTO permits (guest_id, guest_name, ground, permit_no, doc_no, '
+            'apply_on, date_from, date_to, species, total, labour, note, special_note, '
+            'file_url, file_name, created_by, created_by_name) VALUES ('
             + str(int(gid)) + ', ' + qp(who) + ', ' + qp(gkey) + ', '
-            + qp(payload.get('permit_no')) + ', ' + qp(payload.get('apply_on')) + ', '
+            + qp(payload.get('permit_no')) + ', ' + qp(payload.get('doc_no')) + ', '
+            + qp(payload.get('apply_on')) + ', '
             + qp(payload.get('date_from')) + ', ' + qp(payload.get('date_to')) + ', '
             + qp(species_text) + ', ' + str(total) + ', '
+            + ('TRUE' if labour else 'FALSE') + ', '
             + qp(payload.get('note')) + ', ' + qp(payload.get('special_note')) + ', '
             + qp(url) + ', ' + qp(fname) + ', ' + str(int(user['id'])) + ', '
             + qp(user['name']) + ') RETURNING id'

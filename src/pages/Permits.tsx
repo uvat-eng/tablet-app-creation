@@ -46,6 +46,31 @@ const Permits = () => {
         onCreated={load}
       />
 
+      {!loading && permits.length > 0 && (
+        <div className="grid gap-px sm:grid-cols-3 bg-[#e2e2df] mb-5">
+          <div className="bg-white px-4 py-3">
+            <div className="h-label">Всего путёвок</div>
+            <div className="h-head text-[22px] mt-1">{permits.length}</div>
+          </div>
+          <div className="bg-white px-4 py-3">
+            <div className="h-label">За трудоучастие</div>
+            <div className="h-head text-[22px] mt-1">
+              {permits.filter((p) => p.labour).length}
+            </div>
+          </div>
+          <div className="bg-white px-4 py-3">
+            <div className="h-label">Оплачено деньгами</div>
+            <div className="h-head text-[22px] mt-1">
+              {rubles(
+                permits
+                  .filter((p) => !p.labour)
+                  .reduce((s, p) => s + (Number(p.total) || 0), 0),
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <p className="h-label">Загружаем журнал…</p>
       ) : permits.length === 0 ? (
@@ -68,6 +93,7 @@ const Permits = () => {
               <div className="flex-1 min-w-[200px]">
                 <div className="text-[0.86em]">{String(p.guest_name || '—')}</div>
                 <div className="h-label mt-1">
+                  {p.doc_no ? `Путёвка № ${p.doc_no} · ` : ''}
                   {groundLabel(p.ground)} · {ruDate(p.date_from)} — {ruDate(p.date_to)}
                   {p.permit_no ? ` · разрешение № ${p.permit_no}` : ''}
                 </div>
@@ -76,7 +102,13 @@ const Permits = () => {
                 )}
               </div>
 
-              <div className="text-[0.8em] whitespace-nowrap">{rubles(p.total)}</div>
+              {p.labour ? (
+                <span className="text-[0.72em] whitespace-nowrap border border-[#1f1f1d] px-2 py-1">
+                  Трудоучастие
+                </span>
+              ) : (
+                <div className="text-[0.8em] whitespace-nowrap">{rubles(p.total)}</div>
+              )}
 
               {p.file_url && (
                 <a
