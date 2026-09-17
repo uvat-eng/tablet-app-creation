@@ -61,6 +61,7 @@ export const HUNTER_SECTIONS: Section[] = [
   { key: 'my-profile', to: '/my/profile', label: 'Мои данные', icon: 'IdCard' },
   { key: 'my-docs', to: '/my/docs', label: 'Мои документы', icon: 'FolderOpen' },
   { key: 'my-weapons', to: '/my/weapons', label: 'Моё оружие', icon: 'Crosshair' },
+  { key: 'my-plans', to: '/my/plans', label: 'Планирование охот', icon: 'CalendarRange' },
   { key: 'my-settings', to: '/my/settings', label: 'Настройки', icon: 'Settings' },
 ];
 

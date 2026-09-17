@@ -23,16 +23,18 @@ const MyHome = () => {
   const [clubBag, setClubBag] = useState<Row[]>([]);
   const [requests, setRequests] = useState<Row[]>([]);
   const [weapons, setWeapons] = useState<Row[]>([]);
+  const [plans, setPlans] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [g, b, d, r, gw] = await Promise.all([
+    const [g, b, d, r, gw, hp] = await Promise.all([
       listRows('guests', { mine: true }),
       listRows('hunter_bag', { mine: true }),
       listRows('documents', { mine: true }),
       listRows('hunt_requests', { mine: true }),
       listRows('weapons', { mine: true }).catch(() => [] as Row[]),
+      listRows('hunt_plans', { mine: true }).catch(() => [] as Row[]),
     ]);
     const mine = g[0] || null;
     setMe(mine);
@@ -40,6 +42,7 @@ const MyHome = () => {
     setDocs(d);
     setRequests(r);
     setWeapons(gw);
+    setPlans(hp);
     const club = Boolean(mine?.club_member);
     setClubFlag(club);
 
@@ -116,6 +119,13 @@ const MyHome = () => {
       label: 'Моё оружие',
       value: String(weapons.length),
       hint: 'акты передачи',
+    },
+    {
+      to: '/my/plans',
+      icon: 'CalendarRange',
+      label: 'Планирование охот',
+      value: String(plans.length),
+      hint: 'больших охот',
     },
     {
       to: '/my/bag',

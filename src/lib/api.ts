@@ -38,6 +38,8 @@ export const listRows = async (
     bookingId?: number;
     mine?: boolean;
     recipients?: boolean;
+    keepers?: boolean;
+    planId?: number;
   } = {},
 ): Promise<Row[]> => {
   const q = new URLSearchParams({ table });
@@ -45,10 +47,14 @@ export const listRows = async (
   if (opts.bookingId) q.set('booking_id', String(opts.bookingId));
   if (opts.mine) q.set('mine', '1');
   if (opts.recipients) q.set('recipients', '1');
+  if (opts.keepers) q.set('keepers', '1');
+  if (opts.planId) q.set('plan_id', String(opts.planId));
 
   const suffix = `${opts.archived ? 'arch' : ''}${opts.bookingId ? 'b' + opts.bookingId : ''}${
     opts.mine ? 'mine' : ''
-  }${opts.recipients ? 'rcp' : ''}`;
+  }${opts.recipients ? 'rcp' : ''}${opts.keepers ? 'kp' : ''}${
+    opts.planId ? 'p' + opts.planId : ''
+  }`;
   const key = cacheKey(table, suffix);
 
   try {

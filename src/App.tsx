@@ -57,6 +57,7 @@ import MyBag from "./pages/my/MyBag";
 import MyProfile from "./pages/my/MyProfile";
 import MyDocs from "./pages/my/MyDocs";
 import MyWeapons from "./pages/my/MyWeapons";
+import MyHuntPlans from "./pages/my/MyHuntPlans";
 import MySettings from "./pages/my/MySettings";
 import MyHunts from "./pages/my/MyHunts";
 import MyPrice from "./pages/my/MyPrice";
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/my/profile" element={guard(<MyProfile />, 'my-profile')} />
             <Route path="/my/docs" element={guard(<MyDocs />, 'my-docs')} />
             <Route path="/my/weapons" element={guard(<MyWeapons />, 'my-weapons')} />
+            <Route path="/my/plans" element={guard(<MyHuntPlans />, 'my-plans')} />
             <Route path="/my/settings" element={guard(<MySettings />, 'my-settings')} />
             <Route path="/my/hunts" element={guard(<MyHunts />, 'my-hunts')} />
             <Route path="/my/price" element={guard(<MyPrice />, 'my-price')} />

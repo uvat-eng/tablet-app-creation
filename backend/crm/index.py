@@ -19,6 +19,11 @@ TABLES = {
                  'people', 'status', 'source', 'total', 'paid', 'note', 'archived',
                  'country', 'hunt_type', 'payment_type', 'prepay'],
     'objects': ['kind', 'name', 'capacity', 'price', 'note', 'status', 'photo_url', 'archived'],
+    'hunt_plans': ['title', 'date_from', 'date_to', 'status', 'note',
+                   'owner_guest_id', 'archived'],
+    'hunt_plan_rows': ['plan_id', 'hunter_name', 'keeper_name', 'keeper_id',
+                       'transport_id', 'transport_name', 'location_id',
+                       'location_name', 'note', 'sort_order', 'archived'],
     'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note', 'archived',
                'born_on', 'passport', 'passport_date', 'address', 'contract_no', 'cert_type',
                'fee_monthly', 'joined_on', 'country', 'nationality', 'hunt_ticket',
@@ -122,9 +127,11 @@ ORDER = {
     'supply_orders': 'created_at DESC, id DESC',
     'supply_items': 'id',
     'permits': 'date_from DESC NULLS LAST, id DESC',
+    'hunt_plans': 'date_from DESC NULLS LAST, id DESC',
+    'hunt_plan_rows': 'sort_order, id',
 }
 
-ARCHIVABLE = {'weapons', 'weapon_acts',
+ARCHIVABLE = {'weapons', 'weapon_acts', 'hunt_plans', 'hunt_plan_rows',
               'bookings', 'objects', 'guests', 'services', 'trophies', 'locations', 'reviews',
               'checks', 'receipts', 'house_expenses', 'expenses', 'map_layers',
               'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag', 'guest_docs',
@@ -144,11 +151,11 @@ DEMO_READ = {'locations', 'map_layers', 'objects', 'trophies', 'reviews', 'servi
 HUNTER_READ = {'locations', 'map_layers', 'biotech_works', 'work_photos', 'guests',
                'hunter_bag', 'guest_docs', 'documents', 'trophies', 'club_fees',
                'club_bag', 'services', 'hunt_requests', 'hunt_request_items', 'reviews',
-               'weapons', 'weapon_acts'}
+               'weapons', 'weapon_acts', 'hunt_plans', 'hunt_plan_rows', 'objects'}
 
 HUNTER_WRITE = {'locations', 'biotech_works', 'work_photos', 'guests', 'hunter_bag',
                 'club_bag', 'hunt_requests', 'hunt_request_items', 'reviews',
-                'weapons'}
+                'weapons', 'hunt_plans', 'hunt_plan_rows'}
 
 HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'documents',
                    'club_fees', 'club_bag', 'hunt_requests'}
@@ -186,6 +193,8 @@ TITLE_FIELD = {
     'weapon_acts': 'receiver_name',
     'transfers': 'name',
     'documents': 'title',
+    'hunt_plans': 'title',
+    'hunt_plan_rows': 'hunter_name',
 }
 
 TABLE_LABEL = {
@@ -201,6 +210,8 @@ TABLE_LABEL = {
     'guest_docs': 'Документ охотника',
     'work_photos': 'Фото работы',
     'transport_expenses': 'Расход по технике',
+    'hunt_plans': 'План охоты',
+    'hunt_plan_rows': 'Строка плана охоты',
     'transfers': 'Перевод / личная карта',
     'documents': 'Готовый документ',
     'booking_services': 'Услуга в брони', 'payments': 'Платёж',
@@ -420,6 +431,26 @@ def handler(event: dict, context) -> dict:
         g = cur.fetchone()
         is_club = bool(g and g.get('club_member'))
 
+    if params.get('keepers') == '1' and table == 'guests' and method == 'GET':
+        if not viewer:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Раздел закрыт'})}
+        cur.execute(
+            "SELECT 'g' || id AS key, name, 'Член клуба' AS role_label "
+            'FROM guests WHERE archived = FALSE AND club_member = TRUE '
+            'UNION ALL '
+            "SELECT 's' || id AS key, name, COALESCE(NULLIF(title, ''), 'Сотрудник') "
+            'FROM staff WHERE active = TRUE AND role <> \'hunter\' '
+            'ORDER BY name'
+        )
+        items = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return {'statusCode': 200, 'headers': CORS,
+                'body': json.dumps({'items': items}, default=str)}
+
     if recipients and table == 'guests' and method == 'GET':
         cur.execute(
             'SELECT id, name, club_member, hunt_ticket, roh_number, roh_date '
@@ -495,6 +526,8 @@ def handler(event: dict, context) -> dict:
             where.append('booking_id = ' + str(int(params['booking_id'])))
         if params.get('work_id') and table == 'work_photos':
             where.append('work_id = ' + str(int(params['work_id'])))
+        if params.get('plan_id') and table == 'hunt_plan_rows':
+            where.append('plan_id = ' + str(int(params['plan_id'])))
         if params.get('guest_id') and table in ('club_fees', 'club_bag', 'biotech_works',
                                                 'hunter_bag', 'guest_docs'):
             where.append('guest_id = ' + str(int(params['guest_id'])))
@@ -504,6 +537,13 @@ def handler(event: dict, context) -> dict:
         if (is_hunter or mine_only) and table in HUNTER_OWN_ONLY:
             key = 'id' if table == 'guests' else 'guest_id'
             where.append(key + ' = ' + str(my_guest or 0))
+        if is_hunter and table == 'objects':
+            where.append("kind = 'transport'")
+        if own_weapon and table == 'hunt_plans':
+            where.append('owner_guest_id = ' + str(my_guest))
+        if own_weapon and table == 'hunt_plan_rows':
+            where.append('plan_id IN (SELECT id FROM hunt_plans WHERE '
+                         'owner_guest_id = ' + str(my_guest) + ')')
         if own_weapon and not (viewer
                                and str(viewer.get('login') or '').lower() == 'uan'):
             if table in OWN_WEAPON_KEY:
@@ -538,6 +578,30 @@ def handler(event: dict, context) -> dict:
     body = json.loads(event.get('body') or '{}')
     fields = TABLES[table]
     me = viewer
+
+    if own_weapon and table == 'hunt_plans':
+        if method == 'POST':
+            body['owner_guest_id'] = my_guest
+        else:
+            cur.execute('SELECT owner_guest_id FROM hunt_plans WHERE id = ' +
+                        str(int(body.get('id') or 0)))
+            row = cur.fetchone()
+            if not row or int(row.get('owner_guest_id') or 0) != my_guest:
+                cur.close()
+                conn.close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Можно менять только свой план'})}
+            body.pop('owner_guest_id', None)
+
+    if own_weapon and table == 'hunt_plan_rows':
+        cur.execute('SELECT owner_guest_id FROM hunt_plans WHERE id = ' +
+                    str(int(body.get('plan_id') or 0)))
+        row = cur.fetchone()
+        if not row or int(row.get('owner_guest_id') or 0) != my_guest:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Можно менять только свой план'})}
 
     if own_weapon and table == 'weapons':
         if method == 'POST':
