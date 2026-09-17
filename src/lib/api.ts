@@ -39,6 +39,7 @@ export const listRows = async (
     mine?: boolean;
     recipients?: boolean;
     keepers?: boolean;
+    guns?: boolean;
     planId?: number;
   } = {},
 ): Promise<Row[]> => {
@@ -48,11 +49,12 @@ export const listRows = async (
   if (opts.mine) q.set('mine', '1');
   if (opts.recipients) q.set('recipients', '1');
   if (opts.keepers) q.set('keepers', '1');
+  if (opts.guns) q.set('guns', '1');
   if (opts.planId) q.set('plan_id', String(opts.planId));
 
   const suffix = `${opts.archived ? 'arch' : ''}${opts.bookingId ? 'b' + opts.bookingId : ''}${
     opts.mine ? 'mine' : ''
-  }${opts.recipients ? 'rcp' : ''}${opts.keepers ? 'kp' : ''}${
+  }${opts.recipients ? 'rcp' : ''}${opts.keepers ? 'kp' : ''}${opts.guns ? 'gn' : ''}${
     opts.planId ? 'p' + opts.planId : ''
   }`;
   const key = cacheKey(table, suffix);

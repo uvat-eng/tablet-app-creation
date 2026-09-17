@@ -4,6 +4,8 @@ import Icon from '@/components/ui/icon';
 import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import PlanTable from '@/components/app/PlanTable';
 import { Row, listRows, createRow, updateRow } from '@/lib/api';
+import { printPlan, planText } from '@/lib/printPlan';
+import { Share } from '@capacitor/share';
 import { toast } from 'sonner';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -14,20 +16,23 @@ const MyHuntPlans = () => {
   const [transport, setTransport] = useState<Row[]>([]);
   const [locations, setLocations] = useState<Row[]>([]);
   const [keepers, setKeepers] = useState<Row[]>([]);
+  const [guns, setGuns] = useState<Row[]>([]);
   const [active, setActive] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
 
   const loadRefs = useCallback(async () => {
-    const [o, l, k] = await Promise.all([
+    const [o, l, k, w] = await Promise.all([
       listRows('objects'),
       listRows('locations'),
       listRows('guests', { keepers: true }),
+      listRows('weapons', { guns: true }),
     ]);
     setTransport(o.filter((x) => String(x.kind) === 'transport'));
     setLocations(l);
     setKeepers(k);
+    setGuns(w);
   }, []);
 
   const loadPlans = useCallback(async () => {
@@ -87,6 +92,35 @@ const MyHuntPlans = () => {
   };
 
   const plan = plans.find((p) => Number(p.id) === active) || null;
+
+  const doPrint = () => {
+    if (!plan) return;
+    if (!rows.length) {
+      toast.error('В плане нет строк');
+      return;
+    }
+    if (!printPlan(plan, rows)) toast.error('Разрешите всплывающие окна для печати');
+  };
+
+  const doShare = async () => {
+    if (!plan) return;
+    if (!rows.length) {
+      toast.error('В плане нет строк');
+      return;
+    }
+    const text = planText(plan, rows);
+    const title = String(plan.title || 'План охоты');
+    try {
+      await Share.share({ title, text, dialogTitle: title });
+    } catch {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success('План скопирован — вставьте в мессенджер или письмо');
+      } catch {
+        toast.error('Не удалось отправить план');
+      }
+    }
+  };
 
   return (
     <Layout
@@ -151,6 +185,12 @@ const MyHuntPlans = () => {
             <>
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 <div className="h-head text-[22px] flex-1">{String(plan.title || '')}</div>
+                <button className="h-cta-ghost" onClick={doShare}>
+                  <Icon name="Share2" size={14} fallback="Send" /> Отправить
+                </button>
+                <button className="h-cta-ghost" onClick={doPrint}>
+                  <Icon name="Printer" size={14} /> Печать
+                </button>
                 <button
                   className="h-cta-ghost"
                   onClick={() => {
@@ -168,6 +208,7 @@ const MyHuntPlans = () => {
                 transport={transport}
                 locations={locations}
                 keepers={keepers}
+                guns={guns}
                 onReload={() => loadRows(Number(plan.id))}
               />
             </>

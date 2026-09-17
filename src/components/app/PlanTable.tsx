@@ -9,12 +9,21 @@ interface Props {
   transport: Row[];
   locations: Row[];
   keepers: Row[];
+  guns: Row[];
   onReload: () => void;
 }
 
 const cell = 'px-2 py-1 border-r align-top';
 
-const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Props) => {
+const PlanTable = ({
+  planId,
+  rows,
+  transport,
+  locations,
+  keepers,
+  guns,
+  onReload,
+}: Props) => {
   const [busy, setBusy] = useState(false);
 
   const patch = async (row: Row, values: Row) => {
@@ -94,6 +103,11 @@ const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Pr
     });
   };
 
+  const pickGun = (row: Row, key: string) => {
+    const g = guns.find((x) => String(x.key) === key);
+    patch(row, { weapon_key: key || null, weapon_name: String(g?.title || '') });
+  };
+
   const pickLocation = (row: Row, id: string) => {
     const l = locations.find((x) => String(x.id) === id);
     patch(row, {
@@ -107,11 +121,12 @@ const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Pr
   return (
     <>
       <div className="border border-[#e2e2df] overflow-x-auto">
-        <table className="w-full min-w-[880px] border-collapse">
+        <table className="w-full min-w-[1040px] border-collapse">
           <thead>
             <tr className="bg-[var(--hero-surface)]">
               <th className="h-label text-left px-2 py-2 font-normal w-[44px]">№</th>
               <th className="h-label text-left px-2 py-2 font-normal w-[190px]">Охотник</th>
+              <th className="h-label text-left px-2 py-2 font-normal w-[200px]">Оружие</th>
               <th className="h-label text-left px-2 py-2 font-normal w-[190px]">Егерь</th>
               <th className="h-label text-left px-2 py-2 font-normal w-[180px]">Транспорт</th>
               <th className="h-label text-left px-2 py-2 font-normal w-[190px]">Локация</th>
@@ -135,6 +150,20 @@ const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Pr
                       if (v !== String(r.hunter_name || '')) patch(r, { hunter_name: v });
                     }}
                   />
+                </td>
+                <td className={cell} style={{ borderColor: '#f0f0ee' }}>
+                  <select
+                    value={String(r.weapon_key || '')}
+                    className={sel}
+                    onChange={(e) => pickGun(r, e.target.value)}
+                  >
+                    <option value="">— выбрать —</option>
+                    {guns.map((g) => (
+                      <option key={String(g.key)} value={String(g.key)}>
+                        {String(g.title)} · {String(g.owner || '')}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className={cell} style={{ borderColor: '#f0f0ee' }}>
                   <select
@@ -223,7 +252,7 @@ const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Pr
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center">
+                <td colSpan={8} className="px-4 py-8 text-center">
                   <div className="h-mono-cap text-[var(--hero-muted)]">
                     Строк пока нет — добавьте первую
                   </div>

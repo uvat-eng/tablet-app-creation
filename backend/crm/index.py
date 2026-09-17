@@ -23,7 +23,8 @@ TABLES = {
                    'owner_guest_id', 'archived'],
     'hunt_plan_rows': ['plan_id', 'hunter_name', 'keeper_name', 'keeper_id',
                        'transport_id', 'transport_name', 'location_id',
-                       'location_name', 'note', 'sort_order', 'archived'],
+                       'location_name', 'weapon_key', 'weapon_name',
+                       'note', 'sort_order', 'archived'],
     'guests': ['name', 'phone', 'city', 'club_member', 'club_until', 'note', 'archived',
                'born_on', 'passport', 'passport_date', 'address', 'contract_no', 'cert_type',
                'fee_monthly', 'joined_on', 'country', 'nationality', 'hunt_ticket',
@@ -431,6 +432,32 @@ def handler(event: dict, context) -> dict:
         cur.execute("SELECT club_member FROM guests WHERE id = " + str(my_guest))
         g = cur.fetchone()
         is_club = bool(g and g.get('club_member'))
+
+    if params.get('guns') == '1' and table == 'weapons' and method == 'GET':
+        if not viewer:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Раздел закрыт'})}
+        cur.execute(
+            "SELECT 'w' || w.id AS key, "
+            "TRIM(CONCAT_WS(', ', w.name, w.caliber)) AS title, "
+            "COALESCE(NULLIF(w.owner_name, ''), g.name, '') AS owner "
+            'FROM weapons w LEFT JOIN guests g ON g.id = w.owner_guest_id '
+            'WHERE w.archived = FALSE '
+            'UNION ALL '
+            "SELECT 'g' || id, TRIM(roh_weapon), name "
+            'FROM guests '
+            "WHERE archived = FALSE AND COALESCE(TRIM(roh_weapon), '') <> '' "
+            'AND id NOT IN (SELECT COALESCE(owner_guest_id, 0) FROM weapons '
+            'WHERE archived = FALSE) '
+            'ORDER BY owner, title'
+        )
+        items = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return {'statusCode': 200, 'headers': CORS,
+                'body': json.dumps({'items': items}, default=str)}
 
     if params.get('keepers') == '1' and table == 'guests' and method == 'GET':
         if not viewer:
