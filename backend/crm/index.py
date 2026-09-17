@@ -144,7 +144,8 @@ AUTHORED = {'bookings', 'objects', 'guests', 'services', 'trophies', 'locations'
             'reviews', 'checks', 'receipts', 'house_expenses', 'expenses', 'booking_services',
             'payments', 'office_expenses', 'biotech_works', 'club_bag', 'hunter_bag',
             'guest_docs', 'transport_expenses', 'transfers', 'documents',
-            'hunt_requests', 'supply_orders', 'permits'}
+            'hunt_requests', 'supply_orders', 'permits',
+            'hunt_plans', 'hunt_plan_rows'}
 
 DEMO_READ = {'locations', 'map_layers', 'objects', 'trophies', 'reviews', 'services'}
 
@@ -539,11 +540,6 @@ def handler(event: dict, context) -> dict:
             where.append(key + ' = ' + str(my_guest or 0))
         if is_hunter and table == 'objects':
             where.append("kind = 'transport'")
-        if own_weapon and table == 'hunt_plans':
-            where.append('owner_guest_id = ' + str(my_guest))
-        if own_weapon and table == 'hunt_plan_rows':
-            where.append('plan_id IN (SELECT id FROM hunt_plans WHERE '
-                         'owner_guest_id = ' + str(my_guest) + ')')
         if own_weapon and not (viewer
                                and str(viewer.get('login') or '').lower() == 'uan'):
             if table in OWN_WEAPON_KEY:
@@ -583,25 +579,7 @@ def handler(event: dict, context) -> dict:
         if method == 'POST':
             body['owner_guest_id'] = my_guest
         else:
-            cur.execute('SELECT owner_guest_id FROM hunt_plans WHERE id = ' +
-                        str(int(body.get('id') or 0)))
-            row = cur.fetchone()
-            if not row or int(row.get('owner_guest_id') or 0) != my_guest:
-                cur.close()
-                conn.close()
-                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
-                    'error': 'Можно менять только свой план'})}
             body.pop('owner_guest_id', None)
-
-    if own_weapon and table == 'hunt_plan_rows':
-        cur.execute('SELECT owner_guest_id FROM hunt_plans WHERE id = ' +
-                    str(int(body.get('plan_id') or 0)))
-        row = cur.fetchone()
-        if not row or int(row.get('owner_guest_id') or 0) != my_guest:
-            cur.close()
-            conn.close()
-            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
-                'error': 'Можно менять только свой план'})}
 
     if own_weapon and table == 'weapons':
         if method == 'POST':

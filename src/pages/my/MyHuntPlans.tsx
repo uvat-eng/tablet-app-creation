@@ -92,7 +92,7 @@ const MyHuntPlans = () => {
     <Layout
       index="Кабинет / Планирование"
       title="Планирование больших охот"
-      lede="Соберите расстановку: охотник, егерь, транспорт и локация."
+      lede="Общий план клуба: охотник, егерь, транспорт и локация."
       action={
         <button
           className="h-cta"
@@ -137,6 +137,11 @@ const MyHuntPlans = () => {
                       ? ` – ${String(p.date_to).slice(0, 10)}`
                       : ''}
                   </div>
+                  {p.created_by_name ? (
+                    <div className="h-label text-[var(--hero-muted)]">
+                      {String(p.created_by_name)}
+                    </div>
+                  ) : null}
                 </button>
               );
             })}

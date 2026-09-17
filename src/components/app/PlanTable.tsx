@@ -107,7 +107,7 @@ const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Pr
   return (
     <>
       <div className="border border-[#e2e2df] overflow-x-auto">
-        <table className="w-full min-w-[760px] border-collapse">
+        <table className="w-full min-w-[880px] border-collapse">
           <thead>
             <tr className="bg-[var(--hero-surface)]">
               <th className="h-label text-left px-2 py-2 font-normal w-[44px]">№</th>
@@ -115,6 +115,7 @@ const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Pr
               <th className="h-label text-left px-2 py-2 font-normal w-[190px]">Егерь</th>
               <th className="h-label text-left px-2 py-2 font-normal w-[180px]">Транспорт</th>
               <th className="h-label text-left px-2 py-2 font-normal w-[190px]">Локация</th>
+              <th className="h-label text-left px-2 py-2 font-normal w-[130px]">Внёс</th>
               <th className="h-label text-left px-2 py-2 font-normal w-[110px]">Порядок</th>
             </tr>
           </thead>
@@ -183,6 +184,11 @@ const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Pr
                     ))}
                   </select>
                 </td>
+                <td className={cell} style={{ borderColor: '#f0f0ee' }}>
+                  <span className="h-label text-[var(--hero-muted)]">
+                    {String(r.created_by_name || '—')}
+                  </span>
+                </td>
                 <td className="px-2 py-1">
                   <div className="flex gap-1">
                     <button
@@ -217,7 +223,7 @@ const PlanTable = ({ planId, rows, transport, locations, keepers, onReload }: Pr
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center">
+                <td colSpan={7} className="px-4 py-8 text-center">
                   <div className="h-mono-cap text-[var(--hero-muted)]">
                     Строк пока нет — добавьте первую
                   </div>
