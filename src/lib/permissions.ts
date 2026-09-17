@@ -37,7 +37,7 @@ export const SECTIONS: Section[] = [
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
-const CLUB_ONLY_KEYS = ['my-club', 'my-biotech', 'club-chat', 'locations', 'my-weapons'];
+const CLUB_ONLY_KEYS = ['my-club', 'my-biotech', 'club-chat', 'locations'];
 
 const CLUB_CHAT_LOGINS = ['spy', 'uan', 'una', 'zna', 'tgw'];
 

@@ -155,9 +155,9 @@ HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'docum
 
 OWN_WEAPON_KEY = {'weapons': 'owner_guest_id'}
 
-CLUB_ONLY_WRITE = {'locations', 'biotech_works', 'work_photos', 'club_bag', 'weapons'}
+CLUB_ONLY_WRITE = {'locations', 'biotech_works', 'work_photos', 'club_bag'}
 
-CLUB_ONLY_READ = {'locations', 'weapons', 'weapon_acts'}
+CLUB_ONLY_READ = {'locations'}
 
 PLAIN_HUNTER_LAYERS = ('boundary',)
 

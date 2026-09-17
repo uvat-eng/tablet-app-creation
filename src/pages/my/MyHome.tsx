@@ -27,31 +27,31 @@ const MyHome = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [g, b, d, r] = await Promise.all([
+    const [g, b, d, r, gw] = await Promise.all([
       listRows('guests', { mine: true }),
       listRows('hunter_bag', { mine: true }),
       listRows('documents', { mine: true }),
       listRows('hunt_requests', { mine: true }),
+      listRows('weapons', { mine: true }).catch(() => [] as Row[]),
     ]);
     const mine = g[0] || null;
     setMe(mine);
     setBag(b);
     setDocs(d);
     setRequests(r);
+    setWeapons(gw);
     const club = Boolean(mine?.club_member);
     setClubFlag(club);
 
     if (club) {
-      const [w, f, cb, gw] = await Promise.all([
+      const [w, f, cb] = await Promise.all([
         listRows('biotech_works', { mine: true }),
         listRows('club_fees', { mine: true }),
         listRows('club_bag', { mine: true }),
-        listRows('weapons', { mine: true }),
       ]);
       setWorks(w);
       setFees(f);
       setClubBag(cb);
-      setWeapons(gw);
     }
     setLoading(false);
   }, []);
@@ -100,13 +100,6 @@ const MyHome = () => {
             value: hoursText(summary.hours),
             hint: `${works.length} записей`,
           },
-          {
-            to: '/my/weapons',
-            icon: 'Crosshair',
-            label: 'Моё оружие',
-            value: String(weapons.length),
-            hint: 'акты передачи',
-          },
         ]
       : [
           {
@@ -117,6 +110,13 @@ const MyHome = () => {
             hint: 'лицензии и услуги',
           },
         ]),
+    {
+      to: '/my/weapons',
+      icon: 'Crosshair',
+      label: 'Моё оружие',
+      value: String(weapons.length),
+      hint: 'акты передачи',
+    },
     {
       to: '/my/bag',
       icon: 'Target',
