@@ -22,6 +22,7 @@ const MyHome = () => {
   const [fees, setFees] = useState<Row[]>([]);
   const [clubBag, setClubBag] = useState<Row[]>([]);
   const [requests, setRequests] = useState<Row[]>([]);
+  const [weapons, setWeapons] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -41,14 +42,16 @@ const MyHome = () => {
     setClubFlag(club);
 
     if (club) {
-      const [w, f, cb] = await Promise.all([
+      const [w, f, cb, gw] = await Promise.all([
         listRows('biotech_works', { mine: true }),
         listRows('club_fees', { mine: true }),
         listRows('club_bag', { mine: true }),
+        listRows('weapons', { mine: true }),
       ]);
       setWorks(w);
       setFees(f);
       setClubBag(cb);
+      setWeapons(gw);
     }
     setLoading(false);
   }, []);
@@ -96,6 +99,13 @@ const MyHome = () => {
             label: 'Моя биотехния',
             value: hoursText(summary.hours),
             hint: `${works.length} записей`,
+          },
+          {
+            to: '/my/weapons',
+            icon: 'Crosshair',
+            label: 'Моё оружие',
+            value: String(weapons.length),
+            hint: 'акты передачи',
           },
         ]
       : [

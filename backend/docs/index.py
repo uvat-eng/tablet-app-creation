@@ -90,7 +90,7 @@ def current_user(cur, event):
     if not token:
         return None
     cur.execute(
-        "SELECT s.id, s.name, s.role, s.login FROM sessions x "
+        "SELECT s.id, s.name, s.role, s.login, s.guest_id FROM sessions x "
         "JOIN staff s ON s.id = x.staff_id "
         "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
     )
@@ -1866,7 +1866,9 @@ def handler(event: dict, context) -> dict:
         }
 
     if kind == 'weapon_act':
-        if str(user.get('login') or '').lower() != 'uan':
+        boss = str(user.get('login') or '').lower() == 'uan'
+        my_guest = int(user.get('guest_id') or 0)
+        if not boss and not my_guest:
             cur.close()
             conn.close()
             return {'statusCode': 403, 'headers': CORS,
@@ -1892,6 +1894,21 @@ def handler(event: dict, context) -> dict:
 
         weapon = dict(wrow)
         guest = dict(grow)
+
+        if not (str(guest.get('hunt_ticket') or '').strip()
+                and str(guest.get('roh_number') or '').strip()):
+            cur.close()
+            conn.close()
+            return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({
+                'error': 'У получателя не заполнен охотбилет или РОХа — '
+                         'передать оружие нельзя'})}
+
+        if not boss and int(weapon.get('owner_guest_id') or 0) != my_guest:
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Оформить акт можно только на своё оружие'})}
+
         data = build_weapon_act(weapon, guest, payload)
 
         who = str(guest.get('name') or '')

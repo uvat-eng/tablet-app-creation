@@ -37,7 +37,7 @@ export const SECTIONS: Section[] = [
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
-const CLUB_ONLY_KEYS = ['my-club', 'my-biotech', 'club-chat', 'locations'];
+const CLUB_ONLY_KEYS = ['my-club', 'my-biotech', 'club-chat', 'locations', 'my-weapons'];
 
 const CLUB_CHAT_LOGINS = ['spy', 'uan', 'una', 'zna', 'tgw'];
 
@@ -60,6 +60,7 @@ export const HUNTER_SECTIONS: Section[] = [
   { key: 'my-review', to: '/my/review', label: 'Оставить отзыв', icon: 'MessageSquare' },
   { key: 'my-profile', to: '/my/profile', label: 'Мои данные', icon: 'IdCard' },
   { key: 'my-docs', to: '/my/docs', label: 'Мои документы', icon: 'FolderOpen' },
+  { key: 'my-weapons', to: '/my/weapons', label: 'Моё оружие', icon: 'Crosshair' },
   { key: 'my-settings', to: '/my/settings', label: 'Настройки', icon: 'Settings' },
 ];
 

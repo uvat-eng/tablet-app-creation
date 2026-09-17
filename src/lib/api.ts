@@ -33,16 +33,22 @@ const authHeaders = () => ({
 
 export const listRows = async (
   table: string,
-  opts: { archived?: boolean; bookingId?: number; mine?: boolean } = {},
+  opts: {
+    archived?: boolean;
+    bookingId?: number;
+    mine?: boolean;
+    recipients?: boolean;
+  } = {},
 ): Promise<Row[]> => {
   const q = new URLSearchParams({ table });
   if (opts.archived) q.set('archived', '1');
   if (opts.bookingId) q.set('booking_id', String(opts.bookingId));
   if (opts.mine) q.set('mine', '1');
+  if (opts.recipients) q.set('recipients', '1');
 
   const suffix = `${opts.archived ? 'arch' : ''}${opts.bookingId ? 'b' + opts.bookingId : ''}${
     opts.mine ? 'mine' : ''
-  }`;
+  }${opts.recipients ? 'rcp' : ''}`;
   const key = cacheKey(table, suffix);
 
   try {

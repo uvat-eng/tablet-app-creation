@@ -67,7 +67,7 @@ TABLES = {
                       'hours', 'qty', 'unit', 'value_rub', 'status', 'note', 'photo_url',
                       'archived'],
     'weapons': ['name', 'kind', 'caliber', 'serial_no', 'roh_number', 'roh_date',
-                'owner_name', 'sort_order', 'note', 'archived'],
+                'owner_name', 'owner_guest_id', 'sort_order', 'note', 'archived'],
     'weapon_acts': ['weapon_id', 'guest_id', 'act_date', 'hunt_from', 'hunt_to',
                     'receiver_name', 'receiver_roh', 'receiver_roh_date',
                     'receiver_weapon', 'file_url', 'archived'],
@@ -143,17 +143,21 @@ DEMO_READ = {'locations', 'map_layers', 'objects', 'trophies', 'reviews', 'servi
 
 HUNTER_READ = {'locations', 'map_layers', 'biotech_works', 'work_photos', 'guests',
                'hunter_bag', 'guest_docs', 'documents', 'trophies', 'club_fees',
-               'club_bag', 'services', 'hunt_requests', 'hunt_request_items', 'reviews'}
+               'club_bag', 'services', 'hunt_requests', 'hunt_request_items', 'reviews',
+               'weapons', 'weapon_acts'}
 
 HUNTER_WRITE = {'locations', 'biotech_works', 'work_photos', 'guests', 'hunter_bag',
-                'club_bag', 'hunt_requests', 'hunt_request_items', 'reviews'}
+                'club_bag', 'hunt_requests', 'hunt_request_items', 'reviews',
+                'weapons'}
 
 HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'documents',
                    'club_fees', 'club_bag', 'hunt_requests'}
 
-CLUB_ONLY_WRITE = {'locations', 'biotech_works', 'work_photos', 'club_bag'}
+OWN_WEAPON_KEY = {'weapons': 'owner_guest_id'}
 
-CLUB_ONLY_READ = {'locations'}
+CLUB_ONLY_WRITE = {'locations', 'biotech_works', 'work_photos', 'club_bag', 'weapons'}
+
+CLUB_ONLY_READ = {'locations', 'weapons', 'weapon_acts'}
 
 PLAIN_HUNTER_LAYERS = ('boundary',)
 
@@ -407,12 +411,25 @@ def handler(event: dict, context) -> dict:
     is_hunter = bool(viewer and viewer.get('role') == 'hunter')
     my_guest = int(viewer.get('guest_id') or 0) if viewer else 0
     mine_only = params.get('mine') == '1' and my_guest > 0
+    own_weapon = bool(my_guest) and (is_hunter or mine_only)
+    recipients = params.get('recipients') == '1' and bool(my_guest)
 
     is_club = False
     if is_hunter and my_guest:
         cur.execute("SELECT club_member FROM guests WHERE id = " + str(my_guest))
         g = cur.fetchone()
         is_club = bool(g and g.get('club_member'))
+
+    if recipients and table == 'guests' and method == 'GET':
+        cur.execute(
+            'SELECT id, name, club_member, hunt_ticket, roh_number, roh_date '
+            'FROM guests WHERE archived = FALSE ORDER BY name'
+        )
+        items = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return {'statusCode': 200, 'headers': CORS,
+                'body': json.dumps({'items': items}, default=str)}
 
     if is_hunter:
         allowed = HUNTER_READ if method == 'GET' else HUNTER_WRITE
@@ -444,11 +461,17 @@ def handler(event: dict, context) -> dict:
                 'error': 'Демонстрационный доступ — раздел закрыт'})}
 
     if table in ('weapons', 'weapon_acts'):
-        if not viewer or str(viewer.get('login') or '').lower() != 'uan':
+        boss = viewer and str(viewer.get('login') or '').lower() == 'uan'
+        if not viewer or not (boss or own_weapon):
             cur.close()
             conn.close()
             return {'statusCode': 403, 'headers': CORS,
                     'body': json.dumps({'error': 'Раздел закрыт'})}
+        if own_weapon and not boss and method == 'DELETE':
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Удалять записи может только хозяйство'})}
 
     if table in ('supply_orders', 'supply_items'):
         if is_hunter or not viewer:
@@ -481,6 +504,14 @@ def handler(event: dict, context) -> dict:
         if (is_hunter or mine_only) and table in HUNTER_OWN_ONLY:
             key = 'id' if table == 'guests' else 'guest_id'
             where.append(key + ' = ' + str(my_guest or 0))
+        if own_weapon and not (viewer
+                               and str(viewer.get('login') or '').lower() == 'uan'):
+            if table in OWN_WEAPON_KEY:
+                where.append(OWN_WEAPON_KEY[table] + ' = ' + str(my_guest))
+            if table == 'weapon_acts':
+                where.append('(guest_id = ' + str(my_guest) +
+                             ' OR weapon_id IN (SELECT id FROM weapons WHERE '
+                             'owner_guest_id = ' + str(my_guest) + '))')
         if params.get('year') and table == 'club_fees':
             where.append('year = ' + str(int(params['year'])))
         if params.get('season') and table == 'club_bag':
@@ -507,6 +538,20 @@ def handler(event: dict, context) -> dict:
     body = json.loads(event.get('body') or '{}')
     fields = TABLES[table]
     me = viewer
+
+    if own_weapon and table == 'weapons':
+        if method == 'POST':
+            body['owner_guest_id'] = my_guest
+        else:
+            cur.execute('SELECT owner_guest_id FROM weapons WHERE id = ' +
+                        str(int(body.get('id') or 0)))
+            row = cur.fetchone()
+            if not row or int(row.get('owner_guest_id') or 0) != my_guest:
+                cur.close()
+                conn.close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Можно менять только своё оружие'})}
+            body.pop('owner_guest_id', None)
 
     if mine_only and not is_hunter:
         if table in ('biotech_works', 'hunter_bag', 'club_bag', 'hunt_requests', 'reviews'):
