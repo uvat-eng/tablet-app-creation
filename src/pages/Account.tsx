@@ -5,6 +5,7 @@ import StoreAssets from '@/components/app/StoreAssets';
 import { useAuth } from '@/context/AuthContext';
 import { ROLES } from '@/lib/permissions';
 import { APK_URL, APP_VERSION } from '@/lib/appVersion';
+import { isIOS } from '@/lib/platform';
 
 
 const Account = () => {
@@ -45,16 +46,24 @@ const Account = () => {
       </button>
 
       <div className="h-head text-[22px] mt-10 mb-3">Приложение</div>
-      <a
-        href={APK_URL}
-        className="flex items-center justify-center gap-2 w-full bg-[#1f1f1d] text-white px-4 py-4 text-[0.85em] tracking-wide"
-      >
-        <Icon name="Download" size={18} />
-        Скачать обновление для Android
-      </a>
-      <p className="h-mono-cap mt-3 text-center">
-        Откройте файл после загрузки и подтвердите установку — данные сохранятся
-      </p>
+      {isIOS() ? (
+        <p className="h-mono-cap text-center">
+          Обновления приходят через App Store
+        </p>
+      ) : (
+        <>
+          <a
+            href={APK_URL}
+            className="flex items-center justify-center gap-2 w-full bg-[#1f1f1d] text-white px-4 py-4 text-[0.85em] tracking-wide"
+          >
+            <Icon name="Download" size={18} />
+            Скачать обновление для Android
+          </a>
+          <p className="h-mono-cap mt-3 text-center">
+            Откройте файл после загрузки и подтвердите установку — данные сохранятся
+          </p>
+        </>
+      )}
       <p className="h-mono-cap mt-1 text-center opacity-60">Версия {APP_VERSION}</p>
 
       {user?.role === 'owner' && (
