@@ -9,7 +9,7 @@ import ClubStatus from '@/components/app/ClubStatus';
 import ChatPanel from '@/components/app/ChatPanel';
 import NotifyPrompt from '@/components/app/NotifyPrompt';
 import BackgroundToggle from '@/components/app/BackgroundToggle';
-import { setClubFlag } from '@/lib/permissions';
+import { setClubFlag, canPlanHunts } from '@/lib/permissions';
 import { REQUEST_STATUS, money } from '@/lib/hunts';
 
 const MyHome = () => {
@@ -120,13 +120,17 @@ const MyHome = () => {
       value: String(weapons.length),
       hint: 'акты передачи',
     },
-    {
-      to: '/my/plans',
-      icon: 'CalendarRange',
-      label: 'Планирование охот',
-      value: String(plans.length),
-      hint: 'больших охот',
-    },
+    ...(canPlanHunts(user)
+      ? [
+          {
+            to: '/my/plans',
+            icon: 'CalendarRange',
+            label: 'Планирование охот',
+            value: String(plans.length),
+            hint: 'больших охот',
+          },
+        ]
+      : []),
     {
       to: '/my/bag',
       icon: 'Target',

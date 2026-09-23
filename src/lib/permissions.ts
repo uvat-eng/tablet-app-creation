@@ -41,6 +41,11 @@ const CLUB_ONLY_KEYS = ['my-club', 'my-biotech', 'club-chat', 'locations'];
 
 const CLUB_CHAT_LOGINS = ['spy', 'uan', 'una', 'zna', 'tgw'];
 
+const PLAN_LOGINS = ['uan', 'una', 'zna'];
+
+export const canPlanHunts = (user: StaffUser | null): boolean =>
+  Boolean(user && PLAN_LOGINS.includes(String(user.login || '').toLowerCase()));
+
 export const canClubChat = (user: StaffUser | null): boolean => {
   if (!user) return false;
   if (CLUB_CHAT_LOGINS.includes(String(user.login || '').toLowerCase())) return true;
@@ -141,6 +146,7 @@ export const can = (user: StaffUser | null, key: string): boolean => {
     if (String(user.login || '').toLowerCase() === 'rustore') return false;
     return user.role !== 'hunter';
   }
+  if (key === 'my-plans') return canPlanHunts(user);
   if (key === 'club-chat') return canClubChat(user);
   if (key === 'access') return Boolean(user.can_manage_access);
   if (key === 'supply') return Boolean(user.can_supply);
@@ -162,8 +168,10 @@ export const can = (user: StaffUser | null, key: string): boolean => {
 export const allowedSections = (user: StaffUser | null): Section[] => {
   if (!user) return [];
   if (user.role === 'hunter') {
-    if (isClubMember()) return HUNTER_SECTIONS;
-    return HUNTER_SECTIONS.filter((s) => !CLUB_ONLY_KEYS.includes(s.key));
+    const plans = canPlanHunts(user);
+    const base = HUNTER_SECTIONS.filter((s) => s.key !== 'my-plans' || plans);
+    if (isClubMember()) return base;
+    return base.filter((s) => !CLUB_ONLY_KEYS.includes(s.key));
   }
   const base = SECTIONS.filter((s) => can(user, s.key));
   const withChat = canClubChat(user)
@@ -184,6 +192,7 @@ export const allowedSections = (user: StaffUser | null): Section[] => {
           (s) =>
             s.key.startsWith('my') &&
             s.key !== 'my-settings' &&
+            (s.key !== 'my-plans' || canPlanHunts(user)) &&
             (!CLUB_ONLY_KEYS.includes(s.key) || isClubMember()),
         ),
       ]
