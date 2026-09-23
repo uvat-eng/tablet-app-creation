@@ -1,0 +1,128 @@
+name: Сборка для App Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: Номер сборки (каждый раз новый, больше предыдущего)
+        required: true
+        default: '58'
+      upload:
+        description: Отправить в App Store после сборки
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: Забираем код
+        uses: actions/checkout@v4
+
+      - name: Ставим Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Собираем веб-часть
+        run: |
+          npm install
+          npm run build
+
+      - name: Готовим iOS-проект
+        run: |
+          npx cap sync ios
+          cd ios/App && pod install
+
+      - name: Ключ App Store Connect
+        env:
+          KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$KEY" > ~/private_keys/AuthKey_$KEY_ID.p8
+          chmod 600 ~/private_keys/AuthKey_$KEY_ID.p8
+
+      - name: Номер версии сборки
+        run: |
+          cd ios/App
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${{ inputs.build_number }};/g" App.xcodeproj/project.pbxproj
+          grep -m1 "CURRENT_PROJECT_VERSION" App.xcodeproj/project.pbxproj
+
+      - name: Настройки выгрузки
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cat > /tmp/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>destination</key>
+            <string>export</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Архивируем приложение
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath /tmp/App.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_$KEY_ID.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            archive
+
+      - name: Делаем файл приложения
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath /tmp/App.xcarchive \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -exportPath /tmp/export \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_$KEY_ID.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+          ls -la /tmp/export
+
+      - name: Сохраняем файл
+        uses: actions/upload-artifact@v4
+        with:
+          name: malyshenskoe-ios
+          path: /tmp/export/*.ipa
+          retention-days: 30
+
+      - name: Отправляем в App Store
+        if: ${{ inputs.upload }}
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          IPA=$(ls /tmp/export/*.ipa | head -1)
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+          echo "Готово — сборка появится в App Store Connect через 10-30 минут"
