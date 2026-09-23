@@ -1,0 +1,2 @@
+app_identifier("ru.malyshenskoe.crm")
+team_id(ENV["APPLE_TEAM_ID"])

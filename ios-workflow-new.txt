@@ -1,0 +1,79 @@
+name: Сборка для App Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: Номер сборки
+        required: true
+        default: '60'
+      upload:
+        description: Отправить в App Store
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Ставим fastlane
+        run: gem install fastlane --no-document
+
+      - name: Собираем веб-часть
+        run: |
+          npm install
+          npm run build
+
+      - name: Готовим iOS-проект
+        run: |
+          npx cap sync ios
+          cd ios/App && pod install
+
+      - name: Ключ App Store Connect
+        env:
+          KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+        run: |
+          set -e
+          mkdir -p ~/private_keys
+          printf '%s\n' "$KEY" > ~/private_keys/AuthKey_$KEY_ID.p8
+          chmod 600 ~/private_keys/AuthKey_$KEY_ID.p8
+          if ! openssl pkey -in ~/private_keys/AuthKey_$KEY_ID.p8 -noout 2>/dev/null; then
+            echo "::error::Ключ .p8 повреждён или вставлен не полностью"
+            exit 1
+          fi
+          echo "Ключ корректный"
+
+      - name: Номер версии сборки
+        run: |
+          cd ios/App
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${{ inputs.build_number }};/g" App.xcodeproj/project.pbxproj
+
+      - name: Сертификат, профиль, сборка и отправка
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          FASTLANE_HIDE_CHANGELOG: 'true'
+          FASTLANE_SKIP_UPDATE_CHECK: 'true'
+        run: |
+          export APPSTORE_KEY_PATH="$HOME/private_keys/AuthKey_$APPSTORE_KEY_ID.p8"
+          fastlane ios release upload:${{ inputs.upload }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: malyshenskoe-ios
+          path: /tmp/export/*.ipa
+          retention-days: 30
