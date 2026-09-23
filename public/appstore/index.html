@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Скриншоты для App Store</title>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:900px;margin:0 auto;padding:24px;color:#111}
+  h1{font-size:22px} h2{font-size:16px;margin-top:32px;border-bottom:1px solid #e2e2df;padding-bottom:8px}
+  .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;margin-top:16px}
+  .c{border:1px solid #e2e2df;padding:10px;text-align:center}
+  .c img{width:100%;height:auto;border:1px solid #eee}
+  .c a{display:block;margin-top:8px;font-size:13px;background:#00c853;color:#000;text-decoration:none;padding:8px;font-weight:600}
+  p{font-size:14px;line-height:1.5;color:#444}
+</style>
+</head>
+<body>
+<h1>Скриншоты для App Store</h1>
+<p>Нажмите «Скачать» под каждой картинкой. Затем загрузите их в App Store Connect:
+iPhone — в рамку «6,5-дюймовый дисплей», iPad — во вкладку iPad. Порядок по номерам.</p>
+
+<h2>iPhone — 1242 × 2688</h2>
+<div class="g" id="ph"></div>
+
+<h2>iPad — 2048 × 2732</h2>
+<div class="g" id="pd"></div>
+
+<script>
+var names = [
+  ['1-kabinet','Мой кабинет'],
+  ['2-ohoty','Мои охоты'],
+  ['3-karta','Карта хозяйства'],
+  ['4-dobycha','Моя добыча'],
+  ['5-ceny','Цены на охоту']
+];
+function fill(box, dir){
+  document.getElementById(box).innerHTML = names.map(function(n){
+    var p = dir + '/' + n[0] + '.png';
+    return '<div class="c"><img src="' + p + '" alt=""><div style="font-size:12px;margin-top:6px">' +
+      n[1] + '</div><a href="' + p + '" download>Скачать</a></div>';
+  }).join('');
+}
+fill('ph','iphone');
+fill('pd','ipad');
+</script>
+</body>
+</html>
