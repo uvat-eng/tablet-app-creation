@@ -16,8 +16,12 @@ jobs:
   build:
     runs-on: macos-14
     timeout-minutes: 60
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -65,9 +69,13 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           FASTLANE_HIDE_CHANGELOG: 'true'
           FASTLANE_SKIP_UPDATE_CHECK: 'true'
         run: |
+          git config --global user.email "ci@build.local"
+          git config --global user.name "CI Build"
           export APPSTORE_KEY_PATH="$HOME/private_keys/AuthKey_$APPSTORE_KEY_ID.p8"
           fastlane ios release upload:${{ inputs.upload }}
 

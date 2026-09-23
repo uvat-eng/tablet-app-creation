@@ -24,32 +24,23 @@ platform :ios do
       lock_when_sleeps: false
     )
 
-    cert(
-      api_key: api_key,
-      development: false,
-      keychain_path: File.expand_path("~/Library/Keychains/#{keychain_name}-db"),
-      keychain_password: keychain_password,
-      output_path: "/tmp/certs"
-    )
-
-    sigh(
-      api_key: api_key,
+    match(
+      type: "appstore",
       app_identifier: APP_ID,
-      platform: "ios",
-      output_path: "/tmp/profiles",
-      readonly: false
+      api_key: api_key,
+      git_url: "https://x-access-token:#{ENV["GH_TOKEN"]}@github.com/#{ENV["GITHUB_REPOSITORY"]}.git",
+      git_branch: "certificates",
+      storage_mode: "git",
+      keychain_name: keychain_name,
+      keychain_password: keychain_password,
+      readonly: false,
+      force_for_new_devices: false
     )
 
-    profile_name = lane_context[SharedValues::SIGH_NAME]
-    profile_uuid = lane_context[SharedValues::SIGH_UUID]
-    profile_path = lane_context[SharedValues::SIGH_PROFILE_PATH]
+    profile_name = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING][APP_ID]
+    real_team = ENV["sigh_#{APP_ID}_appstore_team-id"] || ENV["APPLE_TEAM_ID"]
 
-    plist = `security cms -D -i "#{profile_path}"`
-    real_team = plist[%r{<key>TeamIdentifier</key>\s*<array>\s*<string>([^<]+)</string>}m, 1]
-    sign_identity = plist.include?("Apple Distribution") ? "Apple Distribution" : "iPhone Distribution"
-    UI.message("Команда из профиля: #{real_team}, подпись: #{sign_identity}")
-
-    install_provisioning_profile(path: profile_path)
+    UI.message("Профиль: #{profile_name}, команда: #{real_team}")
 
     update_code_signing_settings(
       path: "ios/App/App.xcodeproj",
@@ -57,8 +48,7 @@ platform :ios do
       team_id: real_team,
       bundle_identifier: APP_ID,
       profile_name: profile_name,
-      profile_uuid: profile_uuid,
-      code_sign_identity: sign_identity,
+      code_sign_identity: "Apple Distribution",
       targets: ["App"]
     )
 
@@ -74,11 +64,11 @@ platform :ios do
       export_team_id: real_team,
       skip_profile_detection: true,
       xcargs: "DEVELOPMENT_TEAM='#{real_team}' CODE_SIGN_STYLE=Manual " \
-              "PROVISIONING_PROFILE_SPECIFIER='#{profile_uuid}' " \
-              "CODE_SIGN_IDENTITY='#{sign_identity}'",
+              "PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' " \
+              "CODE_SIGN_IDENTITY='Apple Distribution'",
       export_options: {
         signingStyle: "manual",
-        provisioningProfiles: { APP_ID => profile_uuid }
+        provisioningProfiles: { APP_ID => profile_name }
       }
     )
 
