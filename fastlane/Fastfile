@@ -63,9 +63,6 @@ platform :ios do
       export_method: "app-store",
       export_team_id: real_team,
       skip_profile_detection: true,
-      xcargs: "DEVELOPMENT_TEAM='#{real_team}' CODE_SIGN_STYLE=Manual " \
-              "PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' " \
-              "CODE_SIGN_IDENTITY='Apple Distribution'",
       export_options: {
         signingStyle: "manual",
         provisioningProfiles: { APP_ID => profile_name }
