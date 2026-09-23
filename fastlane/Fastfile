@@ -26,7 +26,7 @@ platform :ios do
 
     cert(
       api_key: api_key,
-      team_id: ENV["APPLE_TEAM_ID"],
+      development: false,
       keychain_path: File.expand_path("~/Library/Keychains/#{keychain_name}-db"),
       keychain_password: keychain_password,
       output_path: "/tmp/certs"
@@ -34,7 +34,6 @@ platform :ios do
 
     sigh(
       api_key: api_key,
-      team_id: ENV["APPLE_TEAM_ID"],
       app_identifier: APP_ID,
       platform: "ios",
       output_path: "/tmp/profiles",
@@ -45,16 +44,21 @@ platform :ios do
     profile_uuid = lane_context[SharedValues::SIGH_UUID]
     profile_path = lane_context[SharedValues::SIGH_PROFILE_PATH]
 
+    plist = `security cms -D -i "#{profile_path}"`
+    real_team = plist[%r{<key>TeamIdentifier</key>\s*<array>\s*<string>([^<]+)</string>}m, 1]
+    sign_identity = plist.include?("Apple Distribution") ? "Apple Distribution" : "iPhone Distribution"
+    UI.message("Команда из профиля: #{real_team}, подпись: #{sign_identity}")
+
     install_provisioning_profile(path: profile_path)
 
     update_code_signing_settings(
       path: "ios/App/App.xcodeproj",
       use_automatic_signing: false,
-      team_id: ENV["APPLE_TEAM_ID"],
+      team_id: real_team,
       bundle_identifier: APP_ID,
       profile_name: profile_name,
       profile_uuid: profile_uuid,
-      code_sign_identity: "Apple Distribution",
+      code_sign_identity: sign_identity,
       targets: ["App"]
     )
 
@@ -67,8 +71,11 @@ platform :ios do
       output_directory: "/tmp/export",
       output_name: "App.ipa",
       export_method: "app-store",
-      export_team_id: ENV["APPLE_TEAM_ID"],
+      export_team_id: real_team,
       skip_profile_detection: true,
+      xcargs: "DEVELOPMENT_TEAM='#{real_team}' CODE_SIGN_STYLE=Manual " \
+              "PROVISIONING_PROFILE_SPECIFIER='#{profile_uuid}' " \
+              "CODE_SIGN_IDENTITY='#{sign_identity}'",
       export_options: {
         signingStyle: "manual",
         provisioningProfiles: { APP_ID => profile_uuid }
