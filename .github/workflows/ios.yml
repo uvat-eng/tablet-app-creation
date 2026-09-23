@@ -111,7 +111,7 @@ jobs:
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -archivePath /tmp/App.xcarchive \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic 
+            CODE_SIGN_STYLE=Automatic \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$HOME/private_keys/AuthKey_$KEY_ID.p8" \
             -authenticationKeyID "$KEY_ID" \
