@@ -6,7 +6,7 @@ on:
       build_number:
         description: Номер сборки
         required: true
-        default: '58'
+        default: '60'
       upload:
         description: Отправить в App Store
         type: boolean
@@ -23,6 +23,13 @@ jobs:
         with:
           node-version: '20'
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Ставим fastlane
+        run: gem install fastlane --no-document
+
       - name: Собираем веб-часть
         run: |
           npm install
@@ -37,112 +44,36 @@ jobs:
         env:
           KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -e
-          mkdir -p ~/private_keys ~/.appstoreconnect/private_keys
+          mkdir -p ~/private_keys
           printf '%s\n' "$KEY" > ~/private_keys/AuthKey_$KEY_ID.p8
-          cp ~/private_keys/AuthKey_$KEY_ID.p8 ~/.appstoreconnect/private_keys/
           chmod 600 ~/private_keys/AuthKey_$KEY_ID.p8
-
-          echo "=== ПРОВЕРКА КЛЮЧЕЙ ==="
-          echo "Размер ключа: $(wc -c < ~/private_keys/AuthKey_$KEY_ID.p8) символов"
-          echo "Строк в ключе: $(wc -l < ~/private_keys/AuthKey_$KEY_ID.p8)"
-          head -1 ~/private_keys/AuthKey_$KEY_ID.p8
-          tail -1 ~/private_keys/AuthKey_$KEY_ID.p8
-          echo "Длина KEY_ID: ${#KEY_ID} (нужно 10)"
-          echo "Длина ISSUER_ID: ${#ISSUER_ID} (нужно 36)"
-          echo "Длина TEAM_ID: ${#TEAM_ID} (нужно 10)"
-
           if ! openssl pkey -in ~/private_keys/AuthKey_$KEY_ID.p8 -noout 2>/dev/null; then
             echo "::error::Ключ .p8 повреждён или вставлен не полностью"
             exit 1
           fi
           echo "Ключ корректный"
 
-      - name: Проверяем доступ к Apple
-        env:
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-        run: |
-          xcrun altool --list-apps --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" 2>&1 | tee /tmp/apple.log | head -40 || true
-          if grep -qi "unable to authenticate\|forbidden\|not authorized\|credentials are missing" /tmp/apple.log; then
-            echo "::error::Apple отклонила ключ. Проверьте KEY_ID, ISSUER_ID и роль ключа (нужна App Manager или Admin)"
-            exit 1
-          fi
-          echo "Связь с Apple установлена"
-
       - name: Номер версии сборки
         run: |
           cd ios/App
           sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${{ inputs.build_number }};/g" App.xcodeproj/project.pbxproj
 
-      - name: Настройки выгрузки
+      - name: Сертификат, профиль, сборка и отправка
         env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          FASTLANE_HIDE_CHANGELOG: 'true'
+          FASTLANE_SKIP_UPDATE_CHECK: 'true'
         run: |
-          cat > /tmp/ExportOptions.plist <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>$TEAM_ID</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>destination</key>
-            <string>export</string>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          PLIST
-
-      - name: Архивируем приложение
-        env:
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
-            -destination 'generic/platform=iOS' -archivePath /tmp/App.xcarchive \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$HOME/private_keys/AuthKey_$KEY_ID.p8" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
-            archive
-
-      - name: Делаем файл приложения
-        env:
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-        run: |
-          xcodebuild -exportArchive -archivePath /tmp/App.xcarchive \
-            -exportOptionsPlist /tmp/ExportOptions.plist -exportPath /tmp/export \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$HOME/private_keys/AuthKey_$KEY_ID.p8" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID"
-          ls -la /tmp/export
+          export APPSTORE_KEY_PATH="$HOME/private_keys/AuthKey_$APPSTORE_KEY_ID.p8"
+          fastlane ios release upload:${{ inputs.upload }}
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: malyshenskoe-ios
           path: /tmp/export/*.ipa
           retention-days: 30
-
-      - name: Отправляем в App Store
-        if: ${{ inputs.upload }}
-        env:
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-        run: |
-          IPA=$(ls /tmp/export/*.ipa | head -1)
-          xcrun altool --upload-app -f "$IPA" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
-          echo "Готово — сборка появится в App Store Connect через 10-30 минут"
