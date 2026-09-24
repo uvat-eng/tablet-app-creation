@@ -282,7 +282,7 @@ def current_user(cur, event):
         return None
     cur.execute(
         "SELECT s.id, s.name, s.role, s.can_edit_others, s.can_remove, s.guest_id, "
-        "s.can_approve_hunts, s.can_supply, s.login "
+        "s.can_approve_hunts, s.can_supply, s.login, s.can_manage_access "
         "FROM sessions x "
         "JOIN staff s ON s.id = x.staff_id "
         "WHERE x.token = " + esc(token) + " AND x.expires_at > NOW() AND s.active = TRUE"
@@ -665,6 +665,22 @@ def handler(event: dict, context) -> dict:
                 return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
                     'error': 'Можно менять только свою анкету'})}
         for locked in HUNTER_LOCKED.get(table, ()):
+            body.pop(locked, None)
+
+    if table == 'guests' and not viewer.get('can_manage_access'):
+        was_member = None
+        if method == 'PUT':
+            cur.execute("SELECT club_member FROM guests WHERE id = " +
+                        str(int(body.get('id') or 0)))
+            row = cur.fetchone()
+            was_member = bool(row['club_member']) if row else False
+        wants = body.get('club_member')
+        if wants is not None and bool(wants) != bool(was_member):
+            cur.close()
+            conn.close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'В члены клуба вносят только Усков А.Н. и Усков Н.А.'})}
+        for locked in ('club_member', 'club_until', 'fee_monthly'):
             body.pop(locked, None)
 
     if table in ('supply_orders', 'supply_items') and not viewer.get('can_supply'):
