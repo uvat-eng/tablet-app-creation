@@ -181,7 +181,9 @@ def handler(event: dict, context) -> dict:
         password = str(body.get('password', ''))
         reason = str(body.get('reason', ''))[:500]
 
-        cur.execute("SELECT password_hash FROM staff WHERE id = " + str(int(me['id'])))
+        staff_id = int(me['id'])
+
+        cur.execute("SELECT password_hash FROM staff WHERE id = " + str(staff_id))
         row = cur.fetchone()
         if not row or row['password_hash'] != hash_password(password):
             close()
@@ -193,8 +195,14 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
                 'error': 'Учётные записи сотрудников закрывает руководство хозяйства'})}
 
-        staff_id = int(me['id'])
         guest_id = int(me.get('guest_id') or 0)
+
+        cur.execute(
+            "INSERT INTO activity_log (staff_id, staff_name, action, table_name, row_id, "
+            "title, app) VALUES (" + str(staff_id) + ", " + esc(me.get('name') or '') +
+            ", 'delete', 'staff', " + str(staff_id) + ", " +
+            esc('Самостоятельное удаление учётной записи') + ", 'my')"
+        )
 
         cur.execute(
             "INSERT INTO account_closures (staff_id, login, name, guest_id, reason) VALUES (" +
@@ -488,6 +496,10 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'item': dict(row)})}
 
     if action == 'staff' and method == 'DELETE':
+        if not me.get('can_manage_access'):
+            close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Удалять учётные записи могут только Усков А.Н. и Усков Н.А.'})}
         staff_id = int(params.get('id', 0) or body.get('id', 0))
         if not staff_id:
             close()

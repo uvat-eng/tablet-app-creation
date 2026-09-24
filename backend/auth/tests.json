@@ -47,6 +47,21 @@
       "method": "GET",
       "path": "/?action=access",
       "expectedStatus": 403
+    },
+    {
+      "name": "Удаление своей записи без входа запрещено",
+      "method": "POST",
+      "path": "/?action=delete_account",
+      "body": {
+        "password": "x"
+      },
+      "expectedStatus": 401
+    },
+    {
+      "name": "Удаление чужой записи без прав запрещено",
+      "method": "DELETE",
+      "path": "/?action=staff&id=1",
+      "expectedStatus": 403
     }
   ]
 }
