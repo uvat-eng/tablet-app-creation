@@ -190,7 +190,7 @@ def handler(event: dict, context) -> dict:
 
     cur.execute(
         'SELECT id, staff_id, author_name, from_staff, body, read_guest, read_staff, '
-        'created_at FROM ' + MSG + ' WHERE guest_id = ' + str(guest_id)
+        'kind, created_at FROM ' + MSG + ' WHERE guest_id = ' + str(guest_id)
         + ' AND hidden = FALSE ORDER BY created_at ASC LIMIT 500'
     )
     items = []
@@ -199,6 +199,7 @@ def handler(event: dict, context) -> dict:
         items.append({
             'id': int(d['id']),
             'staffId': int(d.get('staff_id') or 0),
+            'kind': d.get('kind') or 'text',
             'author': d.get('author_name') or '',
             'fromStaff': bool(d.get('from_staff')),
             'body': d.get('body') or '',

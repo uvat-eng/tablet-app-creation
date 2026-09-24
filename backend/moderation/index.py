@@ -27,7 +27,7 @@ REASONS = {
     'other': 'Другое',
 }
 
-MODERATORS = {'spy', 'uan', 'una', 'zna', 'tgw'}
+MODERATORS = {'uan', 'una'}
 
 
 def esc(value):
@@ -55,7 +55,8 @@ def current_user(cur, event):
     if not token:
         return None
     cur.execute(
-        'SELECT s.id, s.name, s.login, s.role FROM ' + SCHEMA + '.sessions x '
+        'SELECT s.id, s.name, s.login, s.role, s.guest_id, s.can_moderate FROM '
+        + SCHEMA + '.sessions x '
         'JOIN ' + SCHEMA + '.staff s ON s.id = x.staff_id '
         'WHERE x.token = ' + esc(token) + ' AND x.expires_at > NOW() AND s.active = TRUE'
     )
@@ -63,10 +64,35 @@ def current_user(cur, event):
     return dict(row) if row else None
 
 
+def notify_owner(cur, user, reason, comment, target):
+    guest_id = int(user.get('guest_id') or 0)
+    if not guest_id:
+        return
+
+    lines = [
+        'ЖАЛОБА НА СООБЩЕНИЕ',
+        'Причина: ' + REASONS.get(reason, 'Другое'),
+        'Автор сообщения: ' + (target.get('author_name') or 'неизвестен'),
+        'Текст: ' + (target.get('body') or '')[:300],
+    ]
+    if comment:
+        lines.append('Пояснение: ' + comment)
+    lines.append('Разобрать — раздел «Жалобы на сообщения».')
+    body = '\n'.join(lines)
+
+    cur.execute(
+        'INSERT INTO ' + SCHEMA + '.messages (guest_id, staff_id, author_name, '
+        'from_staff, body, read_staff, read_guest, kind) VALUES ('
+        + str(guest_id) + ', ' + str(int(user['id'])) + ', '
+        + esc(user.get('name') or '') + ", FALSE, " + esc(body)
+        + ", FALSE, TRUE, 'report')"
+    )
+
+
 def is_moderator(user):
     if (user.get('login') or '').lower() in MODERATORS:
         return True
-    return user.get('role') in ('owner', 'manager')
+    return bool(user.get('can_moderate'))
 
 
 def fetch_target(cur, kind, target_id):
@@ -146,6 +172,9 @@ def handler(event: dict, context) -> dict:
             + esc((target.get('body') or '')[:2000]) + ', '
             + esc(reason) + ', ' + esc(comment) + ')'
         )
+
+        notify_owner(cur, user, reason, comment, target)
+
         close()
         return reply(200, {'ok': True})
 

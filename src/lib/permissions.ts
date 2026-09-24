@@ -47,11 +47,8 @@ const PLAN_LOGINS = ['uan', 'una', 'zna'];
 export const canPlanHunts = (user: StaffUser | null): boolean =>
   Boolean(user && PLAN_LOGINS.includes(String(user.login || '').toLowerCase()));
 
-export const canModerate = (user: StaffUser | null): boolean => {
-  if (!user) return false;
-  if (CLUB_CHAT_LOGINS.includes(String(user.login || '').toLowerCase())) return true;
-  return user.role === 'owner' || user.role === 'manager';
-};
+export const canModerate = (user: StaffUser | null): boolean =>
+  Boolean(user && (user.can_manage_access || user.can_moderate));
 
 export const canClubChat = (user: StaffUser | null): boolean => {
   if (!user) return false;

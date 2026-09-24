@@ -89,6 +89,39 @@ const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
 
         {items.map((m) => {
           const mine = Number(user?.id || 0) === Number(m.staffId || 0);
+
+          if (m.kind === 'report') {
+            return (
+              <div key={m.id} className="mb-3">
+                <div
+                  className="px-3 py-3"
+                  style={{ background: '#fdf2f0', border: '1px solid #e0b8b2' }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon
+                      name="Flag"
+                      size={14}
+                      fallback="TriangleAlert"
+                      className="shrink-0"
+                    />
+                    <span
+                      className="text-[0.62em] uppercase tracking-[0.08em]"
+                      style={{ color: '#a32b20' }}
+                    >
+                      Жалоба от охотника
+                    </span>
+                  </div>
+                  <div className="text-[0.8em] whitespace-pre-wrap break-words leading-relaxed">
+                    {m.body.replace(/^ЖАЛОБА НА СООБЩЕНИЕ\n/, '')}
+                  </div>
+                  <div className="text-[0.6em] opacity-60 mt-2 text-right">
+                    {fmtWhen(m.createdAt)}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
           return (
           <div
             key={m.id}

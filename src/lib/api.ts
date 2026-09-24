@@ -462,6 +462,7 @@ export interface StaffUser {
   can_supply?: boolean;
   password_changed?: boolean;
   can_manage_access?: boolean;
+  can_moderate?: boolean;
 }
 
 export const signup = async (body: {
