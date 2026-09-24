@@ -119,7 +119,7 @@ def handler(event: dict, context) -> dict:
             "(ARRAY_AGG(m.body ORDER BY m.created_at DESC))[1] AS last_body, "
             "(ARRAY_AGG(m.from_staff ORDER BY m.created_at DESC))[1] AS last_mine "
             'FROM ' + SCHEMA + '.guests g '
-            'JOIN ' + MSG + ' m ON m.guest_id = g.id '
+            'JOIN ' + MSG + ' m ON m.guest_id = g.id AND m.hidden = FALSE '
             'GROUP BY g.id, g.name, g.phone, g.club_member '
             'ORDER BY MAX(m.created_at) DESC'
         )
@@ -144,12 +144,12 @@ def handler(event: dict, context) -> dict:
         if is_hunter:
             cur.execute(
                 'SELECT COUNT(*) AS n FROM ' + MSG + ' WHERE guest_id = ' + str(my_guest)
-                + ' AND from_staff = TRUE AND read_guest = FALSE'
+                + ' AND hidden = FALSE AND from_staff = TRUE AND read_guest = FALSE'
             )
         else:
             cur.execute(
                 'SELECT COUNT(*) AS n FROM ' + MSG
-                + ' WHERE from_staff = FALSE AND read_staff = FALSE'
+                + ' WHERE hidden = FALSE AND from_staff = FALSE AND read_staff = FALSE'
             )
         n = int((cur.fetchone() or {}).get('n') or 0)
         close()
@@ -191,13 +191,14 @@ def handler(event: dict, context) -> dict:
     cur.execute(
         'SELECT id, staff_id, author_name, from_staff, body, read_guest, read_staff, '
         'created_at FROM ' + MSG + ' WHERE guest_id = ' + str(guest_id)
-        + ' ORDER BY created_at ASC LIMIT 500'
+        + ' AND hidden = FALSE ORDER BY created_at ASC LIMIT 500'
     )
     items = []
     for r in cur.fetchall():
         d = dict(r)
         items.append({
             'id': int(d['id']),
+            'staffId': int(d.get('staff_id') or 0),
             'author': d.get('author_name') or '',
             'fromStaff': bool(d.get('from_staff')),
             'body': d.get('body') or '',

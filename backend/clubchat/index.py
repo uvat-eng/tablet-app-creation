@@ -9,6 +9,7 @@ from pushsend import send_to
 SCHEMA = 't_p51170708_tablet_app_creation'
 CHAT = SCHEMA + '.club_chat'
 READS = SCHEMA + '.club_chat_reads'
+BLOCKS = SCHEMA + '.user_blocks'
 
 STAFF_ALLOWED = {'spy', 'uan', 'una', 'zna', 'tgw'}
 
@@ -118,7 +119,9 @@ def handler(event: dict, context) -> dict:
     if action == 'unread':
         cur.execute(
             'SELECT COUNT(*) AS n FROM ' + CHAT + ' c '
-            'WHERE c.staff_id <> ' + str(uid) + ' AND c.id > '
+            'WHERE c.staff_id <> ' + str(uid) + ' AND c.hidden = FALSE '
+            'AND c.staff_id NOT IN (SELECT blocked_staff_id FROM ' + BLOCKS
+            + ' WHERE staff_id = ' + str(uid) + ') AND c.id > '
             'COALESCE((SELECT last_read_id FROM ' + READS + ' WHERE staff_id = '
             + str(uid) + '), 0)'
         )
@@ -141,7 +144,8 @@ def handler(event: dict, context) -> dict:
 
     cur.execute(
         'SELECT id, staff_id, author_name, author_role, body, created_at FROM ' + CHAT
-        + ' ORDER BY id DESC LIMIT 300'
+        + ' WHERE hidden = FALSE AND staff_id NOT IN (SELECT blocked_staff_id FROM '
+        + BLOCKS + ' WHERE staff_id = ' + str(uid) + ') ORDER BY id DESC LIMIT 300'
     )
     rows = list(cur.fetchall())[::-1]
 

@@ -4,6 +4,7 @@ const CHAT_URL = 'https://functions.poehali.dev/8210ebe4-f4da-43d9-9ddf-469fd425
 
 export interface ChatMessage {
   id: number;
+  staffId: number;
   author: string;
   fromStaff: boolean;
   body: string;

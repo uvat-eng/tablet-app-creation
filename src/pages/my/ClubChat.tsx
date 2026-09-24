@@ -11,6 +11,7 @@ import {
   timeLabel,
   authorColor,
 } from '@/lib/clubChatApi';
+import MessageActions from '@/components/app/MessageActions';
 import { toast } from 'sonner';
 
 const POLL_MS = 8000;
@@ -158,9 +159,21 @@ const ClubChat = () => {
                   </div>
                 )}
                 <div
-                  className="mb-2 flex"
+                  className="mb-2 flex items-start gap-1"
                   style={{ justifyContent: m.me ? 'flex-end' : 'flex-start' }}
                 >
+                  {m.me && (
+                    <div className="pt-2">
+                      <MessageActions
+                        kind="club"
+                        messageId={m.id}
+                        authorId={m.staffId}
+                        authorName={m.author}
+                        mine
+                        onDone={load}
+                      />
+                    </div>
+                  )}
                   <div
                     className="px-3 py-2"
                     style={{
@@ -185,6 +198,18 @@ const ClubChat = () => {
                       {timeLabel(m.createdAt)}
                     </div>
                   </div>
+                  {!m.me && (
+                    <div className="pt-2">
+                      <MessageActions
+                        kind="club"
+                        messageId={m.id}
+                        authorId={m.staffId}
+                        authorName={m.author || 'участник'}
+                        mine={false}
+                        onDone={load}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -219,6 +244,14 @@ const ClubChat = () => {
 
       <div className="h-label mt-3 opacity-60">
         Сообщения видят все члены клуба и руководство хозяйства
+      </div>
+      <div className="border border-[#e2e2df] px-4 py-3 mt-3 flex gap-3">
+        <Icon name="ShieldCheck" size={16} fallback="Info" className="shrink-0 mt-[2px]" />
+        <p className="text-[0.76em] leading-relaxed">
+          Оскорбления, реклама и нецензурная лексика запрещены. Нажмите три точки
+          рядом с сообщением, чтобы пожаловаться или скрыть все сообщения участника.
+          Руководство разбирает жалобы в течение суток.
+        </p>
       </div>
     </Layout>
   );

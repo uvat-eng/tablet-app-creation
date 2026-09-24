@@ -6,6 +6,8 @@ import { Row, listRows } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import PasswordCard from '@/components/app/PasswordCard';
+import DeleteAccountCard from '@/components/app/DeleteAccountCard';
+import BlockedList from '@/components/app/BlockedList';
 import { APK_URL, APP_VERSION } from '@/lib/appVersion';
 
 
@@ -108,6 +110,9 @@ const MySettings = () => {
 
       <div className="h-head text-[22px] mt-10 mb-3">Безопасность</div>
       <PasswordCard />
+      <div className="mt-3">
+        <BlockedList />
+      </div>
 
       <div className="h-head text-[22px] mt-10 mb-3">Моя учётная запись</div>
       <div className="border border-[#e2e2df]">
@@ -147,6 +152,9 @@ const MySettings = () => {
           Офлайн-карты качаются один раз в разделе «Карта хозяйства».
         </p>
       </div>
+
+      <div className="h-head text-[22px] mt-10 mb-3">Удаление записи</div>
+      <DeleteAccountCard />
     </Layout>
   );
 };

@@ -46,6 +46,12 @@ const PLAN_LOGINS = ['uan', 'una', 'zna'];
 export const canPlanHunts = (user: StaffUser | null): boolean =>
   Boolean(user && PLAN_LOGINS.includes(String(user.login || '').toLowerCase()));
 
+export const canModerate = (user: StaffUser | null): boolean => {
+  if (!user) return false;
+  if (CLUB_CHAT_LOGINS.includes(String(user.login || '').toLowerCase())) return true;
+  return user.role === 'owner' || user.role === 'manager';
+};
+
 export const canClubChat = (user: StaffUser | null): boolean => {
   if (!user) return false;
   if (CLUB_CHAT_LOGINS.includes(String(user.login || '').toLowerCase())) return true;
@@ -148,6 +154,7 @@ export const can = (user: StaffUser | null, key: string): boolean => {
   }
   if (key === 'my-plans') return canPlanHunts(user);
   if (key === 'club-chat') return canClubChat(user);
+  if (key === 'reports') return canModerate(user);
   if (key === 'access') return Boolean(user.can_manage_access);
   if (key === 'supply') return Boolean(user.can_supply);
   if (key === 'supply-new') {
@@ -185,9 +192,20 @@ export const allowedSections = (user: StaffUser | null): Section[] => {
         } as Section,
       ]
     : base;
-  const mine = hasGuestCard(user)
+  const withReports = canModerate(user)
     ? [
         ...withChat,
+        {
+          key: 'reports',
+          to: '/reports',
+          label: 'Жалобы на сообщения',
+          icon: 'Flag',
+        } as Section,
+      ]
+    : withChat;
+  const mine = hasGuestCard(user)
+    ? [
+        ...withReports,
         ...HUNTER_SECTIONS.filter(
           (s) =>
             s.key.startsWith('my') &&
@@ -196,6 +214,6 @@ export const allowedSections = (user: StaffUser | null): Section[] => {
             (!CLUB_ONLY_KEYS.includes(s.key) || isClubMember()),
         ),
       ]
-    : withChat;
+    : withReports;
   return user.role === 'owner' ? [...mine, ...OWNER_ONLY] : mine;
 };

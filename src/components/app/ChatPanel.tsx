@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { ChatMessage, loadThread, sendMessage, fmtWhen } from '@/lib/chatApi';
+import MessageActions from '@/components/app/MessageActions';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 interface Props {
@@ -12,6 +14,7 @@ interface Props {
 const POLL_MS = 20000;
 
 const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
+  const { user } = useAuth();
   const [items, setItems] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -84,12 +87,26 @@ const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
           </div>
         )}
 
-        {items.map((m) => (
+        {items.map((m) => {
+          const mine = Number(user?.id || 0) === Number(m.staffId || 0);
+          return (
           <div
             key={m.id}
-            className="mb-3 flex"
+            className="mb-3 flex items-start gap-1"
             style={{ justifyContent: m.fromStaff ? 'flex-end' : 'flex-start' }}
           >
+            {m.fromStaff && (
+              <div className="pt-2">
+                <MessageActions
+                  kind="chat"
+                  messageId={m.id}
+                  authorId={m.staffId}
+                  authorName={m.author || 'собеседник'}
+                  mine={mine}
+                  onDone={load}
+                />
+              </div>
+            )}
             <div
               className="px-3 py-2"
               style={{
@@ -107,8 +124,21 @@ const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
                 {fmtWhen(m.createdAt)}
               </div>
             </div>
+            {!m.fromStaff && (
+              <div className="pt-2">
+                <MessageActions
+                  kind="chat"
+                  messageId={m.id}
+                  authorId={m.staffId}
+                  authorName={m.author || 'собеседник'}
+                  mine={mine}
+                  onDone={load}
+                />
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="border-t border-[#e2e2df] p-3 flex gap-2 items-end">

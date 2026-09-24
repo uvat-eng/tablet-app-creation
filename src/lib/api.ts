@@ -577,6 +577,19 @@ export const logout = async () => {
   localStorage.removeItem('hb_token');
 };
 
+export const deleteAccount = async (password: string, reason = '') => {
+  const res = await fetch(`${AUTH_URL}?action=delete_account`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ password, reason }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Не удалось удалить учётную запись');
+  localStorage.removeItem('hb_token');
+  localStorage.removeItem('hb_me');
+  return true;
+};
+
 export const listStaff = async (): Promise<Row[]> => {
   const res = await fetch(`${AUTH_URL}?action=staff`, { headers: authHeaders() });
   if (!res.ok) return [];

@@ -1,0 +1,36 @@
+{
+  "tests": [
+    {
+      "name": "Список причин жалоб доступен",
+      "method": "GET",
+      "path": "/?action=reasons",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Без токена жалоба не принимается",
+      "method": "POST",
+      "path": "/?action=report",
+      "body": {"kind": "club", "id": 1, "reason": "spam"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Без токена блокировка запрещена",
+      "method": "POST",
+      "path": "/?action=block",
+      "body": {"staffId": 1},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Без токена список жалоб закрыт",
+      "method": "GET",
+      "path": "/?action=reports",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

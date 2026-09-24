@@ -172,6 +172,65 @@ def handler(event: dict, context) -> dict:
 
     me = current_staff()
 
+    if action == 'delete_account':
+        if not me:
+            close()
+            return {'statusCode': 401, 'headers': CORS,
+                    'body': json.dumps({'error': 'Сначала войдите в приложение'})}
+
+        password = str(body.get('password', ''))
+        reason = str(body.get('reason', ''))[:500]
+
+        cur.execute("SELECT password_hash FROM staff WHERE id = " + str(int(me['id'])))
+        row = cur.fetchone()
+        if not row or row['password_hash'] != hash_password(password):
+            close()
+            return {'statusCode': 403, 'headers': CORS,
+                    'body': json.dumps({'error': 'Пароль введён неверно'})}
+
+        if me['role'] != 'hunter':
+            close()
+            return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                'error': 'Учётные записи сотрудников закрывает руководство хозяйства'})}
+
+        staff_id = int(me['id'])
+        guest_id = int(me.get('guest_id') or 0)
+
+        cur.execute(
+            "INSERT INTO account_closures (staff_id, login, name, guest_id, reason) VALUES (" +
+            str(staff_id) + ", " + esc(me.get('login') or '') + ", " +
+            esc(me.get('name') or '') + ", " +
+            (str(guest_id) if guest_id else 'NULL') + ", " + esc(reason) + ")"
+        )
+
+        cur.execute("UPDATE club_chat SET author_name = 'Удалённый пользователь' "
+                    "WHERE staff_id = " + str(staff_id))
+        cur.execute("UPDATE messages SET author_name = 'Удалённый пользователь' "
+                    "WHERE staff_id = " + str(staff_id))
+
+        if guest_id:
+            cur.execute(
+                "UPDATE guests SET name = 'Удалённый пользователь', phone = NULL, "
+                "city = NULL, email = NULL, born_on = NULL, passport = NULL, "
+                "passport_date = NULL, passport_issued = NULL, address = NULL, "
+                "nationality = NULL, hunt_ticket = NULL, hunt_ticket_date = NULL, "
+                "hunt_ticket_issued = NULL, roh_number = NULL, roh_date = NULL, "
+                "roh_weapon = NULL, inn = NULL, snils = NULL, note = NULL, "
+                "archived = TRUE, anonymized = TRUE, updated_at = NOW() "
+                "WHERE id = " + str(guest_id)
+            )
+            cur.execute("DELETE FROM guest_docs WHERE guest_id = " + str(guest_id))
+
+        cur.execute("DELETE FROM push_subs WHERE staff_id = " + str(staff_id))
+        cur.execute("DELETE FROM user_blocks WHERE staff_id = " + str(staff_id) +
+                    " OR blocked_staff_id = " + str(staff_id))
+        cur.execute("DELETE FROM club_chat_reads WHERE staff_id = " + str(staff_id))
+        cur.execute("DELETE FROM sessions WHERE staff_id = " + str(staff_id))
+        cur.execute("DELETE FROM staff WHERE id = " + str(staff_id))
+
+        close()
+        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'deleted': True})}
+
     if action == 'change_password':
         if not me:
             close()
