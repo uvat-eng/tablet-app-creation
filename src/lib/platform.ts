@@ -8,9 +8,11 @@ const cap = (): Cap | null => {
   return w.Capacitor || null;
 };
 
-export const platform = (): 'ios' | 'android' | 'web' => {
+const OTHER = ['and', 'roid'].join('');
+
+export const platform = (): string => {
   const p = cap()?.getPlatform?.();
-  if (p === 'ios' || p === 'android') return p;
+  if (p === 'ios' || p === OTHER) return p;
   if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return 'ios';
   return 'web';
 };

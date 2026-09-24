@@ -9,19 +9,15 @@ import PasswordCard from '@/components/app/PasswordCard';
 import DeleteAccountCard from '@/components/app/DeleteAccountCard';
 import BlockedList from '@/components/app/BlockedList';
 import { APK_URL, APP_VERSION } from '@/lib/appVersion';
+import { isIOS } from '@/lib/platform';
 
-
-const IOS_STEPS = [
-  'Откройте сайт хозяйства в Safari.',
-  'Нажмите «Поделиться» — квадрат со стрелкой вверх внизу экрана.',
-  'Выберите «На экран «Домой»» и нажмите «Добавить».',
-];
 
 const MySettings = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [me, setMe] = useState<Row | null>(null);
-  const [tab, setTab] = useState<'android' | 'ios'>('android');
+  const ios = isIOS();
+  const [tab, setTab] = useState<'device' | 'ios'>(ios ? 'ios' : 'device');
 
   const load = useCallback(async () => {
     const g = await listRows('guests', { mine: true });
@@ -32,7 +28,7 @@ const MySettings = () => {
     load();
   }, [load]);
 
-  const android = tab === 'android';
+  const device = !ios && tab === 'device';
 
   const leave = async () => {
     await signOut();
@@ -47,34 +43,37 @@ const MySettings = () => {
     >
       <div className="h-head text-[22px] mb-3">Обновить приложение</div>
       <p className="h-label mb-4 leading-relaxed">
-        Хозяйство иногда выпускает обновления — новые разделы и исправления.
-        Скачайте свежую версию и установите поверх, данные сохранятся.
+        {ios
+          ? 'Хозяйство иногда выпускает обновления — новые разделы и исправления. Свежая версия подтягивается сама.'
+          : 'Хозяйство иногда выпускает обновления — новые разделы и исправления. Скачайте свежую версию и установите поверх, данные сохранятся.'}
       </p>
 
-      <div className="grid grid-cols-2 gap-px mb-4" style={{ background: '#e2e2df' }}>
-        <button
-          onClick={() => setTab('android')}
-          className="flex items-center justify-center gap-2 px-3 py-3 text-[0.78em]"
-          style={{
-            background: android ? 'var(--hero-accent)' : '#fff',
-            color: android ? 'var(--hero-accent-contrast)' : 'inherit',
-          }}
-        >
-          <Icon name="Smartphone" size={15} fallback="Circle" /> Android
-        </button>
-        <button
-          onClick={() => setTab('ios')}
-          className="flex items-center justify-center gap-2 px-3 py-3 text-[0.78em]"
-          style={{
-            background: !android ? 'var(--hero-accent)' : '#fff',
-            color: !android ? 'var(--hero-accent-contrast)' : 'inherit',
-          }}
-        >
-          <Icon name="Apple" size={15} fallback="Smartphone" /> iPhone
-        </button>
-      </div>
+      {!ios && (
+        <div className="grid grid-cols-2 gap-px mb-4" style={{ background: '#e2e2df' }}>
+          <button
+            onClick={() => setTab('device')}
+            className="flex items-center justify-center gap-2 px-3 py-3 text-[0.78em]"
+            style={{
+              background: device ? 'var(--hero-accent)' : '#fff',
+              color: device ? 'var(--hero-accent-contrast)' : 'inherit',
+            }}
+          >
+            <Icon name="Smartphone" size={15} fallback="Circle" /> Телефон
+          </button>
+          <button
+            onClick={() => setTab('ios')}
+            className="flex items-center justify-center gap-2 px-3 py-3 text-[0.78em]"
+            style={{
+              background: !device ? 'var(--hero-accent)' : '#fff',
+              color: !device ? 'var(--hero-accent-contrast)' : 'inherit',
+            }}
+          >
+            <Icon name="Apple" size={15} fallback="Smartphone" /> iPhone
+          </button>
+        </div>
+      )}
 
-      {android ? (
+      {device ? (
         <>
           <a
             href={APK_URL}
@@ -92,19 +91,13 @@ const MySettings = () => {
         </>
       ) : (
         <div className="border border-[#e2e2df] p-4">
-          <div className="h-label mb-3">На iPhone обновление ставится само</div>
-          <p className="text-[0.78em] leading-relaxed mb-3">
+          <div className="h-label mb-3">Обновление ставится само</div>
+          <p className="text-[0.78em] leading-relaxed">
             Достаточно закрыть и открыть приложение — свежая версия подтянется.
-            Если иконки ещё нет на экране:
           </p>
-          <ol className="space-y-2">
-            {IOS_STEPS.map((s, i) => (
-              <li key={i} className="flex gap-3 text-[0.78em] leading-relaxed">
-                <span className="h-mono-cap shrink-0">{i + 1}</span>
-                <span>{s}</span>
-              </li>
-            ))}
-          </ol>
+          <p className="h-mono-cap mt-3 opacity-60">
+            Установлена версия {APP_VERSION}
+          </p>
         </div>
       )}
 

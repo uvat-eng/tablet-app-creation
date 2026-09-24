@@ -14,7 +14,7 @@ interface ImmersiveApi {
   exit: () => Promise<void>;
 }
 
-const androidImmersive = (): ImmersiveApi | null => {
+const nativeImmersive = (): ImmersiveApi | null => {
   const w = window as unknown as {
     Capacitor?: {
       isNativePlatform?: () => boolean;
@@ -29,7 +29,7 @@ export const useFullscreen = () => {
   const [active, setActive] = useState(false);
 
   useEffect(() => {
-    if (androidImmersive()) return;
+    if (nativeImmersive()) return;
     const doc = document as FsDocument;
     const sync = () => setActive(Boolean(doc.fullscreenElement || doc.webkitFullscreenElement));
     document.addEventListener('fullscreenchange', sync);
@@ -42,7 +42,7 @@ export const useFullscreen = () => {
   }, []);
 
   const enter = useCallback(async () => {
-    const native = androidImmersive();
+    const native = nativeImmersive();
     if (native) {
       await native.enter().catch(() => undefined);
       setActive(true);
@@ -58,7 +58,7 @@ export const useFullscreen = () => {
   }, []);
 
   const exit = useCallback(async () => {
-    const native = androidImmersive();
+    const native = nativeImmersive();
     if (native) {
       await native.exit().catch(() => undefined);
       setActive(false);

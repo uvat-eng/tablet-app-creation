@@ -9,9 +9,9 @@ interface Asset {
 }
 
 const ASSETS: Asset[] = [
-  { file: 'rustore-icon-512.png', label: 'Иконка 512 × 512', note: 'основная иконка карточки' },
-  { file: 'rustore-icon-1024.png', label: 'Иконка 1024 × 1024', note: 'запас в большем размере' },
-  { file: 'rustore-banner-1024x500.png', label: 'Баннер 1024 × 500', note: 'шапка карточки' },
+  { file: 'store-icon-512.png', label: 'Иконка 512 × 512', note: 'основная иконка карточки' },
+  { file: 'store-icon-1024.png', label: 'Иконка 1024 × 1024', note: 'запас в большем размере' },
+  { file: 'store-banner-1024x500.png', label: 'Баннер 1024 × 500', note: 'шапка карточки' },
 ];
 
 const StoreAssets = () => {

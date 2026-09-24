@@ -3,7 +3,7 @@ import Icon from '@/components/ui/icon';
 import PasswordCard from '@/components/app/PasswordCard';
 import StoreAssets from '@/components/app/StoreAssets';
 import { useAuth } from '@/context/AuthContext';
-import { ROLES } from '@/lib/permissions';
+import { ROLES, REVIEW_LOGIN, REVIEW_PASS } from '@/lib/permissions';
 import { APK_URL, APP_VERSION } from '@/lib/appVersion';
 import { isIOS } from '@/lib/platform';
 
@@ -57,7 +57,7 @@ const Account = () => {
             className="flex items-center justify-center gap-2 w-full bg-[#1f1f1d] text-white px-4 py-4 text-[0.85em] tracking-wide"
           >
             <Icon name="Download" size={18} />
-            Скачать обновление для Android
+            Скачать обновление
           </a>
           <p className="h-mono-cap mt-3 text-center">
             Откройте файл после загрузки и подтвердите установку — данные сохранятся
@@ -66,11 +66,11 @@ const Account = () => {
       )}
       <p className="h-mono-cap mt-1 text-center opacity-60">Версия {APP_VERSION}</p>
 
-      {user?.role === 'owner' && (
+      {user?.role === 'owner' && !isIOS() && (
         <>
           <div className="h-head text-[22px] mt-10 mb-3">Материалы для магазина</div>
           <p className="h-label mb-3 leading-relaxed">
-            Иконки и баннер для карточки приложения в RuStore.
+            Иконки и баннер для карточки приложения.
           </p>
           <StoreAssets />
 
@@ -81,8 +81,8 @@ const Account = () => {
           </p>
           <div className="border border-[#e2e2df]">
             {[
-              { label: 'Логин', value: 'rustore' },
-              { label: 'Пароль', value: 'RuStore2026' },
+              { label: 'Логин', value: REVIEW_LOGIN },
+              { label: 'Пароль', value: REVIEW_PASS },
               { label: 'Тип входа', value: 'Сотрудник хозяйства' },
             ].map((r, i) => (
               <div

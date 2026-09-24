@@ -3,12 +3,13 @@ import Brand from '@/components/app/Brand';
 import StoreAssets from '@/components/app/StoreAssets';
 import Icon from '@/components/ui/icon';
 import { APK_URL, APP_VERSION } from '@/lib/appVersion';
+import { isIOS } from '@/lib/platform';
 
 
-const ANDROID_STEPS = [
+const DEVICE_STEPS = [
   'Нажмите кнопку «Скачать приложение» — файл сохранится в «Загрузки».',
   'Откройте скачанный файл и подтвердите установку.',
-  'Если Android попросит разрешение на установку из этого источника — разрешите.',
+  'Если телефон попросит разрешение на установку из этого источника — разрешите.',
   'Войдите под своим логином. Затем откройте раздел «Карта» и нажмите «Скачать карты» — они загрузятся один раз и дальше работают без интернета.',
 ];
 
@@ -21,9 +22,10 @@ const IOS_STEPS = [
 ];
 
 const Download = () => {
-  const [tab, setTab] = useState<'android' | 'ios'>('android');
-  const android = tab === 'android';
-  const steps = android ? ANDROID_STEPS : IOS_STEPS;
+  const ios = isIOS();
+  const [tab, setTab] = useState<'device' | 'ios'>(ios ? 'ios' : 'device');
+  const device = !ios && tab === 'device';
+  const steps = device ? DEVICE_STEPS : IOS_STEPS;
 
   return (
     <div className="h-shell min-h-screen flex items-center justify-center px-6 py-12">
@@ -34,33 +36,37 @@ const Download = () => {
 
         <h1 className="h-head text-[34px]">Приложение хозяйства</h1>
         <p className="h-mono-cap mt-3">
-          Планшет, телефон на Android или iPhone — выберите своё устройство.
+          {ios
+            ? 'Установите приложение на iPhone или iPad за несколько секунд.'
+            : 'Планшет, телефон или iPhone — выберите своё устройство.'}
         </p>
 
-        <div className="mt-7 grid grid-cols-2 gap-px" style={{ background: '#e2e2df' }}>
-          <button
-            onClick={() => setTab('android')}
-            className="flex items-center justify-center gap-2 px-3 py-3 text-[0.78em]"
-            style={{
-              background: android ? 'var(--hero-accent)' : '#fff',
-              color: android ? 'var(--hero-accent-contrast)' : 'inherit',
-            }}
-          >
-            <Icon name="Smartphone" size={15} fallback="Circle" /> Android
-          </button>
-          <button
-            onClick={() => setTab('ios')}
-            className="flex items-center justify-center gap-2 px-3 py-3 text-[0.78em]"
-            style={{
-              background: !android ? 'var(--hero-accent)' : '#fff',
-              color: !android ? 'var(--hero-accent-contrast)' : 'inherit',
-            }}
-          >
-            <Icon name="Apple" size={15} fallback="Smartphone" /> iPhone и iPad
-          </button>
-        </div>
+        {!ios && (
+          <div className="mt-7 grid grid-cols-2 gap-px" style={{ background: '#e2e2df' }}>
+            <button
+              onClick={() => setTab('device')}
+              className="flex items-center justify-center gap-2 px-3 py-3 text-[0.78em]"
+              style={{
+                background: device ? 'var(--hero-accent)' : '#fff',
+                color: device ? 'var(--hero-accent-contrast)' : 'inherit',
+              }}
+            >
+              <Icon name="Smartphone" size={15} fallback="Circle" /> Телефон
+            </button>
+            <button
+              onClick={() => setTab('ios')}
+              className="flex items-center justify-center gap-2 px-3 py-3 text-[0.78em]"
+              style={{
+                background: !device ? 'var(--hero-accent)' : '#fff',
+                color: !device ? 'var(--hero-accent-contrast)' : 'inherit',
+              }}
+            >
+              <Icon name="Apple" size={15} fallback="Smartphone" /> iPhone и iPad
+            </button>
+          </div>
+        )}
 
-        {android ? (
+        {device ? (
           <>
             <a
               href={APK_URL}
@@ -85,7 +91,7 @@ const Download = () => {
 
         <div className="mt-10 border-t border-[#e2e2df] pt-6">
           <span className="h-label block mb-4">
-            {android ? 'Как установить на Android' : 'Как установить на iPhone'}
+            {device ? 'Как установить на телефон' : 'Как установить на iPhone'}
           </span>
           <ol className="space-y-3">
             {steps.map((s, i) => (
@@ -97,16 +103,18 @@ const Download = () => {
           </ol>
         </div>
 
-        <div className="mt-10 border-t border-[#e2e2df] pt-6">
-          <span className="h-label block mb-3">Иконки для магазина приложений</span>
-          <StoreAssets />
-        </div>
+        {!ios && (
+          <div className="mt-10 border-t border-[#e2e2df] pt-6">
+            <span className="h-label block mb-3">Иконки для магазина приложений</span>
+            <StoreAssets />
+          </div>
+        )}
 
         <div className="mt-8 border border-[#e2e2df] px-4 py-3 flex gap-3">
           <Icon name="Info" size={16} className="shrink-0 mt-[2px]" />
           <p className="text-[0.78em] leading-relaxed">
             Данные общие для всех устройств — записи синхронизируются автоматически.
-            {!android && ' На iPhone офлайн-карты недоступны, нужен интернет.'}
+            {!device && ' На iPhone офлайн-карты недоступны, нужен интернет.'}
           </p>
         </div>
       </div>

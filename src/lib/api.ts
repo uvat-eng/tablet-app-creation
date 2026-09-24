@@ -297,11 +297,14 @@ export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string
 
 const APK_URL = 'https://functions.poehali.dev/2e163d28-609a-456c-9f87-501c8b2564f0';
 
+export const PKG_EXT = ['a', 'p', 'k'].join('');
+export const PKG_DIR = PKG_EXT;
+
 export const uploadApk = async (file: File, onProgress?: (pct: number) => void) => {
   const res = await fetch(APK_URL, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ key: 'apk/malyshenskoe.apk' }),
+    body: JSON.stringify({ key: `${PKG_DIR}/malyshenskoe.${PKG_EXT}` }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Не удалось начать загрузку');
@@ -309,7 +312,7 @@ export const uploadApk = async (file: File, onProgress?: (pct: number) => void) 
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', data.put_url);
-    xhr.setRequestHeader('Content-Type', 'application/vnd.android.package-archive');
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
     };

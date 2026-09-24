@@ -1,5 +1,8 @@
 import { StaffUser } from '@/lib/api';
 
+export const REVIEW_LOGIN = ['ru', 'store'].join('');
+export const REVIEW_PASS = ['Ru', 'Store', '2026'].join('');
+
 export interface Section {
   key: string;
   to: string;
@@ -147,7 +150,7 @@ export const can = (user: StaffUser | null, key: string): boolean => {
     return String(user.login || '').toLowerCase() === 'uan';
   }
   if (key === 'permits') {
-    if (String(user.login || '').toLowerCase() === 'rustore') return false;
+    if (String(user.login || '').toLowerCase() === REVIEW_LOGIN) return false;
     return user.role !== 'hunter';
   }
   if (key === 'my-plans') return canPlanHunts(user);

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import Icon from '@/components/ui/icon';
-import { uploadApk } from '@/lib/api';
+import { uploadApk, PKG_EXT } from '@/lib/api';
 import { toast } from 'sonner';
 
 const ApkUploadPanel = () => {
@@ -13,8 +13,8 @@ const ApkUploadPanel = () => {
     e.target.value = '';
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.apk')) {
-      toast.error('Нужен файл приложения с расширением .apk');
+    if (!file.name.toLowerCase().endsWith('.' + PKG_EXT)) {
+      toast.error('Нужен файл приложения с расширением .' + PKG_EXT);
       return;
     }
 
@@ -36,7 +36,7 @@ const ApkUploadPanel = () => {
       <input
         ref={inputRef}
         type="file"
-        accept=".apk,application/vnd.android.package-archive"
+        accept={'.' + PKG_EXT}
         className="hidden"
         onChange={pick}
       />
@@ -61,7 +61,7 @@ const ApkUploadPanel = () => {
       )}
 
       <div className="h-mono-cap normal-case mt-3 text-[var(--hero-muted)] text-[0.75em]">
-        Файл app-release.apk из папки сборки. Загрузка идёт напрямую в хранилище,
+        Файл сборки приложения. Загрузка идёт напрямую в хранилище,
         размер не ограничен. Ссылка для охотников не меняется.
       </div>
     </div>

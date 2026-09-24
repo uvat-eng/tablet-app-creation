@@ -8,10 +8,11 @@ import {
 import Icon from '@/components/ui/icon';
 import { CalendarFeed, getCalendarFeed } from '@/lib/api';
 import { toast } from 'sonner';
+import { isIOS } from '@/lib/platform';
 
 const STEPS: Record<string, { title: string; icon: string; steps: string[] }> = {
-  android: {
-    title: 'Android — Google Календарь',
+  google: {
+    title: 'Google Календарь',
     icon: 'Smartphone',
     steps: [
       'Откройте на компьютере calendar.google.com — на телефоне подписка не добавляется, так устроен Google.',
@@ -35,7 +36,7 @@ const STEPS: Record<string, { title: string; icon: string; steps: string[] }> = 
 const CalendarSync = () => {
   const [open, setOpen] = useState(false);
   const [feed, setFeed] = useState<CalendarFeed | null>(null);
-  const [tab, setTab] = useState<'android' | 'iphone'>('android');
+  const [tab, setTab] = useState<'google' | 'iphone'>(isIOS() ? 'iphone' : 'google');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -112,13 +113,13 @@ const CalendarSync = () => {
 
             <div>
               <div className="flex gap-2 mb-3">
-                {(['android', 'iphone'] as const).map((k) => (
+                {(['google', 'iphone'] as const).map((k) => (
                   <button
                     key={k}
                     className={tab === k ? 'h-cta' : 'h-cta-ghost'}
                     onClick={() => setTab(k)}
                   >
-                    {k === 'android' ? 'Android' : 'iPhone'}
+                    {k === 'google' ? 'Google' : 'iPhone'}
                   </button>
                 ))}
               </div>

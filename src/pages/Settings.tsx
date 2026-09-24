@@ -6,6 +6,7 @@ import BackupPanel from '@/components/app/BackupPanel';
 import ApkUploadPanel from '@/components/app/ApkUploadPanel';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { isIOS } from '@/lib/platform';
 
 const ORG_FIELDS = [
   { key: 'org_name', label: 'Организация (сокращённо)', wide: true },
@@ -151,19 +152,21 @@ const Settings = () => {
         </div>
       </div>
 
-      <div className="mt-10 pt-8 border-t border-[#e2e2df]">
-        <div className="h-head text-[22px] mb-1">Приложение для планшета</div>
-        <div className="h-mono-cap normal-case mb-5 text-[var(--hero-muted)]">
-          Версия для Android. Карты угодий скачиваются в приложение отдельно, один раз.
+      {!isIOS() && (
+        <div className="mt-10 pt-8 border-t border-[#e2e2df]">
+          <div className="h-head text-[22px] mb-1">Приложение для планшета</div>
+          <div className="h-mono-cap normal-case mb-5 text-[var(--hero-muted)]">
+            Карты угодий скачиваются в приложение отдельно, один раз.
+          </div>
+          <a
+            href="/download"
+            className="inline-block bg-[#1f1f1d] text-white px-5 py-3 text-[0.8em] tracking-wide"
+          >
+            Страница загрузки
+          </a>
+          {user?.role === 'owner' && <ApkUploadPanel />}
         </div>
-        <a
-          href="/download"
-          className="inline-block bg-[#1f1f1d] text-white px-5 py-3 text-[0.8em] tracking-wide"
-        >
-          Страница загрузки
-        </a>
-        {user?.role === 'owner' && <ApkUploadPanel />}
-      </div>
+      )}
 
       <BackupPanel />
     </Layout>
