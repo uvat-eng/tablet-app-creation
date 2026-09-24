@@ -1,7 +1,7 @@
 import { StaffUser } from '@/lib/api';
 
-export const REVIEW_LOGIN = ['ru', 'store'].join('');
-export const REVIEW_PASS = ['Ru', 'Store', '2026'].join('');
+export const REVIEW_LOGIN = 'appreview';
+export const REVIEW_PASS = 'AppReview2026';
 
 export interface Section {
   key: string;
