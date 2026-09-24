@@ -74,6 +74,19 @@ def handler(event: dict, context) -> dict:
             "WHERE lower(login) = " + esc(login) + " AND active = TRUE"
         )
         row = cur.fetchone()
+        if not row:
+            cur.execute(
+                "SELECT c.purge_after FROM account_closures c JOIN staff s "
+                "ON s.id = c.staff_id WHERE lower(s.login) = " + esc(login) +
+                " AND c.status = 'pending' AND s.closing = TRUE"
+            )
+            closing = cur.fetchone()
+            if closing:
+                close()
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({
+                    'error': 'Вы удалили эту учётную запись. Чтобы вернуть доступ, '
+                             'обратитесь к хозяйству в течение 7 дней'})}
+
         if not row or row['password_hash'] != hash_password(password):
             close()
             return {'statusCode': 401, 'headers': CORS,
@@ -205,39 +218,25 @@ def handler(event: dict, context) -> dict:
         )
 
         cur.execute(
-            "INSERT INTO account_closures (staff_id, login, name, guest_id, reason) VALUES (" +
+            "INSERT INTO account_closures (staff_id, login, name, guest_id, reason, "
+            "status, purge_after) VALUES (" +
             str(staff_id) + ", " + esc(me.get('login') or '') + ", " +
             esc(me.get('name') or '') + ", " +
-            (str(guest_id) if guest_id else 'NULL') + ", " + esc(reason) + ")"
+            (str(guest_id) if guest_id else 'NULL') + ", " + esc(reason) +
+            ", 'pending', NOW() + INTERVAL '7 days') RETURNING purge_after"
         )
+        purge_row = cur.fetchone()
 
-        cur.execute("UPDATE club_chat SET author_name = 'Удалённый пользователь' "
-                    "WHERE staff_id = " + str(staff_id))
-        cur.execute("UPDATE messages SET author_name = 'Удалённый пользователь' "
-                    "WHERE staff_id = " + str(staff_id))
-
-        if guest_id:
-            cur.execute(
-                "UPDATE guests SET name = 'Удалённый пользователь', phone = NULL, "
-                "city = NULL, email = NULL, born_on = NULL, passport = NULL, "
-                "passport_date = NULL, passport_issued = NULL, address = NULL, "
-                "nationality = NULL, hunt_ticket = NULL, hunt_ticket_date = NULL, "
-                "hunt_ticket_issued = NULL, roh_number = NULL, roh_date = NULL, "
-                "roh_weapon = NULL, inn = NULL, snils = NULL, note = NULL, "
-                "archived = TRUE, anonymized = TRUE, updated_at = NOW() "
-                "WHERE id = " + str(guest_id)
-            )
-            cur.execute("DELETE FROM guest_docs WHERE guest_id = " + str(guest_id))
-
+        cur.execute("UPDATE staff SET active = FALSE, closing = TRUE WHERE id = "
+                    + str(staff_id))
         cur.execute("DELETE FROM push_subs WHERE staff_id = " + str(staff_id))
-        cur.execute("DELETE FROM user_blocks WHERE staff_id = " + str(staff_id) +
-                    " OR blocked_staff_id = " + str(staff_id))
-        cur.execute("DELETE FROM club_chat_reads WHERE staff_id = " + str(staff_id))
         cur.execute("DELETE FROM sessions WHERE staff_id = " + str(staff_id))
-        cur.execute("DELETE FROM staff WHERE id = " + str(staff_id))
 
         close()
-        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'deleted': True})}
+        return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({
+            'deleted': True,
+            'purgeAfter': str(dict(purge_row).get('purge_after')) if purge_row else '',
+        }, default=str)}
 
     if action == 'change_password':
         if not me:

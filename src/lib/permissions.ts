@@ -34,6 +34,7 @@ export const SECTIONS: Section[] = [
   { key: 'weapon-transfer', to: '/weapon-transfer', label: 'Передача оружия',
     icon: 'Crosshair' },
   { key: 'access', to: '/access', label: 'Логины и пароли', icon: 'KeyRound' },
+  { key: 'closures', to: '/closures', label: 'Заявки на удаление', icon: 'UserX' },
   { key: 'archive', to: '/archive', label: 'Корзина и журнал', icon: 'Trash2' },
 ];
 
@@ -155,6 +156,7 @@ export const can = (user: StaffUser | null, key: string): boolean => {
   if (key === 'my-plans') return canPlanHunts(user);
   if (key === 'club-chat') return canClubChat(user);
   if (key === 'reports') return canModerate(user);
+  if (key === 'closures') return canManageAccess(user);
   if (key === 'access') return Boolean(user.can_manage_access);
   if (key === 'supply') return Boolean(user.can_supply);
   if (key === 'supply-new') {

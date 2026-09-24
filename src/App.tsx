@@ -34,6 +34,7 @@ import LocationCard from "./pages/LocationCard";
 import MapPage from "./pages/MapPage";
 import Reviews from "./pages/Reviews";
 import Reports from "./pages/Reports";
+import Closures from "./pages/Closures";
 import Club from "./pages/Club";
 import Hunters from "./pages/Hunters";
 import HunterCard from "./pages/HunterCard";
@@ -130,6 +131,7 @@ const App = () => (
             <Route path="/map" element={guard(<MapPage />, 'map')} />
             <Route path="/reviews" element={guard(<Reviews />, 'reviews')} />
             <Route path="/reports" element={guard(<Reports />, 'reports')} />
+            <Route path="/closures" element={guard(<Closures />, 'closures')} />
             <Route path="/club" element={guard(<Club />, 'club')} />
             <Route path="/club/fees" element={guard(<ClubFees />, 'club')} />
             <Route path="/club/:id" element={guard(<GuestCard />, 'club')} />

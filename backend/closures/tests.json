@@ -1,0 +1,33 @@
+{
+  "tests": [
+    {
+      "name": "Без токена список закрыт",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Восстановление без прав запрещено",
+      "method": "POST",
+      "path": "/?action=restore",
+      "body": {"id": 1},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Служебная проверка срока доступна",
+      "method": "GET",
+      "path": "/?action=cron",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Проверка метода OPTIONS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}
