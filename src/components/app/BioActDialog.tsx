@@ -74,7 +74,7 @@ const BioActDialog = ({ open, onOpenChange, guests, rows, year }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[680px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[680px]">
         <DialogHeader>
           <DialogTitle>Акт выполненных биотехнических работ</DialogTitle>
         </DialogHeader>

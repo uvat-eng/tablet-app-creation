@@ -21,4 +21,10 @@ export const isIOS = () => platform() === 'ios';
 
 export const isNative = () => Boolean(cap()?.isNativePlatform?.());
 
+export const markPlatform = () => {
+  const el = document.documentElement;
+  el.classList.toggle('is-ios', platform() === 'ios');
+  el.classList.toggle('is-native', isNative());
+};
+
 export default platform;

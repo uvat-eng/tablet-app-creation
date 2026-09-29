@@ -407,7 +407,7 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
       <div
         className="absolute left-0 right-0 top-0 flex items-center justify-between px-4"
         style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 10px)',
+          paddingTop: 'calc(var(--safe-top) + 10px)',
           paddingBottom: 10,
           background: 'linear-gradient(#0d0d0ce6,#0d0d0c00)',
           color: '#fff',
@@ -457,7 +457,7 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
       {target && (
         <div
           className="absolute left-0 right-0 flex flex-col items-center"
-          style={{ top: 'calc(env(safe-area-inset-top) + 62px)', color: '#fff' }}
+          style={{ top: 'calc(var(--safe-top) + 62px)', color: '#fff' }}
         >
           <div
             className="flex items-center justify-center"
@@ -504,7 +504,7 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
       <div
         className="absolute left-0 right-0 bottom-0 px-4"
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 14px)',
+          paddingBottom: 'calc(var(--safe-bottom) + 14px)',
           paddingTop: 16,
           background: 'linear-gradient(#0d0d0c00,#0d0d0ce6 40%)',
           color: '#fff',
@@ -681,7 +681,7 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
           className="absolute inset-0 flex flex-col justify-end"
           style={{ background: '#0d0d0cf2', zIndex: 20 }}
         >
-          <div className="px-4 pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+          <div className="px-4 pb-6" style={{ paddingBottom: 'calc(var(--safe-bottom) + 20px)' }}>
             <div className="text-center mb-4" style={{ color: '#fff' }}>
               <div className="text-[0.78em] uppercase tracking-[0.1em] opacity-70">
                 Что здесь отметить
@@ -729,7 +729,7 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
         >
           <div
             className="flex items-center justify-between px-4 py-4"
-            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 14px)', color: '#fff' }}
+            style={{ paddingTop: 'calc(var(--safe-top) + 14px)', color: '#fff' }}
           >
             <span className="text-[0.76em] uppercase tracking-[0.1em]">Куда идём</span>
             <button onClick={() => setPicker(false)} style={{ color: '#fff' }}>
@@ -806,7 +806,7 @@ const Navigator = ({ points, offlineReady, mayEdit = false, onSaved, onClose }: 
           </div>
 
           {rec.points.length > 0 && (
-            <div className="px-4 pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+            <div className="px-4 pb-6" style={{ paddingBottom: 'calc(var(--safe-bottom) + 20px)' }}>
               <button
                 onClick={() => {
                   rec.clear();

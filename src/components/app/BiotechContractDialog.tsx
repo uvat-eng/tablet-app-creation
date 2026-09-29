@@ -44,7 +44,7 @@ const BiotechContractDialog = ({ open, onOpenChange, guests }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[680px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[680px]">
         <DialogHeader>
           <DialogTitle>Договор на биотехнические мероприятия</DialogTitle>
         </DialogHeader>

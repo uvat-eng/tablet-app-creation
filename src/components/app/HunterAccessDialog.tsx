@@ -100,7 +100,7 @@ const HunterAccessDialog = ({ open, onOpenChange, guests }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[620px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[620px]">
         <DialogHeader>
           <DialogTitle>Доступ в кабинет охотника</DialogTitle>
         </DialogHeader>

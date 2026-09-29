@@ -9,7 +9,7 @@ const UpdateBar = () => {
   return (
     <div
       className="fixed left-0 right-0 z-[60] px-4 flex justify-center"
-      style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+      style={{ bottom: 'calc(1rem + var(--safe-bottom))' }}
     >
       <div
         className="flex items-center gap-3 px-4 py-3 border border-black shadow-lg max-w-[520px] w-full"

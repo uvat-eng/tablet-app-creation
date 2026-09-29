@@ -203,7 +203,7 @@ const Reviews = () => {
       </div>
 
       <Dialog open={Boolean(viewing)} onOpenChange={(v) => !v && setViewing(null)}>
-        <DialogContent className="max-w-[860px] rounded-none border-black p-2">
+        <DialogContent className="max-w-[860px] rounded-none border-black" bodyClassName="p-2 pr-14">
           {viewing?.photo_url && (
             <img
               src={String(viewing.photo_url)}

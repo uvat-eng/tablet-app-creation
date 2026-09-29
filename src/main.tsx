@@ -1,6 +1,9 @@
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './index.css'
+import { markPlatform } from './lib/platform'
+
+markPlatform();
 
 createRoot(document.getElementById("root")!).render(<App />);
 

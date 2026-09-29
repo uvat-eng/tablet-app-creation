@@ -106,7 +106,7 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-w-[760px] max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-[760px]">
         <DialogHeader>
           <DialogTitle>
             {result ? 'Путёвка готова' : 'Создать путёвку'}
@@ -121,11 +121,11 @@ const PermitDialog = ({ open, onOpenChange, guests, onCreated }: Props) => {
             </p>
             <PermitShare result={result} guestName={String(guest?.name || '')} />
             <div className="flex flex-wrap gap-2 mt-5">
+              <button className="h-cta" onClick={() => close(false)}>
+                <Icon name="ArrowLeft" size={15} /> Вернуться к заявкам
+              </button>
               <button className="h-cta-ghost" onClick={reset}>
                 <Icon name="Plus" size={15} /> Создать ещё одну
-              </button>
-              <button className="h-cta-ghost" onClick={() => close(false)}>
-                Закрыть
               </button>
             </div>
           </>

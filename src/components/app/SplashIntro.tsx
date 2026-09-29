@@ -191,7 +191,7 @@ const SplashIntro = () => {
         aria-label={muted ? 'Включить звук' : 'Выключить звук'}
         style={{
           position: 'absolute',
-          top: 'calc(env(safe-area-inset-top) + 16px)',
+          top: 'calc(var(--safe-top) + 16px)',
           right: 16,
           width: 38,
           height: 38,
@@ -211,7 +211,7 @@ const SplashIntro = () => {
         <div
           style={{
             position: 'absolute',
-            top: 'calc(env(safe-area-inset-top) + 62px)',
+            top: 'calc(var(--safe-top) + 62px)',
             right: 16,
             fontSize: 10,
             letterSpacing: '.1em',
@@ -226,7 +226,7 @@ const SplashIntro = () => {
       <div
         style={{
           position: 'absolute',
-          bottom: 'calc(env(safe-area-inset-bottom) + 26px)',
+          bottom: 'calc(var(--safe-bottom) + 26px)',
           width: 'min(52vw, 220px)',
           height: 2,
           background: 'rgba(31,31,29,.16)',

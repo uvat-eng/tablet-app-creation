@@ -111,7 +111,7 @@ const CollectiveSheetDialog = ({ open, onOpenChange }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[820px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[820px]">
         <DialogHeader>
           <DialogTitle>Коллективный лист охоты</DialogTitle>
         </DialogHeader>

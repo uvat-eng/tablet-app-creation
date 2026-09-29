@@ -21,7 +21,7 @@ const AlarmScreen = ({ people, fix, myDir, onGo, onClose }: Props) => {
     >
       <div
         className="flex flex-col items-center px-4"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 28px)' }}
+        style={{ paddingTop: 'calc(var(--safe-top) + 28px)' }}
       >
         <Icon name="TriangleAlert" size={54} fallback="CircleAlert" />
         <div
@@ -114,7 +114,7 @@ const AlarmScreen = ({ people, fix, myDir, onGo, onClose }: Props) => {
 
       <div
         className="px-4 pt-2"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+        style={{ paddingBottom: 'calc(var(--safe-bottom) + 16px)' }}
       >
         <button
           onClick={onClose}

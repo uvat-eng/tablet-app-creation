@@ -122,6 +122,16 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html.is-ios {
+    --safe-top: max(env(safe-area-inset-top, 0px), 44px);
+    --safe-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+  }
 }
 
 @layer components {

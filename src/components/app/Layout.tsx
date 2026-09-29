@@ -106,7 +106,7 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
         className="lg:hidden border-b border-[#e2e2df] px-4 py-3 flex items-center justify-between gap-3 sticky top-0 z-30"
         style={{
           background: 'var(--hero-bg, #fff)',
-          paddingTop: 'calc(0.75rem + env(safe-area-inset-top))',
+          paddingTop: 'calc(0.75rem + var(--safe-top))',
         }}
       >
         <button
@@ -152,8 +152,8 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
             className="relative w-[86%] max-w-[320px] h-full overflow-y-auto border-r border-[#e2e2df] flex flex-col"
             style={{
               background: '#fff',
-              paddingTop: 'env(safe-area-inset-top)',
-              paddingBottom: 'env(safe-area-inset-bottom)',
+              paddingTop: 'var(--safe-top)',
+              paddingBottom: 'var(--safe-bottom)',
             }}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e2df]">
