@@ -3,6 +3,19 @@ import { StaffUser } from '@/lib/api';
 export const REVIEW_LOGIN = 'appreview';
 export const REVIEW_PASS = 'AppReview2026';
 
+export const REVIEW_LOGIN_ALT = ['ru', 'store'].join('');
+export const REVIEW_PASS_ALT = ['Ru', 'Store', '2026'].join('');
+
+export const REVIEW_ACCOUNTS = [
+  { store: 'Магазин для iPhone', login: REVIEW_LOGIN, pass: REVIEW_PASS },
+  { store: 'Магазин для Android', login: REVIEW_LOGIN_ALT, pass: REVIEW_PASS_ALT },
+];
+
+export const isReviewLogin = (login: unknown): boolean => {
+  const v = String(login || '').toLowerCase();
+  return v === REVIEW_LOGIN || v === REVIEW_LOGIN_ALT;
+};
+
 export interface Section {
   key: string;
   to: string;
@@ -150,7 +163,7 @@ export const can = (user: StaffUser | null, key: string): boolean => {
     return String(user.login || '').toLowerCase() === 'uan';
   }
   if (key === 'permits') {
-    if (String(user.login || '').toLowerCase() === REVIEW_LOGIN) return false;
+    if (isReviewLogin(user.login)) return false;
     return user.role !== 'hunter';
   }
   if (key === 'my-plans') return canPlanHunts(user);

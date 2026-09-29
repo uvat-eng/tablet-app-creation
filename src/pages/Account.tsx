@@ -3,7 +3,7 @@ import Icon from '@/components/ui/icon';
 import PasswordCard from '@/components/app/PasswordCard';
 import StoreAssets from '@/components/app/StoreAssets';
 import { useAuth } from '@/context/AuthContext';
-import { ROLES, REVIEW_LOGIN, REVIEW_PASS } from '@/lib/permissions';
+import { ROLES, REVIEW_ACCOUNTS } from '@/lib/permissions';
 import { APK_URL, APP_VERSION } from '@/lib/appVersion';
 import { isIOS } from '@/lib/platform';
 
@@ -78,23 +78,29 @@ const Account = () => {
           <p className="h-label mb-3 leading-relaxed">
             Впишите эти данные в поле «Комментарий для модератора» при подаче
             приложения — иначе проверяющий не сможет войти дальше экрана логина.
+            Для каждого магазина свой доступ, оба работают с одной базой.
           </p>
-          <div className="border border-[#e2e2df]">
-            {[
-              { label: 'Логин', value: REVIEW_LOGIN },
-              { label: 'Пароль', value: REVIEW_PASS },
-              { label: 'Тип входа', value: 'Сотрудник хозяйства' },
-            ].map((r, i) => (
-              <div
-                key={r.label}
-                className="flex flex-wrap gap-2 justify-between px-4 py-3"
-                style={{ borderTop: i ? '1px solid #e2e2df' : 'none' }}
-              >
-                <span className="h-label">{r.label}</span>
-                <span className="text-[0.78em]">{r.value}</span>
+          {REVIEW_ACCOUNTS.map((acc) => (
+            <div key={acc.store} className="mb-4">
+              <div className="h-label mb-2">{acc.store}</div>
+              <div className="border border-[#e2e2df]">
+                {[
+                  { label: 'Логин', value: acc.login },
+                  { label: 'Пароль', value: acc.pass },
+                  { label: 'Тип входа', value: 'Сотрудник хозяйства' },
+                ].map((r, i) => (
+                  <div
+                    key={r.label}
+                    className="flex flex-wrap gap-2 justify-between px-4 py-3"
+                    style={{ borderTop: i ? '1px solid #e2e2df' : 'none' }}
+                  >
+                    <span className="h-label">{r.label}</span>
+                    <span className="text-[0.78em]">{r.value}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
           <p className="h-label mt-3 leading-relaxed">
             Доступ ограничен: карта угодий, локации, трофейный зал и отзывы. Личные
             данные охотников, финансы и документы закрыты на сервере — даже в обход
