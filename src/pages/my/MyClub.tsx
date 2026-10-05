@@ -6,6 +6,10 @@ import ClubStatus from '@/components/app/ClubStatus';
 import { Row, listRows, createRow, updateRow } from '@/lib/api';
 import { SPECIES } from '@/lib/species';
 import { toast } from 'sonner';
+import PayQr from '@/components/app/PayQr';
+
+const FEE_AMOUNT = 6500;
+const FEE_PURPOSE = 'Оплата членского взноса охотника';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -134,6 +138,25 @@ const MyClub = () => {
         bag={bag}
         year={year}
       />
+
+      <section className="mt-8 border border-[#e2e2df] bg-white p-5 sm:p-6">
+        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+          <PayQr
+            size={180}
+            amount={FEE_AMOUNT}
+            purpose={FEE_PURPOSE + (me?.name ? ', ' + String(me.name) : '')}
+            payer={String(me?.name || '')}
+          />
+          <div className="flex-1 text-center sm:text-left">
+            <div className="h-label mb-2">Членский взнос</div>
+            <div className="text-2xl font-bold mb-2">6 500 ₽</div>
+            <p className="leading-relaxed text-[var(--hero-muted)]">
+              {FEE_PURPOSE}. Откройте приложение банка, выберите «Оплата по QR»
+              и наведите камеру — реквизиты и сумма подставятся сами.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <p className="h-label mt-6 leading-relaxed">
         Стоимость по прайсу проставляет хозяйство после проверки записи.
