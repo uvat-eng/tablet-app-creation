@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import { Row, listRows, createRow, updateRow } from '@/lib/api';
 import { money } from '@/lib/expenses';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const FEE = 6500;
@@ -32,6 +33,9 @@ const ClubFees = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const years = useMemo(() => {
     const set = new Set<number>([new Date().getFullYear()]);

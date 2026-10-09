@@ -9,6 +9,7 @@ import SearchBar from '@/components/app/SearchBar';
 import { Row, listRows, createRow, updateRow, removeRow, ConflictError } from '@/lib/api';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const STATUS: Record<string, string> = {
   new: 'Новая',
@@ -77,6 +78,9 @@ const Bookings = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const fields: Field[] = useMemo(
     () => [

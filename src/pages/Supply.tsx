@@ -11,6 +11,7 @@ import {
   money,
 } from '@/lib/supply';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const TABS = [
   { key: 'new', label: 'Новые' },
@@ -41,6 +42,9 @@ const Supply = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const visible = useMemo(() => orders.filter((o) => String(o.status) === tab), [orders, tab]);
 

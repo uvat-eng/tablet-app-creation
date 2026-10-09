@@ -11,6 +11,7 @@ import NotifyPrompt from '@/components/app/NotifyPrompt';
 import BackgroundToggle from '@/components/app/BackgroundToggle';
 import { setClubFlag, canPlanHunts } from '@/lib/permissions';
 import { REQUEST_STATUS, money } from '@/lib/hunts';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const MyHome = () => {
   const navigate = useNavigate();
@@ -62,6 +63,9 @@ const MyHome = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const club = Boolean(me?.club_member);
 

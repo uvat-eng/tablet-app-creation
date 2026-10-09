@@ -5,6 +5,7 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, updateRow } from '@/lib/api';
 import { COUNTRIES } from '@/lib/countries';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const FIELDS: Field[] = [
   { key: 'name', label: 'ФИО полностью' },
@@ -68,6 +69,9 @@ const MyProfile = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const save = async (values: Row) => {
     if (!me?.id) return;

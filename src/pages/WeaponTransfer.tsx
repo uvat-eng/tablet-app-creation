@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import WeaponActDialog from '@/components/app/WeaponActDialog';
 import { Row, listRows } from '@/lib/api';
 import { kindLabel, ruDate, hasDocs } from '@/lib/weapons';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const WeaponTransfer = () => {
   const [weapons, setWeapons] = useState<Row[]>([]);
@@ -28,6 +29,9 @@ const WeaponTransfer = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const readyCount = useMemo(() => guests.filter(hasDocs).length, [guests]);
 

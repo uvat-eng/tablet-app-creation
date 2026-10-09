@@ -14,6 +14,7 @@ import {
   money,
 } from '@/lib/supply';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 interface Line {
   key: number;
@@ -60,6 +61,9 @@ const SupplyNew = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const planned = lines.reduce((s, l) => s + Number(l.est_price || 0) * Number(l.qty || 0), 0);
 

@@ -13,6 +13,7 @@ import { Row, listRows, createRow } from '@/lib/api';
 import { SPECIES } from '@/lib/species';
 import { COUNTRIES } from '@/lib/countries';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const FIELDS: Field[] = [
   { key: 'name', label: 'ФИО полностью' },
@@ -64,6 +65,9 @@ const Hunters = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   useEffect(() => {
     const check = () => loadUnread().then(setUnread).catch(() => undefined);

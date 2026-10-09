@@ -5,6 +5,7 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow } from '@/lib/api';
 import { SPECIES, SPECIES_LABEL } from '@/lib/species';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -26,6 +27,9 @@ const MyBag = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const bySpecies = useMemo(() => {
     const map: Record<string, number> = {};

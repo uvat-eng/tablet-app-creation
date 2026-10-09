@@ -15,6 +15,7 @@ import {
   nights,
 } from '@/lib/hunts';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -49,6 +50,9 @@ const MyHunts = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const days = nights(from, to);
   const items = useMemo(() => Object.values(picked), [picked]);

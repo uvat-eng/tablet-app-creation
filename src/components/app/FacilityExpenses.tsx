@@ -10,6 +10,7 @@ import { CATEGORY_LABEL, money, Facility, HouseCategory } from '@/lib/houseCateg
 import { RECEIPT_FIELD } from '@/lib/expenses';
 import ReceiptLink from '@/components/app/ReceiptLink';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const makeFields = (cats: HouseCategory[]): Field[] => [
   { key: 'name', label: 'Наименование' },
@@ -50,6 +51,9 @@ const FacilityExpenses = ({ facility }: { facility: Facility }) => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const inPeriod = useCallback(
     (r: Row) => {

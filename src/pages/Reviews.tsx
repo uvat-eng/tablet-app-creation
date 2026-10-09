@@ -6,6 +6,7 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Row, listRows, createRow, updateRow, removeRow, uploadPhoto } from '@/lib/api';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const FIELDS: Field[] = [
   { key: 'photo_url', label: 'Фото отзыва', type: 'photo', folder: 'reviews' },
@@ -34,6 +35,9 @@ const Reviews = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();

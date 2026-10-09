@@ -10,6 +10,7 @@ import DeleteAccountCard from '@/components/app/DeleteAccountCard';
 import BlockedList from '@/components/app/BlockedList';
 import { APK_URL, APP_VERSION } from '@/lib/appVersion';
 import { isIOS } from '@/lib/platform';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 
 const MySettings = () => {
@@ -27,6 +28,9 @@ const MySettings = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const device = !ios && tab === 'device';
 

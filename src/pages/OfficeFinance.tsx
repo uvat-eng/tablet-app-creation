@@ -11,6 +11,7 @@ import {
   RECEIPT_FIELD,
 } from '@/lib/expenses';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -56,6 +57,9 @@ const OfficeFinance = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const years = useMemo(() => {
     const set = new Set<number>();

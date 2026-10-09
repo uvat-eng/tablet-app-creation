@@ -21,6 +21,7 @@ import WorkPhotos from '@/components/app/WorkPhotos';
 import BiotechContractDialog from '@/components/app/BiotechContractDialog';
 import BioActDialog from '@/components/app/BioActDialog';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -65,6 +66,9 @@ const Biotech = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const years = useMemo(() => {
     const set = new Set<number>();

@@ -6,6 +6,7 @@ import Icon from '@/components/ui/icon';
 import CollectiveSheetDialog from '@/components/app/CollectiveSheetDialog';
 import { Row, listRows, removeRow } from '@/lib/api';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const KIND_LABEL: Record<string, string> = {
   collective: 'Коллективный лист охоты',
@@ -37,6 +38,9 @@ const Files = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();

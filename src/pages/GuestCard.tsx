@@ -9,6 +9,7 @@ import HunterActivity from '@/components/app/HunterActivity';
 import ClubBagManager from '@/components/app/ClubBagManager';
 import { HELP_KINDS, HELP_LABEL } from '@/lib/help';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const money = (v: unknown) => `${Number(v || 0).toLocaleString('ru-RU')} ₽`;
 
@@ -74,6 +75,9 @@ const GuestCard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const helpRows = useMemo(
     () => works.filter((w) => HELP_KINDS.some((k) => k.key === w.kind)),

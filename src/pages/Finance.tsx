@@ -17,6 +17,7 @@ import FinanceHuntOffice from '@/components/app/FinanceHuntOffice';
 import FinanceOther from '@/components/app/FinanceOther';
 import FinanceFacilities from '@/components/app/FinanceFacilities';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const OTHER_KINDS = EXPENSE_KINDS.filter((k) => k.key !== 'hunt');
 const SPLIT_KEYS = [...SPLIT_KINDS.map((k) => k.key), 'to_farm'];
@@ -73,6 +74,9 @@ const Finance = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const years = useMemo(() => {
     const set = new Set<number>();

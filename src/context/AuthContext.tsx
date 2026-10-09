@@ -5,10 +5,10 @@ import {
   login as apiLogin,
   signup as apiSignup,
   logout as apiLogout,
-  preloadAll,
-  syncQueue,
   listRows,
 } from '@/lib/api';
+import { initCache, clearEverything } from '@/lib/localCache';
+import { startAutoSync, stopAutoSync } from '@/lib/autoSync';
 import { bgStart, bgStop } from '@/lib/bgService';
 import { canClubChat, hasGuestCard, setClubFlag } from '@/lib/permissions';
 
@@ -49,12 +49,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMe()
+    initCache()
+      .then(() => fetchMe())
       .then((u) => {
         setUser(u);
         if (u) {
           syncClubFlag(u);
-          syncQueue().then(() => preloadAll());
+          startAutoSync();
           if (localStorage.getItem('hb_bg_on') === '1') {
             bgStart(canClubChat(u));
           }
@@ -67,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const u = await apiLogin(login, password, role);
     setUser(u);
     await syncClubFlag(u);
-    preloadAll();
+    startAutoSync();
   };
 
   const signUp = async (body: {
@@ -79,12 +80,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }) => {
     const u = await apiSignup(body);
     setUser(u);
-    preloadAll();
+    startAutoSync();
   };
 
   const signOut = async () => {
     await bgStop();
+    stopAutoSync();
     await apiLogout();
+    clearEverything();
     localStorage.removeItem('hb_me');
     localStorage.removeItem('hb_club_member');
     localStorage.removeItem('hb_bg_on');

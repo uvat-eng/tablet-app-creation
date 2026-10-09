@@ -7,6 +7,7 @@ import { Row, listRows, createRow, updateRow } from '@/lib/api';
 import { SPECIES } from '@/lib/species';
 import { toast } from 'sonner';
 import PayQr from '@/components/app/PayQr';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const FEE_AMOUNT = 6500;
 const FEE_PURPOSE = 'Оплата членского взноса охотника';
@@ -38,6 +39,9 @@ const MyClub = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const years = useMemo(() => {
     const set = new Set<number>([new Date().getFullYear()]);

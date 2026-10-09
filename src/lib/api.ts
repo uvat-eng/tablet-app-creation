@@ -1,4 +1,21 @@
-import { cacheKey, saveCache, readCache, pushQueue, readQueue, writeQueue } from '@/lib/localCache';
+import { toast } from 'sonner';
+import {
+  cacheKey,
+  saveCache,
+  readCache,
+  cacheAge,
+  pushQueue,
+  readQueue,
+  writeQueue,
+  initCache,
+  patchRow,
+  dropRow,
+  swapId,
+  cachedQueries,
+  setLastSync,
+  markAllStale,
+  QueueItem,
+} from '@/lib/localCache';
 
 const CRM_URL = 'https://functions.poehali.dev/85ee97e6-1ee1-4333-be9f-698f0c374677';
 export const AUTH_URL = 'https://functions.poehali.dev/de14562b-724c-4ed9-80c1-c0d1787d0889';
@@ -31,6 +48,79 @@ const authHeaders = () => ({
   'X-Auth-Token': getToken(),
 });
 
+const FRESH_MS = 60_000;
+const NET_TIMEOUT = 15000;
+const QUICK_TIMEOUT = 6000;
+
+const timedFetch = async (url: string, init: RequestInit = {}, ms = NET_TIMEOUT) => {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+};
+
+const fetchList = async (key: string, q: string, ms = NET_TIMEOUT): Promise<Row[]> => {
+  let res: Response;
+  try {
+    res = await timedFetch(`${CRM_URL}?${q}`, { headers: authHeaders() }, ms);
+  } catch (e) {
+    setOnline(false);
+    throw e;
+  }
+  if (res.status === 401 || res.status === 403) {
+    setOnline(true);
+    const err = new Error('Недостаточно прав');
+    err.name = 'Forbidden';
+    throw err;
+  }
+  if (!res.ok) {
+    setOnline(false);
+    throw new Error('server ' + res.status);
+  }
+  const data = await res.json();
+  const items: Row[] = data.items || [];
+  saveCache(key, items, q);
+  setOnline(true);
+  return items;
+};
+
+const dataListeners = new Set<(table: string) => void>();
+
+export const onDataChange = (fn: (table: string) => void) => {
+  dataListeners.add(fn);
+  return () => {
+    dataListeners.delete(fn);
+  };
+};
+
+const emitData = (table: string) => {
+  dataListeners.forEach((fn) => fn(table));
+};
+
+const withQueue = (table: string, suffix: string, rows: Row[]): Row[] => {
+  const pending = readQueue().filter((it) => it.table === table);
+  if (!pending.length) return rows;
+  let out = rows.slice();
+  pending.forEach((it) => {
+    const id = it.method === 'POST' ? it.localId : it.body.id;
+    const idx = out.findIndex((r) => String(r.id) === String(id));
+    if (it.method === 'DELETE') {
+      if (idx >= 0) out = out.filter((_, i) => i !== idx);
+      return;
+    }
+    const row: Row = { ...it.body, id: id ?? null, _pending: true };
+    if (idx >= 0) out[idx] = { ...out[idx], ...row };
+    else if (it.method === 'POST' && !suffix.includes('arch') && !/rcp|kp|gn/.test(suffix)) {
+      const b = suffix.match(/b(-?\d+)/);
+      if (!b || String(row.booking_id) === b[1]) out = [row, ...out];
+    }
+  });
+  return out;
+};
+
 export const listRows = async (
   table: string,
   opts: {
@@ -58,19 +148,19 @@ export const listRows = async (
     opts.planId ? 'p' + opts.planId : ''
   }`;
   const key = cacheKey(table, suffix);
+  await initCache();
+  const cached = readCache(key);
+
+  if (cached && (!online || (cacheAge(key) ?? Infinity) < FRESH_MS)) {
+    return withQueue(table, suffix, cached);
+  }
 
   try {
-    const res = await fetch(`${CRM_URL}?${q}`, { headers: authHeaders() });
-    if (!res.ok) throw new Error('server ' + res.status);
-    const data = await res.json();
-    const items: Row[] = data.items || [];
-    saveCache(key, items);
-    setOnline(true);
-    return items;
-  } catch {
-    const cached = readCache(key);
-    setOnline(false);
-    if (cached) return cached;
+    const items = await fetchList(key, q.toString(), cached ? QUICK_TIMEOUT : NET_TIMEOUT);
+    return withQueue(table, suffix, items);
+  } catch (e) {
+    if (e instanceof Error && e.name === 'Forbidden') throw e;
+    if (cached) return withQueue(table, suffix, cached);
     throw new Error('Нет связи с сервером и нет сохранённой копии');
   }
 };
@@ -111,85 +201,312 @@ export class ConflictError extends Error {
   }
 }
 
-const send = async (
-  table: string,
-  method: string,
-  body: Row,
-  mine = false,
-): Promise<Row> => {
-  try {
-    const res = await fetch(`${CRM_URL}?table=${table}${mine ? '&mine=1' : ''}`, {
-      method,
-      headers: authHeaders(),
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (res.status === 409) throw new ConflictError(data.conflict);
-    if (res.status === 403) throw new Error(data.error || 'Недостаточно прав');
-    if (res.status >= 400) {
-      const err = new Error(data.error || 'Сервер отклонил запись');
-      err.name = 'ServerReject';
-      throw err;
-    }
-    setOnline(true);
-    return data.item;
-  } catch (e) {
-    if (e instanceof ConflictError) throw e;
-    if (e instanceof Error && e.name === 'ServerReject') throw e;
-    if (e instanceof Error && /прав|Недостаточно/.test(e.message)) throw e;
+type Method = 'POST' | 'PUT' | 'DELETE';
 
-    setOnline(false);
-    pushQueue(table, method as 'POST' | 'PUT', body);
-    const local: Row = { ...body, _pending: true };
-    if (!local.id) local.id = -Date.now();
-    return local;
+const isLocalId = (id: unknown) => Number(id) < 0;
+
+let localSeq = 0;
+const newLocalId = () => {
+  localSeq = (localSeq + 1) % 1000;
+  return -(Date.now() * 1000 + localSeq);
+};
+
+const ID_MAP = 'hb_id_map';
+
+const readIdMap = (): Record<string, number> => {
+  try {
+    return JSON.parse(localStorage.getItem(ID_MAP) || '{}');
+  } catch {
+    return {};
   }
 };
 
-export const syncQueue = async (): Promise<{ done: number; failed: number }> => {
+const rememberId = (localId: number, realId: number) => {
+  const m = readIdMap();
+  m[String(localId)] = realId;
+  const keys = Object.keys(m);
+  if (keys.length > 500) keys.slice(0, keys.length - 500).forEach((k) => delete m[k]);
+  try {
+    localStorage.setItem(ID_MAP, JSON.stringify(m));
+  } catch {
+    /* переполнено */
+  }
+};
+
+const realIds = (body: Row): Row => {
+  const m = readIdMap();
+  let out = body;
+  Object.keys(body).forEach((f) => {
+    if ((f === 'id' || f.endsWith('_id')) && isLocalId(body[f])) {
+      const real = m[String(body[f])];
+      if (real) out = { ...out, [f]: real };
+    }
+  });
+  return out;
+};
+
+const queueLocal = (table: string, method: Method, body: Row, mine: boolean): Row => {
   const items = readQueue();
-  if (!items.length) return { done: 0, failed: 0 };
 
-  const rest: typeof items = [];
-  let done = 0;
+  if (method === 'POST') {
+    const localId = newLocalId();
+    pushQueue(table, 'POST', { ...body, id: null }, { localId, mine });
+    const row: Row = { ...body, id: localId, _pending: true };
+    patchRow(table, row, true);
+    emitData(table);
+    return row;
+  }
 
-  for (const it of items) {
-    try {
-      const url =
-        it.method === 'DELETE'
-          ? `${CRM_URL}?table=${it.table}&id=${it.body.id}`
-          : `${CRM_URL}?table=${it.table}`;
-      const res = await fetch(url, {
-        method: it.method,
-        headers: authHeaders(),
-        body: it.method === 'DELETE' ? undefined : JSON.stringify(it.body),
-      });
-      if (res.ok || res.status === 403 || res.status === 404) done += 1;
-      else rest.push(it);
-    } catch {
-      rest.push(it);
+  const id = body.id;
+  if (isLocalId(id)) {
+    const idx = items.findIndex((it) => it.method === 'POST' && it.localId === Number(id));
+    if (idx >= 0) {
+      const next = items.slice();
+      if (method === 'DELETE') next.splice(idx, 1);
+      else next[idx] = { ...next[idx], body: { ...next[idx].body, ...body, id: null } };
+      writeQueue(next);
+      if (method === 'DELETE') dropRow(table, Number(id));
+      else patchRow(table, { ...body, _pending: true }, false);
+      emitData(table);
+      return { ...body, _pending: true };
     }
   }
 
-  writeQueue(rest);
-  if (done) setOnline(true);
-  return { done, failed: rest.length };
+  if (method === 'PUT') {
+    const idx = items.findIndex(
+      (it) => it.method === 'PUT' && it.table === table && String(it.body.id) === String(id),
+    );
+    if (idx >= 0) {
+      const next = items.slice();
+      next[idx] = { ...next[idx], body: { ...next[idx].body, ...body }, mine: mine || next[idx].mine };
+      writeQueue(next);
+    } else {
+      pushQueue(table, 'PUT', body, { mine });
+    }
+    patchRow(table, { ...body, _pending: true }, false);
+  } else {
+    pushQueue(table, 'DELETE', { id: id ?? null });
+    dropRow(table, String(id));
+  }
+  emitData(table);
+  return { ...body, _pending: true };
+};
+
+class NetError extends Error {
+  constructor() {
+    super('net');
+    this.name = 'NetError';
+  }
+}
+
+const sendOnce = async (table: string, method: Method, raw: Row, mine: boolean) => {
+  const body = method === 'DELETE' ? raw : await resolvePhotos(raw);
+  const url =
+    method === 'DELETE'
+      ? `${CRM_URL}?table=${table}&id=${body.id}`
+      : `${CRM_URL}?table=${table}${mine ? '&mine=1' : ''}`;
+  let res: Response;
+  try {
+    res = await timedFetch(url, {
+      method,
+      headers: authHeaders(),
+      body: method === 'DELETE' ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    throw new NetError();
+  }
+  if (res.status >= 500) throw new NetError();
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 409) throw new ConflictError(data.conflict);
+  if (res.status === 403 || res.status === 401) throw new Error(data.error || 'Недостаточно прав');
+  if (res.status >= 400) {
+    const err = new Error(data.error || 'Сервер отклонил запись');
+    err.name = 'ServerReject';
+    throw err;
+  }
+  return (data.item || null) as Row | null;
+};
+
+const send = async (table: string, method: Method, input: Row, mine = false): Promise<Row> => {
+  await initCache();
+  const body = realIds(input);
+  const blocked = !online || readQueue().length > 0 || isLocalId(body.id);
+  if (blocked) {
+    const row = queueLocal(table, method, body, mine);
+    if (online) syncQueue();
+    return row;
+  }
+  try {
+    const item = await sendOnce(table, method, body, mine);
+    setOnline(true);
+    if (method === 'DELETE') dropRow(table, String(body.id));
+    else if (item) patchRow(table, item, method === 'POST');
+    markAllStale();
+    emitData(table);
+    return item || body;
+  } catch (e) {
+    if (!(e instanceof NetError)) throw e;
+    setOnline(false);
+    return queueLocal(table, method, body, mine);
+  }
+};
+
+export interface SyncResult {
+  done: number;
+  failed: number;
+  rejected: string[];
+}
+
+let syncing: Promise<SyncResult> | null = null;
+
+const relink = (items: QueueItem[], localId: number, realId: number) =>
+  items.map((it) => {
+    let body = it.body;
+    Object.keys(body).forEach((f) => {
+      if ((f === 'id' || f.endsWith('_id')) && Number(body[f]) === localId) {
+        body = { ...body, [f]: realId };
+      }
+    });
+    return body === it.body ? it : { ...it, body };
+  });
+
+const runSync = async (): Promise<SyncResult> => {
+  await initCache();
+  let items = readQueue();
+  if (!items.length) return { done: 0, failed: 0, rejected: [] };
+
+  let done = 0;
+  const rejected: string[] = [];
+
+  while (items.length) {
+    const it = items[0];
+    try {
+      const item = await sendOnce(it.table, it.method, it.body, Boolean(it.mine));
+      done += 1;
+      setOnline(true);
+      items = items.slice(1);
+      if (it.method === 'POST' && it.localId && item?.id) {
+        rememberId(it.localId, Number(item.id));
+        swapId(it.localId, item);
+        items = relink(items, it.localId, Number(item.id));
+      } else if (it.method === 'PUT' && item) {
+        patchRow(it.table, item, false);
+      }
+      await writeQueue(items);
+      emitData(it.table);
+    } catch (e) {
+      if (e instanceof NetError) {
+        setOnline(false);
+        break;
+      }
+      const msg = e instanceof ConflictError
+        ? 'Бронь пересекается с другой — не сохранена'
+        : e instanceof Error ? e.message : 'Сервер отклонил запись';
+      if (!/не найдена/i.test(msg)) rejected.push(msg);
+      if (it.method === 'POST' && it.localId) dropRow(it.table, it.localId);
+      items = items.slice(1);
+      await writeQueue(items);
+      emitData(it.table);
+    }
+  }
+
+  if (done) markAllStale();
+  rejected.forEach((m) => toast.error('Не принято сервером: ' + m, { duration: 10000 }));
+  return { done, failed: items.length, rejected };
+};
+
+export const syncQueue = (): Promise<SyncResult> => {
+  if (!syncing) {
+    syncing = runSync().finally(() => {
+      syncing = null;
+    });
+  }
+  return syncing;
 };
 
 export const pendingCount = () => readQueue().length;
 
-const PRELOAD = ['bookings', 'objects', 'guests', 'services', 'trophies', 'locations',
-  'map_layers', 'reviews', 'checks', 'receipts', 'house_expenses', 'expenses'];
+const STAFF_PRELOAD = ['bookings', 'objects', 'guests', 'services', 'trophies', 'locations',
+  'map_layers', 'reviews', 'checks', 'receipts', 'house_expenses', 'expenses',
+  'office_expenses', 'transport_expenses', 'transfers', 'payments', 'booking_services',
+  'hunter_bag', 'club_fees', 'club_bag', 'biotech_works', 'work_photos', 'weapons',
+  'weapon_acts', 'hunt_requests', 'hunt_request_items', 'hunt_plans', 'hunt_plan_rows',
+  'supply_orders', 'supply_items', 'permits', 'documents', 'guest_docs'];
 
-export const preloadAll = async () => {
-  for (const t of PRELOAD) {
-    try {
-      await listRows(t);
-    } catch {
-      /* нет связи — используем то, что уже сохранено */
-    }
+const HUNTER_PRELOAD: [string, string][] = [
+  ['guests', 'table=guests&mine=1'],
+  ['hunter_bag', 'table=hunter_bag&mine=1'],
+  ['documents', 'table=documents&mine=1'],
+  ['guest_docs', 'table=guest_docs&mine=1'],
+  ['hunt_requests', 'table=hunt_requests&mine=1'],
+  ['weapons', 'table=weapons&mine=1'],
+  ['weapon_acts', 'table=weapon_acts&mine=1'],
+  ['hunt_plans', 'table=hunt_plans&mine=1'],
+  ['biotech_works', 'table=biotech_works&mine=1'],
+  ['club_fees', 'table=club_fees&mine=1'],
+  ['club_bag', 'table=club_bag&mine=1'],
+  ['locations', 'table=locations'],
+  ['reviews', 'table=reviews'],
+];
+
+const readMeRole = () => {
+  try {
+    return String(JSON.parse(localStorage.getItem('hb_me') || 'null')?.role || '');
+  } catch {
+    return '';
   }
 };
+
+const suffixFromQuery = (q: string) => {
+  const p = new URLSearchParams(q);
+  return `${p.get('archived') ? 'arch' : ''}${p.get('booking_id') ? 'b' + p.get('booking_id') : ''}${
+    p.get('mine') ? 'mine' : ''
+  }${p.get('recipients') ? 'rcp' : ''}${p.get('keepers') ? 'kp' : ''}${p.get('guns') ? 'gn' : ''}${
+    p.get('plan_id') ? 'p' + p.get('plan_id') : ''
+  }`;
+};
+
+let refreshing: Promise<boolean> | null = null;
+
+const runRefresh = async (): Promise<boolean> => {
+  await initCache();
+  if (!getToken()) return false;
+  await syncQueue();
+  if (readQueue().length && !online) return false;
+
+  const jobs = new Map<string, string>();
+  const base: [string, string][] = readMeRole() === 'hunter'
+    ? HUNTER_PRELOAD
+    : STAFF_PRELOAD.map((t) => [t, 'table=' + t]);
+  base.forEach(([t, q]) => jobs.set(cacheKey(t, suffixFromQuery(q)), q));
+  cachedQueries().forEach(({ key, q }) => jobs.set(key, q));
+
+  let ok = 0;
+  let netFail = 0;
+  for (const [key, q] of jobs) {
+    try {
+      await fetchList(key, q);
+      ok += 1;
+      emitData(new URLSearchParams(q).get('table') || '');
+    } catch (e) {
+      if (!(e instanceof Error && e.name === 'Forbidden')) netFail += 1;
+      if (netFail >= 3 && !ok) break;
+    }
+  }
+  if (ok) setLastSync(Date.now());
+  return ok > 0;
+};
+
+export const refreshAll = (): Promise<boolean> => {
+  if (!refreshing) {
+    refreshing = runRefresh().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
+};
+
+export const preloadAll = refreshAll;
 
 export const createRow = (table: string, body: Row, mine = false) =>
   send(table, 'POST', body, mine);
@@ -198,21 +515,7 @@ export const updateRow = (table: string, body: Row, mine = false) =>
   send(table, 'PUT', body, mine);
 
 export const removeRow = async (table: string, id: number) => {
-  try {
-    const res = await fetch(`${CRM_URL}?table=${table}&id=${id}`, {
-      method: 'DELETE',
-      headers: authHeaders(),
-    });
-    if (res.status === 403) {
-      const data = await res.json();
-      throw new Error(data.error || 'Недостаточно прав');
-    }
-    setOnline(true);
-  } catch (e) {
-    if (e instanceof Error && /прав|Недостаточно/.test(e.message)) throw e;
-    setOnline(false);
-    pushQueue(table, 'DELETE', { id });
-  }
+  await send(table, 'DELETE', { id });
 };
 
 const readAsDataUrl = (file: Blob) =>
@@ -278,13 +581,12 @@ const shrinkPhoto = async (file: File): Promise<string> => {
   return best.length < raw.length ? best : raw;
 };
 
-export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string> => {
-  const base64 = await shrinkPhoto(file);
-  const res = await fetch(UPLOAD_URL, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify({ file: base64, folder }),
-  });
+const sendPhoto = async (base64: string, folder: string): Promise<string> => {
+  const res = await timedFetch(
+    UPLOAD_URL,
+    { method: 'POST', headers: authHeaders(), body: JSON.stringify({ file: base64, folder }) },
+    60000,
+  );
   if (!res.ok) {
     if (res.status === 413) throw new Error('Фото слишком тяжёлое — снимите поменьше');
     const data = await res.json().catch(() => ({}));
@@ -293,6 +595,38 @@ export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string
   const data = await res.json().catch(() => ({}));
   if (!data.url) throw new Error('Сервер не вернул ссылку на фото');
   return data.url;
+};
+
+export const uploadPhoto = async (file: File, folder = 'photos'): Promise<string> => {
+  const base64 = await shrinkPhoto(file);
+  const mustUpload = folder === 'brand';
+  if (!online && !mustUpload) return base64;
+  try {
+    return await sendPhoto(base64, folder);
+  } catch (e) {
+    if (mustUpload) throw e;
+    if (e instanceof Error && /тяж|больш/i.test(e.message)) throw e;
+    setOnline(false);
+    return base64;
+  }
+};
+
+export const isLocalPhoto = (v: unknown) => typeof v === 'string' && v.startsWith('data:');
+
+const resolvePhotos = async (body: Row): Promise<Row> => {
+  let out = body;
+  for (const [k, v] of Object.entries(body)) {
+    if (isLocalPhoto(v)) {
+      let url: string;
+      try {
+        url = await sendPhoto(String(v), 'offline');
+      } catch {
+        throw new NetError();
+      }
+      out = { ...out, [k]: url };
+    }
+  }
+  return out;
 };
 
 const APK_URL = 'https://functions.poehali.dev/2e163d28-609a-456c-9f87-501c8b2564f0';
@@ -435,10 +769,20 @@ const mapSettings = (item: Row | undefined): FarmSettings => {
   return out;
 };
 
+const SETTINGS_KEY = 'hb_settings';
+
 export const getSettings = async (): Promise<FarmSettings> => {
-  const res = await fetch(`${CRM_URL}?table=settings`, { headers: authHeaders() });
-  const data = await res.json();
-  return mapSettings(data.item);
+  try {
+    const res = await timedFetch(`${CRM_URL}?table=settings`, { headers: authHeaders() }, QUICK_TIMEOUT);
+    if (!res.ok) throw new Error('server');
+    const data = await res.json();
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(data.item || {}));
+    return mapSettings(data.item);
+  } catch (e) {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return mapSettings(JSON.parse(raw));
+    throw e;
+  }
 };
 
 export const saveSettings = async (body: Row): Promise<FarmSettings> => {
@@ -509,7 +853,7 @@ const ME_KEY = 'hb_me';
 export const fetchMe = async (): Promise<StaffUser | null> => {
   if (!getToken()) return null;
   try {
-    const res = await fetch(`${AUTH_URL}?action=me`, { headers: authHeaders() });
+    const res = await timedFetch(`${AUTH_URL}?action=me`, { headers: authHeaders() }, QUICK_TIMEOUT);
     if (res.status === 401) {
       localStorage.removeItem(ME_KEY);
       return null;
@@ -577,8 +921,13 @@ export const changePassword = async (oldPassword: string, newPassword: string) =
 };
 
 export const logout = async () => {
-  await fetch(`${AUTH_URL}?action=logout`, { method: 'POST', headers: authHeaders() });
+  try {
+    await timedFetch(`${AUTH_URL}?action=logout`, { method: 'POST', headers: authHeaders() }, QUICK_TIMEOUT);
+  } catch {
+    /* без связи — выходим локально */
+  }
   localStorage.removeItem('hb_token');
+  localStorage.removeItem(SETTINGS_KEY);
 };
 
 export const deleteAccount = async (password: string, reason = '') => {

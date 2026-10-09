@@ -6,6 +6,7 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import SearchBar from '@/components/app/SearchBar';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 interface CrudPageProps {
   table: string;
@@ -61,6 +62,9 @@ const CrudPage = ({
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const visible = useMemo(() => {
     if (!query.trim()) return rows;

@@ -6,6 +6,7 @@ import { SPECIES, SPECIES_LABEL } from '@/lib/species';
 import { money } from '@/lib/expenses';
 import { CLUB_DISCOUNT, CLUB_FEE, feeState, bagState } from '@/lib/clubPrivileges';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -36,6 +37,9 @@ const ClubBagManager = ({ guestId, guest }: Props) => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const fee = Number(guest?.fee_monthly || CLUB_FEE);
   const feeSt = useMemo(() => feeState(fees, guestId, year, fee), [fees, guestId, year, fee]);

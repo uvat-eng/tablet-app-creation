@@ -15,6 +15,7 @@ import { RECEIPT_FIELD } from '@/lib/expenses';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { canEditMap } from '@/lib/permissions';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const LocationCard = () => {
   const { user } = useAuth();
@@ -40,6 +41,9 @@ const LocationCard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const byCost = useMemo(() => {
     const map: Record<string, number> = {};

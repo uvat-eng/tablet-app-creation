@@ -6,6 +6,7 @@ import RecordDialog from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, removeRow } from '@/lib/api';
 import { RECEIPT_FIELD } from '@/lib/expenses';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const money = (v: unknown) => `${Number(v || 0).toLocaleString('ru-RU')} ₽`;
 
@@ -50,6 +51,9 @@ const BookingCard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const dropBooking = async () => {
     if (!confirm('Удалить бронь целиком? Услуги и оплаты по ней тоже пропадут.')) return;

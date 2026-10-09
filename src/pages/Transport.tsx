@@ -6,6 +6,7 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow } from '@/lib/api';
 import { TRANSPORT_CATEGORIES, TRANSPORT_STATUS, money } from '@/lib/transport';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const UNIT_FIELDS: Field[] = [
   { key: 'name', label: 'Название техники' },
@@ -42,6 +43,9 @@ const Transport = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const years = useMemo(() => {
     const set = new Set<number>();

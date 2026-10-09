@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { canEditMap } from '@/lib/permissions';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const makeFields = (kindKey?: string): Field[] => {
   const k = kindKey ? KIND(kindKey) : null;
@@ -74,6 +75,9 @@ const Locations = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const byKind = useMemo(() => {
     const empty = () => ({ count: 0, qty: 0, area: 0, repair: 0, cost: 0 });

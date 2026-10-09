@@ -7,6 +7,7 @@ import { HUNT_CATEGORIES, HUNT_CATEGORY_LABEL, money, RECEIPT_FIELD } from '@/li
 import ReceiptLink from '@/components/app/ReceiptLink';
 import PdfButtons from '@/components/app/PdfButtons';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const FIELDS: Field[] = [
   { key: 'name', label: 'Наименование' },
@@ -44,6 +45,9 @@ const ExpenseAct = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const byCategory = useMemo(() => {
     const map: Record<string, number> = {};

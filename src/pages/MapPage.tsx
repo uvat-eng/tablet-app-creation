@@ -25,6 +25,7 @@ import { pinIcon } from '@/components/map/mapStyles';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { canEditMap, canSeeObjects } from '@/lib/permissions';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const MapPage = () => {
   const { user } = useAuth();
@@ -66,6 +67,9 @@ const MapPage = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const points = useMemo(
     () =>

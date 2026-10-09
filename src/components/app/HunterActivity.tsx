@@ -5,6 +5,7 @@ import { Row, listRows, listHunterAccess } from '@/lib/api';
 import { BIOTECH_LABEL } from '@/lib/biotech';
 import { SPECIES_LABEL } from '@/lib/species';
 import { KIND } from '@/lib/locationKinds';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 interface Props {
   guestId: number;
@@ -101,6 +102,9 @@ const HunterActivity = ({ guestId, guestName }: Props) => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const counts = useMemo(() => {
     const works = entries.filter((e) => e.id.startsWith('w')).length;

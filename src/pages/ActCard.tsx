@@ -8,6 +8,7 @@ import ActServiceDialog from '@/components/app/ActServiceDialog';
 import PdfButtons from '@/components/app/PdfButtons';
 import PayQr from '@/components/app/PayQr';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const dmy = (v: unknown) => {
   const s = String(v || '');
@@ -64,6 +65,9 @@ const ActCard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const totals = useMemo(() => {
     const sums = items.map(lineSum);

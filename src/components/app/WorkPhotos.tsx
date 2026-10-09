@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import Icon from '@/components/ui/icon';
 import { Row, listRows, createRow, removeRow, uploadPhoto } from '@/lib/api';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 interface Props {
   workId: number;
@@ -23,6 +24,9 @@ const WorkPhotos = ({ workId, defaultDate, compact }: Props) => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const add = async (files: FileList | null) => {
     if (!files || !files.length) return;

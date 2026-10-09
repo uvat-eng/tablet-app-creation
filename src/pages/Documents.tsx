@@ -7,6 +7,7 @@ import { Row, listRows, createRow, removeRow } from '@/lib/api';
 import { money, loadPriceItems } from '@/lib/price';
 import { rublesInWords } from '@/lib/rubles';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 type SortKey = 'date_from' | 'final_total' | 'created_at';
 
@@ -37,6 +38,9 @@ const Documents = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const createAct = useCallback(
     async (booking: Row) => {

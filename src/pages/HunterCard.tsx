@@ -9,6 +9,7 @@ import { Row, listRows, updateRow, createRow, removeRow } from '@/lib/api';
 import { SPECIES, SPECIES_ONE } from '@/lib/species';
 import { COUNTRIES } from '@/lib/countries';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -72,6 +73,9 @@ const HunterCard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const bagFields: Field[] = useMemo(
     () => [

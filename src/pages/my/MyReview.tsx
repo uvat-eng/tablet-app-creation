@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import { Row, listRows, createRow, uploadPhoto } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -31,6 +32,9 @@ const MyReview = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const addPhotos = async (files: FileList | null) => {
     if (!files?.length) return;

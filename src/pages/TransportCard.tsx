@@ -13,6 +13,7 @@ import {
 import { RECEIPT_FIELD } from '@/lib/expenses';
 import ReceiptLink from '@/components/app/ReceiptLink';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -59,6 +60,9 @@ const TransportCard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const years = useMemo(() => {
     const set = new Set<number>();

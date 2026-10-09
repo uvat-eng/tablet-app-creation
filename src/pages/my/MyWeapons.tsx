@@ -6,6 +6,7 @@ import WeaponActDialog from '@/components/app/WeaponActDialog';
 import { Row, listRows, createRow, updateRow } from '@/lib/api';
 import { WEAPON_KINDS, kindLabel, ruDate, hasDocs } from '@/lib/weapons';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const MyWeapons = () => {
   const [weapons, setWeapons] = useState<Row[]>([]);
@@ -35,6 +36,9 @@ const MyWeapons = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const fields: Field[] = useMemo(
     () => [

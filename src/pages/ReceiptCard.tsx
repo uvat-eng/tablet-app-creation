@@ -6,6 +6,7 @@ import { money } from '@/lib/price';
 import { rublesInWords } from '@/lib/rubles';
 import PdfButtons from '@/components/app/PdfButtons';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const dmy = (v: unknown) => {
   const s = String(v || '');
@@ -45,6 +46,9 @@ const ReceiptCard = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const amount = Number(doc.amount || 0);
   const words = rublesInWords(amount);

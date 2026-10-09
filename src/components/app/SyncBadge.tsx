@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Icon from '@/components/ui/icon';
-import { isOnline, onConnection, pendingCount, syncQueue } from '@/lib/api';
+import { isOnline, onConnection, pendingCount, refreshAll, syncQueue } from '@/lib/api';
 import { cacheStats } from '@/lib/localCache';
 import { toast } from 'sonner';
 
@@ -22,55 +22,51 @@ const SyncBadge = () => {
 
   useEffect(() => {
     const off = onConnection(setNet);
-    return () => {
-      off();
-    };
-  }, []);
-
-  useEffect(() => {
     const t = setInterval(() => {
       setQueue(pendingCount());
       setStats(cacheStats());
-    }, 5000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    const retry = async () => {
-      if (pendingCount() === 0) return;
-      const r = await syncQueue();
-      if (r.done) {
-        toast.success(`Отправлено на сервер: ${r.done}`);
-        setQueue(pendingCount());
-      }
-    };
-    const t = setInterval(retry, 30000);
-    window.addEventListener('online', retry);
+    }, 3000);
     return () => {
+      off();
       clearInterval(t);
-      window.removeEventListener('online', retry);
     };
   }, []);
 
   const sync = async () => {
+    if (busy) return;
     setBusy(true);
+    const before = pendingCount();
     const r = await syncQueue();
+    const ok = await refreshAll();
     setBusy(false);
     setQueue(pendingCount());
-    if (r.done) toast.success(`Отправлено: ${r.done}`);
-    else if (r.failed) toast.error('Сервер недоступен, попробуем позже');
-    else toast.success('Всё уже сохранено на сервере');
+    setStats(cacheStats());
+    if (r.failed || (!ok && before)) {
+      toast.error('Нет связи с сервером. Всё сохранено на телефоне — отправим позже');
+    } else if (!ok) {
+      toast.error('Нет связи с сервером. Работаете с копией на телефоне');
+    } else if (r.done) {
+      toast.success(`Отправлено на сервер: ${r.done}. База обновлена`);
+    } else {
+      toast.success('База обновлена');
+    }
   };
+
+  const title =
+    `Копия базы на телефоне: ${Math.round(stats.bytes / 1024)} КБ. ` +
+    `Обновлена ${ago(stats.lastSync)}. Нажмите, чтобы обновить`;
 
   if (net && !queue) {
     return (
-      <span className="h-label flex items-center gap-1 text-[#6d6d6d]" title={
-        `Копия на телефоне: ${stats.tables} разделов, ${Math.round(stats.bytes / 1024)} КБ. ` +
-        `Обновлено ${ago(stats.lastSync)}`
-      }>
-        <Icon name="CloudCheck" size={14} />
-        Синхронизировано
-      </span>
+      <button
+        onClick={sync}
+        disabled={busy}
+        className="h-label flex items-center gap-1 text-[#6d6d6d]"
+        title={title}
+      >
+        <Icon name={busy ? 'RefreshCw' : 'CloudCheck'} size={14} className={busy ? 'animate-spin' : ''} />
+        {busy ? 'Обновляю…' : `Обновлено ${ago(stats.lastSync)}`}
+      </button>
     );
   }
 
@@ -84,11 +80,15 @@ const SyncBadge = () => {
         color: net ? '#c58a00' : '#c0392b',
         background: '#fff',
       }}
-      title={`Копия на телефоне обновлена ${ago(stats.lastSync)}`}
+      title={title}
     >
-      <Icon name={net ? 'CloudUpload' : 'CloudOff'} size={14} />
-      {!net && 'Нет связи'}
-      {queue > 0 && ` · ждут отправки: ${queue}`}
+      <Icon
+        name={busy ? 'RefreshCw' : net ? 'CloudUpload' : 'CloudOff'}
+        size={14}
+        className={busy ? 'animate-spin' : ''}
+      />
+      {!net && 'Офлайн'}
+      {queue > 0 && ` · не отправлено: ${queue}`}
       {net && queue > 0 && ' — отправить'}
     </button>
   );

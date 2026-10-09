@@ -13,6 +13,7 @@ import {
   money,
 } from '@/lib/transfers';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const Transfers = () => {
   const [rows, setRows] = useState<Row[]>([]);
@@ -41,6 +42,9 @@ const Transfers = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const years = useMemo(() => {
     const set = new Set<number>();

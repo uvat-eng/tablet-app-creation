@@ -4,6 +4,7 @@ import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import { Row, listRows } from '@/lib/api';
 import { money } from '@/lib/hunts';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const PRICE_PDF =
   'https://cdn.poehali.dev/projects/980fc694-d631-4b58-8bb8-84299cd838a9/bucket/9dfa3518-cc07-4590-a99e-9d6795bf29fe.pdf';
@@ -26,6 +27,9 @@ const MyPrice = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();

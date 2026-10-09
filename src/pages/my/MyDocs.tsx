@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/app/Layout';
 import Icon from '@/components/ui/icon';
 import { Row, listRows } from '@/lib/api';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const KIND_LABEL: Record<string, string> = {
   contract: 'Договор с хозяйством',
@@ -26,6 +27,9 @@ const MyDocs = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const empty = !docs.length && !personal.length;
 

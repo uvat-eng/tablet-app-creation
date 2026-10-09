@@ -5,6 +5,7 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import { Row, listRows, createRow, updateRow, removeRow } from '@/lib/api';
 import { money, CALC_LABELS, GROUP_LABELS } from '@/lib/price';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const FIELDS: Field[] = [
   { key: 'name', label: 'Название' },
@@ -53,6 +54,9 @@ const Services = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();

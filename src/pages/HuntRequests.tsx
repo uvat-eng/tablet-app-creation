@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { canApproveHunts } from '@/lib/permissions';
 import { REQUEST_STATUS, STATUS_COLOR, money } from '@/lib/hunts';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const TABS = [
   { key: 'pending', label: 'На рассмотрении' },
@@ -38,6 +39,9 @@ const HuntRequests = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const visible = useMemo(() => rows.filter((r) => String(r.status) === tab), [rows, tab]);
 

@@ -11,6 +11,7 @@ import {
   materialValue,
 } from '@/lib/biotech';
 import { toast } from 'sonner';
+import useDataRefresh from '@/hooks/useDataRefresh';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -32,6 +33,9 @@ const MyBiotech = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+
+  useDataRefresh(load);
 
   const totals = useMemo(() => {
     const hours = rows.reduce((s, r) => s + Number(r.hours || 0), 0);
