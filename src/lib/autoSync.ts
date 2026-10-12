@@ -1,36 +1,43 @@
-import { refreshAll, syncQueue, pendingCount } from '@/lib/api';
+import { refreshAll, syncQueue, pendingCount, checkServer, isOnline } from '@/lib/api';
+import { cacheStats } from '@/lib/localCache';
 
-const EVERY_MS = 10 * 60 * 1000;
+const EVERY_MS = 60 * 60 * 1000;
+const PROBE_MS = 60 * 1000;
 const QUEUE_RETRY_MS = 30 * 1000;
-const RESUME_GAP_MS = 2 * 60 * 1000;
 
 let started = false;
-let lastRun = 0;
 let timers: ReturnType<typeof setInterval>[] = [];
 
-const run = async () => {
-  lastRun = Date.now();
-  await refreshAll();
+const due = () => {
+  const last = cacheStats().lastSync;
+  return !last || Date.now() - last > EVERY_MS;
+};
+
+const tick = async () => {
+  if (!isOnline()) {
+    const back = await checkServer();
+    if (!back) return;
+  }
+  if (pendingCount()) await syncQueue();
+  if (due()) await refreshAll();
 };
 
 const onOnline = () => {
-  run();
+  tick();
 };
 
 const onVisible = () => {
-  if (document.visibilityState !== 'visible') return;
-  if (Date.now() - lastRun > RESUME_GAP_MS) run();
-  else if (pendingCount()) syncQueue();
+  if (document.visibilityState === 'visible') tick();
 };
 
 export const startAutoSync = () => {
   if (started) return;
   started = true;
-  run();
+  tick();
   timers = [
-    setInterval(run, EVERY_MS),
+    setInterval(tick, PROBE_MS),
     setInterval(() => {
-      if (pendingCount()) syncQueue();
+      if (pendingCount() && isOnline()) syncQueue();
     }, QUEUE_RETRY_MS),
   ];
   window.addEventListener('online', onOnline);

@@ -6,6 +6,9 @@ import {
   signup as apiSignup,
   logout as apiLogout,
   listRows,
+  cachedMe,
+  pendingCount,
+  syncQueue,
 } from '@/lib/api';
 import { initCache, clearEverything } from '@/lib/localCache';
 import { startAutoSync, stopAutoSync } from '@/lib/autoSync';
@@ -49,19 +52,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    initCache()
-      .then(() => fetchMe())
-      .then((u) => {
-        setUser(u);
-        if (u) {
-          syncClubFlag(u);
-          startAutoSync();
-          if (localStorage.getItem('hb_bg_on') === '1') {
-            bgStart(canClubChat(u));
-          }
-        }
-      })
-      .finally(() => setLoading(false));
+    let alive = true;
+    const boot = (u: StaffUser | null) => {
+      if (!alive) return;
+      setUser(u);
+      if (u) {
+        syncClubFlag(u);
+        startAutoSync();
+        if (localStorage.getItem('hb_bg_on') === '1') bgStart(canClubChat(u));
+      }
+    };
+    initCache().then(() => {
+      const local = cachedMe();
+      if (local) {
+        boot(local);
+        setLoading(false);
+        fetchMe().then((fresh) => {
+          if (!alive) return;
+          if (!fresh) setUser(null);
+          else setUser(fresh);
+        });
+        return;
+      }
+      fetchMe()
+        .then(boot)
+        .finally(() => setLoading(false));
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const signIn = async (login: string, password: string, role?: string) => {
@@ -84,6 +103,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    if (pendingCount()) await syncQueue();
+    const left = pendingCount();
+    if (
+      left &&
+      !window.confirm(
+        `На телефоне ${left} записей, которые ещё не дошли до сервера. ` +
+          'Если выйти сейчас, они пропадут. Выйти всё равно?',
+      )
+    ) {
+      return;
+    }
     await bgStop();
     stopAutoSync();
     await apiLogout();

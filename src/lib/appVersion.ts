@@ -1,4 +1,4 @@
-export const APP_VERSION = '6.7';
+export const APP_VERSION = '7.1';
 
 const BASE = 'https://cdn.poehali.dev/projects/980fc694-d631-4b58-8bb8-84299cd838a9/bucket/';
 const PKG = ['a', 'p', 'k'].join('');

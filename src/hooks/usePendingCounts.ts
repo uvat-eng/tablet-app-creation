@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { listRows } from '@/lib/api';
+import { listRows, isOnline } from '@/lib/api';
 import { StaffUser } from '@/lib/api';
 import { can, canApproveHunts, canClubChat } from '@/lib/permissions';
 import { loadUnread } from '@/lib/chatApi';
@@ -37,9 +37,9 @@ export const usePendingCounts = (user: StaffUser | null): PendingCounts => {
       if (user.role === 'hunter') {
         const mine = await listRows('hunt_requests');
         next['my-hunts'] = mine.filter((r) => String(r.status) === 'approved').length;
-        next.my = await loadUnread().catch(() => 0);
+        next.my = isOnline() ? await loadUnread().catch(() => 0) : 0;
       } else {
-        next.hunters = await loadUnread().catch(() => 0);
+        next.hunters = isOnline() ? await loadUnread().catch(() => 0) : 0;
         if (canApproveHunts(user) || can(user, 'hunt-requests')) {
           const reqs = await listRows('hunt_requests');
           next['hunt-requests'] = reqs.filter((r) => String(r.status) === 'pending').length;
@@ -57,7 +57,7 @@ export const usePendingCounts = (user: StaffUser | null): PendingCounts => {
       /* нет связи — оставляем как есть */
     }
 
-    if (canClubChat(user)) {
+    if (canClubChat(user) && isOnline()) {
       next['club-chat'] = await loadClubUnread().catch(() => 0);
     }
 
@@ -69,7 +69,7 @@ export const usePendingCounts = (user: StaffUser | null): PendingCounts => {
   }, [user]);
 
   const loadChatOnly = useCallback(async () => {
-    if (!user) return;
+    if (!user || !isOnline()) return;
     try {
       const [personal, club] = await Promise.all([
         loadUnread().catch(() => 0),

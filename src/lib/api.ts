@@ -16,6 +16,7 @@ import {
   markAllStale,
   QueueItem,
 } from '@/lib/localCache';
+import { mirrorLocal } from '@/lib/nativeStore';
 
 const CRM_URL = 'https://functions.poehali.dev/85ee97e6-1ee1-4333-be9f-698f0c374677';
 export const AUTH_URL = 'https://functions.poehali.dev/de14562b-724c-4ed9-80c1-c0d1787d0889';
@@ -48,7 +49,7 @@ const authHeaders = () => ({
   'X-Auth-Token': getToken(),
 });
 
-const FRESH_MS = 60_000;
+const FRESH_MS = 5 * 60_000;
 const NET_TIMEOUT = 15000;
 const QUICK_TIMEOUT = 6000;
 
@@ -85,6 +86,29 @@ const fetchList = async (key: string, q: string, ms = NET_TIMEOUT): Promise<Row[
   saveCache(key, items, q);
   setOnline(true);
   return items;
+};
+
+const inFlight = new Set<string>();
+
+const refreshInBackground = (key: string, q: string, table: string) => {
+  if (inFlight.has(key)) return;
+  inFlight.add(key);
+  fetchList(key, q, QUICK_TIMEOUT)
+    .then(() => emitData(table))
+    .catch(() => undefined)
+    .finally(() => inFlight.delete(key));
+};
+
+export const checkServer = async (): Promise<boolean> => {
+  try {
+    const res = await timedFetch(`${CRM_URL}?table=settings`, { headers: authHeaders() }, QUICK_TIMEOUT);
+    const ok = res.status < 500;
+    setOnline(ok);
+    return ok;
+  } catch {
+    setOnline(false);
+    return false;
+  }
 };
 
 const dataListeners = new Set<(table: string) => void>();
@@ -151,12 +175,13 @@ export const listRows = async (
   await initCache();
   const cached = readCache(key);
 
-  if (cached && (!online || (cacheAge(key) ?? Infinity) < FRESH_MS)) {
+  if (cached) {
+    if (online && (cacheAge(key) ?? Infinity) > FRESH_MS) refreshInBackground(key, q.toString(), table);
     return withQueue(table, suffix, cached);
   }
 
   try {
-    const items = await fetchList(key, q.toString(), cached ? QUICK_TIMEOUT : NET_TIMEOUT);
+    const items = await fetchList(key, q.toString(), NET_TIMEOUT);
     return withQueue(table, suffix, items);
   } catch (e) {
     if (e instanceof Error && e.name === 'Forbidden') throw e;
@@ -231,6 +256,7 @@ const rememberId = (localId: number, realId: number) => {
   } catch {
     /* переполнено */
   }
+  mirrorLocal();
 };
 
 const realIds = (body: Row): Row => {
@@ -771,16 +797,31 @@ const mapSettings = (item: Row | undefined): FarmSettings => {
 
 const SETTINGS_KEY = 'hb_settings';
 
-export const getSettings = async (): Promise<FarmSettings> => {
+const fetchSettings = async (): Promise<FarmSettings> => {
+  const res = await timedFetch(`${CRM_URL}?table=settings`, { headers: authHeaders() }, QUICK_TIMEOUT);
+  if (!res.ok) throw new Error('server');
+  const data = await res.json();
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(data.item || {}));
+  mirrorLocal();
+  return mapSettings(data.item);
+};
+
+export const cachedSettings = (): FarmSettings | null => {
   try {
-    const res = await timedFetch(`${CRM_URL}?table=settings`, { headers: authHeaders() }, QUICK_TIMEOUT);
-    if (!res.ok) throw new Error('server');
-    const data = await res.json();
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(data.item || {}));
-    return mapSettings(data.item);
-  } catch (e) {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return mapSettings(JSON.parse(raw));
+    return raw ? mapSettings(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const getSettings = async (fresh = false): Promise<FarmSettings> => {
+  const cached = cachedSettings();
+  if (cached && !fresh) return cached;
+  try {
+    return await fetchSettings();
+  } catch (e) {
+    if (cached) return cached;
     throw e;
   }
 };
@@ -836,19 +877,41 @@ export const login = async (
   password: string,
   role?: string,
 ): Promise<StaffUser> => {
-  const res = await fetch(`${AUTH_URL}?action=login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ login: loginName, password, role }),
-  });
+  let res: Response;
+  try {
+    res = await timedFetch(`${AUTH_URL}?action=login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login: loginName, password, role }),
+    });
+  } catch {
+    setOnline(false);
+    throw new Error('Нет связи с сервером. Для входа нужен интернет — один раз, дальше приложение работает без него');
+  }
+  if (res.status >= 500) {
+    setOnline(false);
+    throw new Error('Сервер сейчас недоступен. Попробуйте войти чуть позже');
+  }
+  setOnline(true);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Ошибка входа');
   localStorage.setItem('hb_token', data.token);
   localStorage.setItem('hb_me', JSON.stringify(data.user));
+  mirrorLocal();
   return data.user;
 };
 
 const ME_KEY = 'hb_me';
+
+export const cachedMe = (): StaffUser | null => {
+  if (!getToken()) return null;
+  try {
+    const raw = localStorage.getItem(ME_KEY);
+    return raw ? (JSON.parse(raw) as StaffUser) : null;
+  } catch {
+    return null;
+  }
+};
 
 export const fetchMe = async (): Promise<StaffUser | null> => {
   if (!getToken()) return null;
@@ -856,11 +919,14 @@ export const fetchMe = async (): Promise<StaffUser | null> => {
     const res = await timedFetch(`${AUTH_URL}?action=me`, { headers: authHeaders() }, QUICK_TIMEOUT);
     if (res.status === 401) {
       localStorage.removeItem(ME_KEY);
+      localStorage.removeItem('hb_token');
+      mirrorLocal();
       return null;
     }
     if (!res.ok) throw new Error('server');
     const data = await res.json();
     localStorage.setItem(ME_KEY, JSON.stringify(data.user));
+    mirrorLocal();
     setOnline(true);
     return data.user;
   } catch {
@@ -928,6 +994,8 @@ export const logout = async () => {
   }
   localStorage.removeItem('hb_token');
   localStorage.removeItem(SETTINGS_KEY);
+  localStorage.removeItem('hb_me');
+  mirrorLocal();
 };
 
 export const deleteAccount = async (password: string, reason = '') => {

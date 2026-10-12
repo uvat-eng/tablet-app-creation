@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { FarmSettings, getSettings, saveSettings, Row } from '@/lib/api';
+import { FarmSettings, getSettings, saveSettings, cachedSettings, onConnection, Row } from '@/lib/api';
+import { initCache } from '@/lib/localCache';
 
 interface SettingsValue {
   settings: FarmSettings;
   loading: boolean;
+  known: boolean;
   save: (body: Row) => Promise<void>;
   reload: () => Promise<void>;
 }
@@ -38,22 +40,44 @@ const EMPTY: FarmSettings = {
 const SettingsContext = createContext<SettingsValue>({
   settings: EMPTY,
   loading: true,
+  known: false,
   save: async () => undefined,
   reload: async () => undefined,
 });
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [settings, setSettings] = useState<FarmSettings>(EMPTY);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<FarmSettings>(() => cachedSettings() || EMPTY);
+  const [loading, setLoading] = useState(() => !cachedSettings());
+  const [known, setKnown] = useState(() => Boolean(cachedSettings()));
 
   const reload = useCallback(async () => {
-    const data = await getSettings();
-    setSettings(data);
-    setLoading(false);
+    try {
+      setSettings(await getSettings(true));
+      setKnown(true);
+    } catch {
+      const c = cachedSettings();
+      if (c) setSettings(c);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    reload();
+    initCache().then(() => {
+      const c = cachedSettings();
+      if (c) {
+        setSettings(c);
+        setKnown(true);
+        setLoading(false);
+      }
+      reload();
+    });
+    const off = onConnection((v) => {
+      if (v) reload();
+    });
+    return () => {
+      off();
+    };
   }, [reload]);
 
   const save = async (body: Row) => {
@@ -62,7 +86,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <SettingsContext.Provider value={{ settings, loading, save, reload }}>
+    <SettingsContext.Provider value={{ settings, loading, known, save, reload }}>
       {children}
     </SettingsContext.Provider>
   );

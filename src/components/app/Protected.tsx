@@ -15,7 +15,7 @@ interface ProtectedProps {
 
 const Protected = ({ children, ownerOnly = false, section }: ProtectedProps) => {
   const { user, loading } = useAuth();
-  const { settings, loading: settingsLoading } = useSettings();
+  const { settings, loading: settingsLoading, known } = useSettings();
   const location = useLocation();
   const [consent, setConsent] = useState(isConsentGiven);
 
@@ -32,7 +32,7 @@ const Protected = ({ children, ownerOnly = false, section }: ProtectedProps) => 
     return <Login />;
   }
 
-  if (!settings.configured) {
+  if (known && !settings.configured) {
     if (user.role === 'owner') return <Setup />;
     return (
       <div className="h-shell min-h-screen flex items-center justify-center h-mono-cap px-6 text-center">

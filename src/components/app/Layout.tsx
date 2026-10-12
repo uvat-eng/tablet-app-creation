@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { allowedSections, ROLES } from '@/lib/permissions';
 import Brand from '@/components/app/Brand';
 import SyncBadge from '@/components/app/SyncBadge';
+import OfflineBar from '@/components/app/OfflineBar';
 import usePendingCounts from '@/hooks/usePendingCounts';
 
 interface LayoutProps {
@@ -102,8 +103,9 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
     </aside>
 
     <main className="flex-1 min-w-0">
+      <div className="sticky top-0 z-30">
       <div
-        className="lg:hidden border-b border-[#e2e2df] px-4 py-3 flex items-center justify-between gap-3 sticky top-0 z-30"
+        className="lg:hidden border-b border-[#e2e2df] px-4 py-3 flex items-center justify-between gap-3"
         style={{
           background: 'var(--hero-bg, #fff)',
           paddingTop: 'calc(0.75rem + var(--safe-top))',
@@ -137,6 +139,8 @@ const Layout = ({ title, index, lede, action, children }: LayoutProps) => {
         </span>
 
         <SyncBadge />
+      </div>
+      <OfflineBar />
       </div>
 
       {menu && (

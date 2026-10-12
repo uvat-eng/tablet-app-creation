@@ -1,4 +1,5 @@
 import { Row } from '@/lib/api';
+import { nativeGet, nativeSet, restoreFromNative } from '@/lib/nativeStore';
 
 const DB_NAME = 'hb_offline';
 const STORE = 'kv';
@@ -6,6 +7,7 @@ const PREFIX = 'hb_cache_';
 const QUEUE = 'hb_queue';
 const LAST = 'hb_last_sync';
 const LEGACY_META = 'hb_cache_meta';
+const NATIVE_QUEUE = 'hb_queue_backup';
 
 interface Entry {
   rows: Row[];
@@ -150,6 +152,7 @@ let ready: Promise<void> | null = null;
 export const initCache = () => {
   if (ready) return ready;
   ready = (async () => {
+    await restoreFromNative();
     const db = await openDb();
     if (db) {
       const all = await readAll(db);
@@ -172,6 +175,18 @@ export const initCache = () => {
       queue = [...legacyQueue.filter((q) => !known.has(q.id)), ...queue];
     }
     if (!lastSync && legacyLast) lastSync = legacyLast;
+
+    try {
+      const raw = await nativeGet(NATIVE_QUEUE);
+      const saved = raw ? (JSON.parse(raw) as QueueItem[]) : [];
+      if (Array.isArray(saved) && saved.length) {
+        const known = new Set(queue.map((q) => q.id));
+        const missing = saved.filter((q) => !known.has(q.id));
+        if (missing.length) queue = [...missing, ...queue].sort((a, b) => a.at - b.at);
+      }
+    } catch {
+      /* копии нет */
+    }
 
     if (db) {
       for (const [k] of entries) await put(k, mem.get(k));
@@ -317,6 +332,7 @@ export const readQueue = (): QueueItem[] => queue;
 
 export const writeQueue = (items: QueueItem[]) => {
   queue = items;
+  nativeSet(NATIVE_QUEUE, items.length ? JSON.stringify(items) : null);
   return put(QUEUE, items);
 };
 
