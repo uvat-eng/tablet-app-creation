@@ -63,6 +63,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    const guard = setTimeout(() => setLoading(false), 10000);
     initCache().then(() => {
       const c = cachedSettings();
       if (c) {
@@ -77,6 +78,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
     return () => {
       off();
+      clearTimeout(guard);
     };
   }, [reload]);
 

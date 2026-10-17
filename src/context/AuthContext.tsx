@@ -62,6 +62,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (localStorage.getItem('hb_bg_on') === '1') bgStart(canClubChat(u));
       }
     };
+    const guard = setTimeout(() => {
+      if (!alive) return;
+      const local = cachedMe();
+      if (local) setUser((prev) => prev || local);
+      setLoading(false);
+    }, 10000);
     initCache().then(() => {
       const local = cachedMe();
       if (local) {
@@ -80,6 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     return () => {
       alive = false;
+      clearTimeout(guard);
     };
   }, []);
 

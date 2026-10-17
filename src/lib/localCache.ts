@@ -34,20 +34,25 @@ let dbPromise: Promise<IDBDatabase | null> | null = null;
 const openDb = () => {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve) => {
+    const guard = setTimeout(() => resolve(null), 4000);
+    const done = (v: IDBDatabase | null) => {
+      clearTimeout(guard);
+      resolve(v);
+    };
     try {
       if (typeof indexedDB === 'undefined') {
-        resolve(null);
+        done(null);
         return;
       }
       const req = indexedDB.open(DB_NAME, 1);
       req.onupgradeneeded = () => {
         if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-      req.onblocked = () => resolve(null);
+      req.onsuccess = () => done(req.result);
+      req.onerror = () => done(null);
+      req.onblocked = () => done(null);
     } catch {
-      resolve(null);
+      done(null);
     }
   });
   return dbPromise;
@@ -68,6 +73,7 @@ const run = async (fn: (s: IDBObjectStore) => void, fallback: () => void) => {
     return;
   }
   await new Promise<void>((resolve) => {
+    setTimeout(resolve, 4000);
     try {
       const tx = db.transaction(STORE, 'readwrite');
       fn(tx.objectStore(STORE));
@@ -87,6 +93,7 @@ const del = (key: string) => run((s) => s.delete(key), () => localStorage.remove
 const readAll = (db: IDBDatabase) =>
   new Promise<[string, unknown][]>((resolve) => {
     const out: [string, unknown][] = [];
+    setTimeout(() => resolve(out), 6000);
     try {
       const req = db.transaction(STORE, 'readonly').objectStore(STORE).openCursor();
       req.onsuccess = () => {
@@ -151,7 +158,7 @@ let ready: Promise<void> | null = null;
 
 export const initCache = () => {
   if (ready) return ready;
-  ready = (async () => {
+  const boot = (async () => {
     await restoreFromNative();
     const db = await openDb();
     if (db) {
@@ -198,11 +205,12 @@ export const initCache = () => {
     }
 
     try {
-      await navigator.storage?.persist?.();
+      navigator.storage?.persist?.().catch(() => undefined);
     } catch {
       /* браузер не разрешил */
     }
-  })();
+  })().catch(() => undefined);
+  ready = Promise.race([boot, new Promise<void>((r) => setTimeout(r, 8000))]);
   return ready;
 };
 

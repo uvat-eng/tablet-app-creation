@@ -4,33 +4,56 @@ const isNative = () =>
 
 type Prefs = typeof import('@capacitor/preferences').Preferences;
 
-let prefs: Promise<Prefs | null> | null = null;
+let prefs: Promise<{ p: Prefs } | null> | null = null;
+
+const withTimeout = <T,>(task: Promise<T>, ms: number, fallback: T): Promise<T> =>
+  new Promise((resolve) => {
+    const t = setTimeout(() => resolve(fallback), ms);
+    task
+      .then((v) => {
+        clearTimeout(t);
+        resolve(v);
+      })
+      .catch(() => {
+        clearTimeout(t);
+        resolve(fallback);
+      });
+  });
 
 const load = () => {
   if (!prefs) {
     prefs = isNative()
-      ? import('@capacitor/preferences').then((m) => m.Preferences).catch(() => null)
+      ? withTimeout(
+          import('@capacitor/preferences').then((m) => ({ p: m.Preferences })),
+          3000,
+          null,
+        )
       : Promise.resolve(null);
   }
   return prefs;
 };
 
 export const nativeSet = async (key: string, value: string | null) => {
-  const p = await load();
-  if (!p) return;
+  const box = await load();
+  if (!box) return;
   try {
-    if (value === null) await p.remove({ key });
-    else await p.set({ key, value });
+    const job = value === null ? box.p.remove({ key }) : box.p.set({ key, value });
+    await withTimeout(job.then(() => true), 3000, false);
   } catch {
     /* хранилище телефона недоступно */
   }
 };
 
 export const nativeGet = async (key: string): Promise<string | null> => {
-  const p = await load();
-  if (!p) return null;
+  const box = await load();
+  if (!box) return null;
   try {
-    return (await p.get({ key })).value;
+    const res = await withTimeout(
+      box.p.get({ key }).then((r) => r.value),
+      2000,
+      null,
+    );
+    return res;
   } catch {
     return null;
   }
@@ -40,15 +63,23 @@ const MIRRORED = ['hb_token', 'hb_me', 'hb_settings', 'hb_id_map', 'hb_club_memb
 
 export const restoreFromNative = async () => {
   if (!isNative()) return;
-  for (const key of MIRRORED) {
+  const missing = MIRRORED.filter((key) => {
     try {
-      if (localStorage.getItem(key) !== null) continue;
-      const v = await nativeGet(key);
+      return localStorage.getItem(key) === null;
+    } catch {
+      return false;
+    }
+  });
+  if (!missing.length) return;
+  const values = await Promise.all(missing.map((key) => nativeGet(key)));
+  missing.forEach((key, i) => {
+    const v = values[i];
+    try {
       if (v !== null) localStorage.setItem(key, v);
     } catch {
       /* пропускаем */
     }
-  }
+  });
 };
 
 export const mirrorLocal = () => {
