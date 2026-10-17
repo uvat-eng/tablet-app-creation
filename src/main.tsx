@@ -13,16 +13,22 @@ const nativeApp =
 
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   if (nativeApp) {
-    navigator.serviceWorker
-      .getRegistrations()
-      .then((list) => list.forEach((r) => r.unregister()))
-      .catch(() => undefined);
-    if ('caches' in window) {
-      caches
-        .keys()
-        .then((keys) => keys.filter((k) => k.startsWith('hb-shell-')).forEach((k) => caches.delete(k)))
-        .catch(() => undefined);
-    }
+    (async () => {
+      try {
+        const list = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(list.map((r) => r.unregister()));
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.filter((k) => k.startsWith('hb-shell-')).map((k) => caches.delete(k)));
+        }
+        if (navigator.serviceWorker.controller && !sessionStorage.getItem('hb_sw_reset')) {
+          sessionStorage.setItem('hb_sw_reset', '1');
+          window.location.reload();
+        }
+      } catch {
+        /* служебных файлов нет */
+      }
+    })();
   } else {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch(() => undefined);

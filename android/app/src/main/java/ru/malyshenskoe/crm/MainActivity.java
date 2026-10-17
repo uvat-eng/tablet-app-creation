@@ -1,9 +1,15 @@
 package ru.malyshenskoe.crm;
 
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
+import android.webkit.ServiceWorkerClient;
+import android.webkit.ServiceWorkerController;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 
+import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -11,8 +17,29 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ImmersivePlugin.class);
         registerPlugin(BackgroundPlugin.class);
+        routeServiceWorker();
         super.onCreate(savedInstanceState);
         clearCacheOnUpdate();
+    }
+
+    private void routeServiceWorker() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            return;
+        }
+        try {
+            ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
+                @Override
+                public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                    Bridge bridge = getBridge();
+                    if (bridge == null || bridge.getLocalServer() == null) {
+                        return null;
+                    }
+                    return bridge.getLocalServer().shouldInterceptRequest(request);
+                }
+            });
+        } catch (Exception ignored) {
+            // телефон не поддерживает служебные файлы
+        }
     }
 
     private void clearCacheOnUpdate() {
