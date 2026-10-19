@@ -4,6 +4,7 @@ import { ChatMessage, loadThread, sendMessage, fmtWhen } from '@/lib/chatApi';
 import MessageActions from '@/components/app/MessageActions';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { outboxFor, onOutbox, flushOutbox, restoreOutbox, OutboxItem } from '@/lib/chatOutbox';
 
 interface Props {
   guestId?: number;
@@ -21,6 +22,7 @@ const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
   const [loading, setLoading] = useState(true);
   const boxRef = useRef<HTMLDivElement>(null);
   const lastCount = useRef(0);
+  const [pending, setPending] = useState<OutboxItem[]>(() => outboxFor('guest', guestId));
 
   const scroll = useCallback(() => {
     const el = boxRef.current;
@@ -43,6 +45,12 @@ const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
   }, [guestId, scroll]);
 
   useEffect(() => {
+    const sync = () => setPending(outboxFor('guest', guestId));
+    restoreOutbox().then(sync);
+    return onOutbox(sync);
+  }, [guestId]);
+
+  useEffect(() => {
     setLoading(true);
     load();
     const t = setInterval(load, POLL_MS);
@@ -55,7 +63,14 @@ const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
     setBusy(true);
     try {
       const data = await sendMessage(body, guestId);
-      setItems(data.messages);
+      if (data) {
+        setItems(data.messages);
+        flushOutbox().then((n) => {
+          if (n) load();
+        });
+      } else {
+        toast('Нет связи — сообщение уйдёт само, когда появится сеть');
+      }
       setText('');
       setTimeout(scroll, 40);
     } catch {
@@ -77,7 +92,7 @@ const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
         {loading && items.length === 0 && (
           <div className="h-label text-center py-8 opacity-60">Загружаем переписку…</div>
         )}
-        {!loading && items.length === 0 && (
+        {!loading && items.length === 0 && pending.length === 0 && (
           <div className="text-center py-10">
             <Icon name="MessageSquare" size={26} fallback="MessageCircle" />
             <div className="h-label mt-3 opacity-60">Сообщений пока нет</div>
@@ -172,6 +187,30 @@ const ChatPanel = ({ guestId, title, height = 420 }: Props) => {
           </div>
           );
         })}
+
+        {pending.map((m) => (
+          <div
+            key={m.id}
+            className="mb-3 flex"
+            style={{ justifyContent: guestId ? 'flex-end' : 'flex-start' }}
+          >
+            <div
+              className="px-3 py-2"
+              style={{
+                maxWidth: '78%',
+                background: guestId ? 'var(--hero-accent)' : '#f2f2f0',
+                color: guestId ? 'var(--hero-accent-contrast)' : 'inherit',
+                border: '1px dashed #b9b9b4',
+                opacity: 0.75,
+              }}
+            >
+              <div className="text-[0.82em] whitespace-pre-wrap break-words">{m.body}</div>
+              <div className="text-[0.6em] opacity-70 mt-1 text-right flex items-center justify-end gap-1">
+                <Icon name="Clock" size={11} /> ждёт связи
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="border-t border-[#e2e2df] p-3 flex gap-2 items-end">

@@ -17,6 +17,7 @@ import {
   QueueItem,
 } from '@/lib/localCache';
 import { mirrorLocal } from '@/lib/nativeStore';
+import { withCache, netFetch } from '@/lib/offlineStore';
 
 const CRM_URL = 'https://functions.poehali.dev/85ee97e6-1ee1-4333-be9f-698f0c374677';
 export const AUTH_URL = 'https://functions.poehali.dev/de14562b-724c-4ed9-80c1-c0d1787d0889';
@@ -212,9 +213,12 @@ export const listLog = async (
   if (opts.table) q.set('table_name', opts.table);
   if (opts.action) q.set('action', opts.action);
   q.set('limit', String(opts.limit || 300));
-  const res = await fetch(`${CRM_URL}?${q}`, { headers: authHeaders() });
-  const data = await res.json();
-  return data.items || [];
+  return withCache('log_' + q.toString(), async () => {
+    const res = await netFetch(`${CRM_URL}?${q}`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Не удалось загрузить журнал');
+    return (data.items || []) as LogEntry[];
+  });
 };
 
 export class ConflictError extends Error {
@@ -738,6 +742,14 @@ export interface CalendarFeed {
 }
 
 export const getCalendarFeed = async (reset = false): Promise<CalendarFeed> => {
+  if (!reset) {
+    return withCache('calendar_feed', async () => {
+      const res = await netFetch(CALENDAR_URL, { headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Не удалось получить ссылку');
+      return data as CalendarFeed;
+    });
+  }
   const res = await fetch(`${CALENDAR_URL}${reset ? '?action=reset' : ''}`, {
     method: reset ? 'POST' : 'GET',
     headers: authHeaders(),
@@ -940,12 +952,13 @@ export const fetchMe = async (): Promise<StaffUser | null> => {
   }
 };
 
-export const listAccess = async (): Promise<Row[]> => {
-  const res = await fetch(`${AUTH_URL}?action=access`, { headers: authHeaders() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Не удалось загрузить список');
-  return data.items || [];
-};
+export const listAccess = async (): Promise<Row[]> =>
+  withCache('access', async () => {
+    const res = await netFetch(`${AUTH_URL}?action=access`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Не удалось загрузить список');
+    return (data.items || []) as Row[];
+  });
 
 export const resetUserPassword = async (id: number, newPassword: string) => {
   const res = await fetch(`${AUTH_URL}?action=access`, {
@@ -1011,12 +1024,13 @@ export const deleteAccount = async (password: string, reason = '') => {
   return true;
 };
 
-export const listStaff = async (): Promise<Row[]> => {
-  const res = await fetch(`${AUTH_URL}?action=staff`, { headers: authHeaders() });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.items || [];
-};
+export const listStaff = async (): Promise<Row[]> =>
+  withCache('staff', async () => {
+    const res = await netFetch(`${AUTH_URL}?action=staff`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('staff ' + res.status);
+    const data = await res.json();
+    return (data.items || []) as Row[];
+  }).catch(() => []);
 
 export const deleteStaff = async (id: number) => {
   const res = await fetch(`${AUTH_URL}?action=staff&id=${id}`, {
@@ -1038,12 +1052,13 @@ export const saveStaff = async (body: Row, method: 'POST' | 'PUT') => {
   if (!res.ok) throw new Error(data.error || 'Ошибка сохранения');
   return data.item;
 };
-export const listHunterAccess = async (): Promise<Row[]> => {
-  const res = await fetch(`${AUTH_URL}?action=hunter_access`, { headers: authHeaders() });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.items || [];
-};
+export const listHunterAccess = async (): Promise<Row[]> =>
+  withCache('hunter_access', async () => {
+    const res = await netFetch(`${AUTH_URL}?action=hunter_access`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('hunter_access ' + res.status);
+    const data = await res.json();
+    return (data.items || []) as Row[];
+  }).catch(() => []);
 
 export const saveHunterAccess = async (body: {
   guest_id: number;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { isOnline, onConnection, pendingCount, refreshAll, syncQueue } from '@/lib/api';
 import { cacheStats } from '@/lib/localCache';
+import { refreshExtras } from '@/lib/extraSync';
 import { toast } from 'sonner';
 
 const ago = (t: number | null) => {
@@ -38,6 +39,7 @@ const SyncBadge = () => {
     const before = pendingCount();
     const r = await syncQueue();
     const ok = await refreshAll();
+    if (ok) await refreshExtras().catch(() => undefined);
     setBusy(false);
     setQueue(pendingCount());
     setStats(cacheStats());

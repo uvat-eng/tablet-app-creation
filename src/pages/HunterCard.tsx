@@ -6,10 +6,14 @@ import RecordDialog, { Field } from '@/components/app/RecordDialog';
 import HunterActivity from '@/components/app/HunterActivity';
 import ChatPanel from '@/components/app/ChatPanel';
 import { Row, listRows, updateRow, createRow, removeRow } from '@/lib/api';
-import { SPECIES, SPECIES_ONE } from '@/lib/species';
+import { SPECIES } from '@/lib/species';
 import { COUNTRIES } from '@/lib/countries';
 import { toast } from 'sonner';
 import useDataRefresh from '@/hooks/useDataRefresh';
+import HunterProfile from '@/components/hunter/HunterProfile';
+import HunterDocsList from '@/components/hunter/HunterDocsList';
+import HunterBagTable from '@/components/hunter/HunterBagTable';
+import HunterBookings from '@/components/hunter/HunterBookings';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -208,15 +212,6 @@ const HunterCard = () => {
     );
   }
 
-  const flag = COUNTRIES.find((c) => c.name === String(guest.country || 'Россия'))?.flag || '🏳️';
-
-  const field = (label: string, value: unknown, wide = false) => (
-    <div key={label} className={wide ? 'sm:col-span-2' : ''}>
-      <div className="h-label">{label}</div>
-      <div className="text-sm mt-1">{String(value || '—')}</div>
-    </div>
-  );
-
   return (
     <Layout
       index="Раздел / База охотников"
@@ -260,183 +255,29 @@ const HunterCard = () => {
         </span>
       }
     >
-      <div
-        className="grid gap-px mb-8"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          background: '#e2e2df',
-          border: '1px solid #e2e2df',
+      <HunterProfile guest={guest} byS={byS} total={total} />
+
+      <HunterDocsList
+        docs={docs}
+        onAdd={() => {
+          setEditingDoc(null);
+          setDocOpen(true);
         }}
-      >
-        {SPECIES.map((s) => (
-          <div key={s.key} className="bg-white px-4 py-3">
-            <div className="h-label flex items-center gap-2">
-              <span className="text-[1.2em] leading-none">{s.emoji}</span>
-              {s.label}
-            </div>
-            <div className="h-head text-[22px] mt-1">{byS[s.key] || 0}</div>
-          </div>
-        ))}
-        <div className="bg-white px-4 py-3">
-          <div className="h-label">Всего</div>
-          <div className="h-head text-[22px] mt-1">{total}</div>
-        </div>
-      </div>
+        onEdit={(d) => {
+          setEditingDoc(d);
+          setDocOpen(true);
+        }}
+      />
 
-      <div className="grid gap-8 lg:grid-cols-2 mb-10">
-        <div className="border border-[#e2e2df] p-5">
-          <div className="h-label mb-4 flex items-center gap-2">
-            <Icon name="User" size={14} /> Личные данные
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {field('Страна', `${flag} ${guest.country || 'Россия'}`)}
-            {field('Национальность', guest.nationality)}
-            {field('Город проживания', guest.city)}
-            {field('Дата рождения', String(guest.born_on || '').slice(0, 10))}
-            {field('Телефон', guest.phone)}
-            {field('Почта', guest.email)}
-            {field('Прописка', guest.address, true)}
-          </div>
-        </div>
-
-        <div className="border border-[#e2e2df] p-5">
-          <div className="h-label mb-4 flex items-center gap-2">
-            <Icon name="IdCard" size={14} fallback="CreditCard" /> Документы
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {field('Паспорт', guest.passport)}
-            {field('Выдан', String(guest.passport_date || '').slice(0, 10))}
-            {field('Кем выдан паспорт', guest.passport_issued, true)}
-            {field('ИНН', guest.inn)}
-            {field('СНИЛС', guest.snils)}
-            {field('Охотничий билет', guest.hunt_ticket)}
-            {field('Выдан', String(guest.hunt_ticket_date || '').slice(0, 10))}
-            {field('Кем выдан охотбилет', guest.hunt_ticket_issued, true)}
-            {field('РОХа', guest.roh_number)}
-            {field('Действует до', String(guest.roh_date || '').slice(0, 10))}
-            {field('Оружие', guest.roh_weapon, true)}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 mb-3">
-        <div className="h-head text-[22px]">Документы</div>
-        <button
-          className="h-cta-ghost"
-          onClick={() => {
-            setEditingDoc(null);
-            setDocOpen(true);
-          }}
-        >
-          <Icon name="Plus" size={14} /> Добавить документ
-        </button>
-      </div>
-      <div className="border border-[#e2e2df] mb-10">
-        {docs.map((d) => (
-          <div
-            key={String(d.id)}
-            className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-[#eeeeec] last:border-0"
-          >
-            <Icon name="FileText" size={15} className="opacity-60" />
-            <span className="text-[0.74em]">{String(d.title || 'Документ')}</span>
-            {d.doc_no && <span className="h-label">№ {String(d.doc_no)}</span>}
-            {d.signed_on && (
-              <span className="h-label">
-                от {String(d.signed_on).slice(0, 10).split('-').reverse().join('.')}
-              </span>
-            )}
-            <span className="flex gap-2 ml-auto">
-              {d.file_url && (
-                <a
-                  className="h-cta-ghost"
-                  href={String(d.file_url)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Icon name="Download" size={13} /> Открыть
-                </a>
-              )}
-              <button
-                className="h-label underline"
-                onClick={() => {
-                  setEditingDoc(d);
-                  setDocOpen(true);
-                }}
-              >
-                Изменить
-              </button>
-            </span>
-          </div>
-        ))}
-        {!docs.length && (
-          <div className="px-4 py-6 text-center h-mono-cap text-[var(--hero-muted)]">
-            Документов пока нет
-          </div>
-        )}
-      </div>
-
-      <div className="h-head text-[22px] mb-3">Трофеи охотника</div>
-      <div className="border border-[#e2e2df] overflow-x-auto mb-10">
-        <table className="w-full min-w-[720px]">
-          <thead>
-            <tr className="bg-[var(--hero-surface)]">
-              <th className="h-label text-left px-4 py-3 font-normal w-[110px]">Дата</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[150px]">Вид</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[80px]">Кол-во</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[160px]">Где</th>
-              <th className="h-label text-left px-4 py-3 font-normal">Трофей</th>
-              <th className="h-label text-left px-4 py-3 font-normal w-[90px]" />
-            </tr>
-          </thead>
-          <tbody>
-            {bag.map((b) => {
-              const s = SPECIES_ONE(String(b.species));
-              const l = locations.find((x) => String(x.id) === String(b.location_id));
-              return (
-                <tr
-                  key={String(b.id)}
-                  className="border-t border-[#e2e2df] hover:bg-[var(--hero-surface)] cursor-pointer"
-                  onClick={() => {
-                    setEditingBag(b);
-                    setBagOpen(true);
-                  }}
-                >
-                  <td className="px-4 py-3 text-[0.68em]">
-                    {String(b.taken_on || '').slice(0, 10)}
-                  </td>
-                  <td className="px-4 py-3 text-[0.72em]">
-                    <span className="flex items-center gap-2">
-                      <span className="text-[1.2em] leading-none">{s.emoji}</span>
-                      {s.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-[0.72em]">{String(b.qty || 1)}</td>
-                  <td className="px-4 py-3 text-[0.68em]">{String(l?.name || b.place || '—')}</td>
-                  <td className="px-4 py-3 text-[0.72em]">{String(b.trophy_note || '—')}</td>
-                  <td className="px-4 py-3">
-                    <button
-                      className="h-label underline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        dropBag(b);
-                      }}
-                    >
-                      Убрать
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-            {!bag.length && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center h-mono-cap text-[var(--hero-muted)]">
-                  Трофеев пока нет — нажмите «Добавить трофей»
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <HunterBagTable
+        bag={bag}
+        locations={locations}
+        onEdit={(b) => {
+          setEditingBag(b);
+          setBagOpen(true);
+        }}
+        onDrop={dropBag}
+      />
 
       <div id="hunter-chat" className="mt-10">
         <div className="h-head text-[22px] mb-3">Переписка с охотником</div>
@@ -445,33 +286,7 @@ const HunterCard = () => {
 
       <HunterActivity guestId={Number(id)} guestName={String(guest.name)} />
 
-      {bookings.length > 0 && (
-        <>
-          <div className="h-head text-[22px] mt-10 mb-3">Заезды</div>
-          <div className="border border-[#e2e2df] overflow-x-auto">
-            <table className="w-full min-w-[520px]">
-              <thead>
-                <tr className="bg-[var(--hero-surface)]">
-                  <th className="h-label text-left px-4 py-2 font-normal w-[120px]">Заезд</th>
-                  <th className="h-label text-left px-4 py-2 font-normal w-[120px]">Выезд</th>
-                  <th className="h-label text-left px-4 py-2 font-normal">Объект</th>
-                  <th className="h-label text-left px-4 py-2 font-normal w-[80px]">Чел.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map((b) => (
-                  <tr key={String(b.id)} className="border-t border-[#e2e2df]">
-                    <td className="px-4 py-2 text-[0.68em]">{String(b.date_from || '')}</td>
-                    <td className="px-4 py-2 text-[0.68em]">{String(b.date_to || '')}</td>
-                    <td className="px-4 py-2 text-[0.72em]">{String(b.object_name || '—')}</td>
-                    <td className="px-4 py-2 text-[0.72em]">{String(b.people || '—')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      <HunterBookings bookings={bookings} />
 
       <RecordDialog
         open={docOpen}

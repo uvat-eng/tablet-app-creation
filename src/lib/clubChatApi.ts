@@ -1,4 +1,6 @@
 import { getToken } from '@/lib/api';
+import { netFetch, withCache, OfflineError } from '@/lib/offlineStore';
+import { addOutbox, registerSender } from '@/lib/chatOutbox';
 
 const URL_BASE = 'https://functions.poehali.dev/225961f2-6b49-4c2d-90b4-0ed65700f726';
 
@@ -23,27 +25,54 @@ const headers = () => ({
   'X-Auth-Token': getToken(),
 });
 
-export const loadClubChat = async (): Promise<ClubChatData> => {
-  const res = await fetch(URL_BASE, { headers: headers() });
-  if (!res.ok) throw new Error(String(res.status));
-  return (await res.json()) as ClubChatData;
-};
+export const loadClubChat = async (): Promise<ClubChatData> =>
+  withCache('club_chat', async () => {
+    const res = await netFetch(URL_BASE, { headers: headers() });
+    if (!res.ok) throw new Error(String(res.status));
+    return (await res.json()) as ClubChatData;
+  });
 
-export const sendClubMessage = async (body: string): Promise<ClubChatData> => {
-  const res = await fetch(URL_BASE, {
+const postClub = async (body: string): Promise<ClubChatData> => {
+  const res = await netFetch(URL_BASE, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({ body }),
   });
-  if (!res.ok) throw new Error(String(res.status));
+  if (!res.ok) {
+    const e = new Error(String(res.status));
+    if (res.status >= 400 && res.status < 500 && ![401, 408, 429].includes(res.status)) {
+      e.name = 'Rejected';
+    }
+    throw e;
+  }
   return (await res.json()) as ClubChatData;
 };
 
+registerSender('club', async (item) => {
+  await postClub(item.body);
+});
+
+export const sendClubMessage = async (body: string): Promise<ClubChatData | null> => {
+  try {
+    return await postClub(body);
+  } catch (e) {
+    if (e instanceof OfflineError || (e instanceof Error && e.name !== 'Rejected')) {
+      addOutbox('club', body);
+      return null;
+    }
+    throw e;
+  }
+};
+
 export const loadClubUnread = async (): Promise<number> => {
-  const res = await fetch(`${URL_BASE}?action=unread`, { headers: headers() });
-  if (!res.ok) return 0;
-  const json = await res.json();
-  return Number(json.unread || 0);
+  try {
+    const res = await netFetch(`${URL_BASE}?action=unread`, { headers: headers() });
+    if (!res.ok) return 0;
+    const json = await res.json();
+    return Number(json.unread || 0);
+  } catch {
+    return 0;
+  }
 };
 
 export const dayLabel = (iso: string): string => {

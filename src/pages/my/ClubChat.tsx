@@ -13,6 +13,7 @@ import {
 } from '@/lib/clubChatApi';
 import MessageActions from '@/components/app/MessageActions';
 import { toast } from 'sonner';
+import { outboxFor, onOutbox, flushOutbox, restoreOutbox, OutboxItem } from '@/lib/chatOutbox';
 
 const POLL_MS = 8000;
 
@@ -23,6 +24,13 @@ const ClubChat = () => {
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
   const [firstUnread, setFirstUnread] = useState(0);
+  const [pending, setPending] = useState<OutboxItem[]>(() => outboxFor('club'));
+
+  useEffect(() => {
+    const sync = () => setPending(outboxFor('club'));
+    restoreOutbox().then(sync);
+    return onOutbox(sync);
+  }, []);
 
   const boxRef = useRef<HTMLDivElement>(null);
   const countRef = useRef(0);
@@ -80,8 +88,15 @@ const ClubChat = () => {
     setBusy(true);
     try {
       const data = await sendClubMessage(body);
-      setItems(data.messages);
-      countRef.current = data.messages.length;
+      if (data) {
+        setItems(data.messages);
+        countRef.current = data.messages.length;
+        flushOutbox().then((n) => {
+          if (n) load();
+        });
+      } else {
+        toast('Нет связи — сообщение уйдёт само, когда появится сеть');
+      }
       setText('');
       setFirstUnread(0);
       setTimeout(() => scroll(true), 50);
@@ -122,7 +137,7 @@ const ClubChat = () => {
           {loading && items.length === 0 && (
             <div className="h-label text-center py-10 opacity-60">Загружаем чат…</div>
           )}
-          {!loading && items.length === 0 && (
+          {!loading && items.length === 0 && pending.length === 0 && (
             <div className="text-center py-14">
               <Icon name="MessagesSquare" size={28} fallback="MessageCircle" />
               <div className="h-label mt-3 opacity-70">Сообщений пока нет</div>
@@ -214,6 +229,26 @@ const ClubChat = () => {
               </div>
             );
           })}
+
+          {pending.map((m) => (
+            <div key={m.id} className="mb-2 flex justify-end">
+              <div
+                className="px-3 py-2"
+                style={{
+                  maxWidth: '80%',
+                  background: '#dcf8c6',
+                  border: '1px dashed #9bb98a',
+                  borderRadius: 8,
+                  opacity: 0.75,
+                }}
+              >
+                <div className="text-[0.84em] whitespace-pre-wrap break-words">{m.body}</div>
+                <div className="text-[0.6em] opacity-60 mt-1 text-right flex items-center justify-end gap-1">
+                  <Icon name="Clock" size={11} /> ждёт связи
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="border-t border-[#e2e2df] p-3 flex gap-2 items-end bg-white">

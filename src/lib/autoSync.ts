@@ -1,5 +1,6 @@
 import { refreshAll, syncQueue, pendingCount, checkServer, isOnline } from '@/lib/api';
 import { cacheStats } from '@/lib/localCache';
+import { flushChats, refreshExtras } from '@/lib/extraSync';
 
 const EVERY_MS = 60 * 60 * 1000;
 const PROBE_MS = 60 * 1000;
@@ -19,7 +20,11 @@ const tick = async () => {
     if (!back) return;
   }
   if (pendingCount()) await syncQueue();
-  if (due()) await refreshAll();
+  await flushChats();
+  if (due()) {
+    await refreshAll();
+    await refreshExtras().catch(() => undefined);
+  }
 };
 
 const onOnline = () => {
@@ -37,7 +42,9 @@ export const startAutoSync = () => {
   timers = [
     setInterval(tick, PROBE_MS),
     setInterval(() => {
-      if (pendingCount() && isOnline()) syncQueue();
+      if (!isOnline()) return;
+      if (pendingCount()) syncQueue();
+      flushChats();
     }, QUEUE_RETRY_MS),
   ];
   window.addEventListener('online', onOnline);
