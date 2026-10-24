@@ -1866,7 +1866,7 @@ def handler(event: dict, context) -> dict:
         }
 
     if kind == 'weapon_act':
-        boss = str(user.get('login') or '').lower() == 'uan'
+        boss = str(user.get('login') or '').lower() in ('uan', 'zna')
         my_guest = int(user.get('guest_id') or 0)
         if not boss and not my_guest:
             cur.close()

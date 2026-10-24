@@ -164,6 +164,8 @@ HUNTER_OWN_ONLY = {'biotech_works', 'hunter_bag', 'guest_docs', 'guests', 'docum
 
 OWN_WEAPON_KEY = {'weapons': 'owner_guest_id'}
 
+WEAPON_BOSSES = {'uan', 'zna'}
+
 CLUB_ONLY_WRITE = {'locations', 'biotech_works', 'work_photos', 'club_bag'}
 
 CLUB_ONLY_READ = {'locations'}
@@ -520,7 +522,7 @@ def handler(event: dict, context) -> dict:
                 'error': 'Демонстрационный доступ — раздел закрыт'})}
 
     if table in ('weapons', 'weapon_acts'):
-        boss = viewer and str(viewer.get('login') or '').lower() == 'uan'
+        boss = viewer and str(viewer.get('login') or '').lower() in WEAPON_BOSSES
         if not viewer or not (boss or own_weapon):
             cur.close()
             conn.close()
@@ -568,7 +570,7 @@ def handler(event: dict, context) -> dict:
         if is_hunter and table == 'objects':
             where.append("kind = 'transport'")
         if own_weapon and not (viewer
-                               and str(viewer.get('login') or '').lower() == 'uan'):
+                               and str(viewer.get('login') or '').lower() in WEAPON_BOSSES):
             if table in OWN_WEAPON_KEY:
                 where.append(OWN_WEAPON_KEY[table] + ' = ' + str(my_guest))
             if table == 'weapon_acts':

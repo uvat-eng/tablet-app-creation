@@ -60,6 +60,8 @@ const CLUB_CHAT_LOGINS = ['spy', 'uan', 'una', 'zna', 'tgw'];
 
 const PLAN_LOGINS = ['uan', 'una', 'zna'];
 
+const WEAPON_LOGINS = ['uan', 'zna'];
+
 export const canPlanHunts = (user: StaffUser | null): boolean =>
   Boolean(user && PLAN_LOGINS.includes(String(user.login || '').toLowerCase()));
 
@@ -160,7 +162,7 @@ export const parsePermissions = (raw: unknown): string[] =>
 export const can = (user: StaffUser | null, key: string): boolean => {
   if (!user) return false;
   if (key === 'weapon-transfer') {
-    return String(user.login || '').toLowerCase() === 'uan';
+    return WEAPON_LOGINS.includes(String(user.login || '').toLowerCase());
   }
   if (key === 'permits') {
     if (isReviewLogin(user.login)) return false;
